@@ -4,13 +4,7 @@
 
 typedef enum saga_TokenType
 {
-    saga_TokenType_NumberBIN,
-    saga_TokenType_NumberOCT,
-    saga_TokenType_NumberDEC,
-    saga_TokenType_NumberHEX,
-    saga_TokenType_NumberFloat,
-
-    saga_TokenType_Name,
+    saga_TokenType_Text,
     saga_TokenType_String,
 
     saga_TokenType_VecBegin,
@@ -141,106 +135,7 @@ static bool saga_skipSapce(saga_LoadContext* ctx)
 
 
 
-static bool saga_readToken_Number(saga_LoadContext* ctx, saga_Token* out)
-{
-    const char* src = ctx->src;
-    saga_Token tok = { saga_TokenType_NumberDEC, ctx->cur, 0 };
-    bool floatDoted = false;
-    if (ctx->cur + 1 < ctx->srcLen)
-    {
-        if ('0' == src[ctx->cur])
-        {
-            ++ctx->cur;
-            if ((('b' == src[ctx->cur]) || ('B' == src[ctx->cur])) && (ctx->cur + 1 < ctx->srcLen))
-            {
-                ++ctx->cur;
-                tok.type = saga_TokenType_NumberBIN;
-            }
-            else if ((('x' == src[ctx->cur] || ('X' == src[ctx->cur])) && (ctx->cur + 1 < ctx->srcLen)))
-            {
-                ++ctx->cur;
-                tok.type = saga_TokenType_NumberHEX;
-            }
-            else if ('.' == src[ctx->cur])
-            {
-                ++ctx->cur;
-                tok.type = saga_TokenType_NumberFloat;
-                floatDoted = true;
 
-            }
-            else
-            {
-                tok.type = saga_TokenType_NumberOCT;
-            }
-        }
-    }
-    for (;;)
-    {
-        if (ctx->cur >= ctx->srcLen)
-        {
-            break;
-        }
-        if (saga_TokenType_NumberBIN == tok.type)
-        {
-            if (('0' > src[ctx->cur]) || ('1' < src[ctx->cur]))
-            {
-                break;
-            }
-        }
-        else if (saga_TokenType_NumberOCT == tok.type)
-        {
-            if (('0' > src[ctx->cur]) || ('7' < src[ctx->cur]))
-            {
-                if ((ctx->cur == tok.begin + 1) && ('0' == src[ctx->cur - 1]))
-                {
-                    tok.type = saga_TokenType_NumberDEC;
-                }
-                break;
-            }
-        }
-        else if (saga_TokenType_NumberDEC == tok.type)
-        {
-            if (('0' > src[ctx->cur]) || ('9' < src[ctx->cur]))
-            {
-                break;
-            }
-        }
-        else if (saga_TokenType_NumberHEX == tok.type)
-        {
-            if ((('0' > src[ctx->cur]) || ('9' < src[ctx->cur])) &&
-                (('a' > src[ctx->cur]) || ('f' < src[ctx->cur])) &&
-                (('A' > src[ctx->cur]) || ('F' < src[ctx->cur])))
-            {
-                break;
-            }
-        }
-        else if (saga_TokenType_NumberFloat == tok.type)
-        {
-            if (!floatDoted && ('.' == src[ctx->cur]))
-            {
-                floatDoted = true;
-            }
-            if (('0' > src[ctx->cur]) || ('9' < src[ctx->cur]))
-            {
-                break;
-            }
-        }
-        else
-        {
-            assert(false);
-        }
-        ++ctx->cur;
-    }
-    if (!strchr("[]\"' \t\n\r\b\f", src[ctx->cur]))
-    {
-        ctx->cur = tok.begin;
-        return false;
-    }
-    tok.len = ctx->cur - tok.begin;
-    assert(tok.len > 0);
-    *out = tok;
-    return true;
-}
 
 
 
@@ -283,9 +178,9 @@ static bool saga_readToken_String(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_readToken_Name(saga_LoadContext* ctx, saga_Token* out)
+static bool saga_readToken_Text(saga_LoadContext* ctx, saga_Token* out)
 {
-    saga_Token tok = { saga_TokenType_Name, ctx->cur, 0 };
+    saga_Token tok = { saga_TokenType_Text, ctx->cur, 0 };
     const char* src = ctx->src;
     for (;;)
     {
@@ -337,21 +232,13 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
         ++ctx->cur;
         ok = true;
     }
-    else if ((src[ctx->cur] >= '0') && (src[ctx->cur] <= '9'))
-    {
-        ok = saga_readToken_Number(ctx, out);
-        if (!ok)
-        {
-            ok = saga_readToken_Name(ctx, out);
-        }
-    }
     else if (('"' == src[ctx->cur]) || ('\'' == src[ctx->cur]))
     {
         ok = saga_readToken_String(ctx, out);
     }
     else
     {
-        ok = saga_readToken_Name(ctx, out);
+        ok = saga_readToken_Text(ctx, out);
     }
     return ok;
 }
@@ -413,11 +300,11 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
             saga_vecFree(&vec1);
             return false;
         }
-        saga_vecAdd(&vec1, &e);
+        vec_push(&vec1, e);
     }
     if (vec->length > 0)
     {
-        saga_vecConcat(vec, &vec1);
+        saga_vecDup(vec, &vec1);
         saga_vecFree(&vec1);
     }
     else
@@ -443,23 +330,7 @@ static void saga_loadCellSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, s
             break;
         }
     }
-    info->isStringTok = saga_TokenType_String == tok->type;
-    switch (tok->type)
-    {
-    case saga_TokenType_NumberBIN:
-    case saga_TokenType_NumberOCT:
-    case saga_TokenType_NumberDEC:
-    case saga_TokenType_NumberHEX:
-    case saga_TokenType_NumberFloat:
-    {
-        u32 tokLen = min(tok->len, saga_NameStr_MAX - 1);
-        strncpy(info->numStr, ctx->src + tok->begin, tokLen);
-        info->numStr[tokLen] = 0;
-        break;
-    }
-    default:
-        break;
-    }
+    info->isStrTok = saga_TokenType_String == tok->type;
 }
 
 
@@ -476,54 +347,14 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
     bool ok = true;
     switch (tok.type)
     {
-    case saga_TokenType_NumberBIN:
-    {
-        char* end;
-        out->type = saga_CellType_Num;
-        out->num = strtol(ctx->src + tok.begin + 2, &end, 2);
-        break;
-    }
-    case saga_TokenType_NumberOCT:
-    {
-        char* end;
-        out->type = saga_CellType_Num;
-        out->num = strtol(ctx->src + tok.begin + 1, &end, 8);
-        break;
-    }
-    case saga_TokenType_NumberDEC:
-    {
-        char* end;
-        out->type = saga_CellType_Num;
-        out->num = strtol(ctx->src + tok.begin, &end, 10);
-        break;
-    }
-    case saga_TokenType_NumberHEX:
-    {
-        char* end;
-        out->type = saga_CellType_Num;
-        out->num = strtol(ctx->src + tok.begin + 2, &end, 16);
-        break;
-    }
-    case saga_TokenType_NumberFloat:
-    {
-        char* end;
-        out->type = saga_CellType_Num;
-        out->num = strtod(ctx->src + tok.begin, &end);
-        break;
-    }
-    case saga_TokenType_Name:
+    case saga_TokenType_Text:
     {
         out->type = saga_CellType_Str;
         const char* src = ctx->src + tok.begin;
-        out->stringLen = tok.len;
-        out->str = malloc(out->stringLen + 1);
-        u32 si = 0;
-        for (u32 i = 0; i < tok.len; ++i)
-        {
-            out->str[si++] = src[i];
-        }
-        out->str[tok.len] = 0;
-        assert(si == out->stringLen);
+        u32 strLen = tok.len;
+        vec_resize(&out->str, strLen + 1);
+        strncpy(out->str.data, src, tok.len);
+        out->str.data[tok.len] = 0;
         break;
     }
     case saga_TokenType_String:
@@ -540,21 +371,21 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
                 ++i;
             }
         }
-        out->stringLen = tok.len - n;
-        out->str = malloc(out->stringLen + 1);
+        u32 strLen = tok.len - n;
+        vec_resize(&out->str, strLen + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok.len; ++i)
         {
             if ('\\' == src[i])
             {
                 ++i;
-                out->str[si++] = src[i];
+                out->str.data[si++] = src[i];
                 continue;
             }
-            out->str[si++] = src[i];
+            out->str.data[si++] = src[i];
         }
-        out->str[tok.len] = 0;
-        assert(si == out->stringLen);
+        out->str.data[tok.len] = 0;
+        assert(si == strLen);
         break;
     }
     case saga_TokenType_VecBegin:

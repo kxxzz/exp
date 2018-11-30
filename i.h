@@ -8,18 +8,9 @@
 
 
 
-enum
-{
-    saga_NameStr_MAX = 255,
-};
-
-
-
-
 
 typedef enum saga_CellType
 {
-    saga_CellType_Num,
     saga_CellType_Str,
     saga_CellType_Vec,
 
@@ -28,16 +19,14 @@ typedef enum saga_CellType
 
 static const char* saga_CellTypeNameTable[saga_NumCellTypes] =
 {
-    "Num",
     "Str",
     "Vec",
 };
 
 
 
-
+typedef vec_t(char) saga_Str;
 typedef vec_t(struct saga_Cell) saga_Vec;
-
 
 
 
@@ -46,8 +35,7 @@ typedef struct saga_CellSrcInfo
     u32 offset;
     u32 line;
     u32 column;
-    bool isStringTok;
-    char numStr[saga_NameStr_MAX];
+    bool isStrTok;
 } saga_CellSrcInfo;
 
 typedef struct saga_Cell
@@ -55,11 +43,9 @@ typedef struct saga_Cell
     saga_CellType type;
     union
     {
-        double num;
-        char* str;
+        saga_Str str;
         saga_Vec vec;
     };
-    u32 stringLen;
     bool hasSrcInfo;
     saga_CellSrcInfo srcInfo;
 } saga_Cell;
@@ -69,27 +55,15 @@ void saga_cellFree(saga_Cell* cell);
 void saga_cellDup(saga_Cell* a, const saga_Cell* b);
 
 void saga_vecFree(saga_Vec* vec);
-void saga_vecAdd(saga_Vec* vec, const saga_Cell* cell);
+void saga_vecDup(saga_Vec* vec, const saga_Vec* a);
 void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
 
 
 
 
-static saga_Cell saga_cellNum(double n)
-{
-    saga_Cell cell = { saga_CellType_Num };
-    cell.num = n;
-    return cell;
-}
-static saga_Cell saga_cellStr(const char* s)
-{
-    saga_Cell cell = { saga_CellType_Str };
-    cell.stringLen = (u32)strlen(s);
-    cell.str = (char*)malloc(cell.stringLen + 1);
-    strncpy(cell.str, s, cell.stringLen + 1);
-    return cell;
-}
+saga_Cell saga_cellStr(const char* s);
 
+u32 saga_strLen(saga_Cell* a);
 
 
 

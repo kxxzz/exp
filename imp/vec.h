@@ -26,7 +26,7 @@ typedef double f64;
 
 
 
-#define vec_t(T) struct { T* data; int length, capacity; }
+#define vec_t(T) struct { T* data; u32 length, capacity; }
 
 
 #define vec_free(a) (free((a)->data)) 
@@ -71,10 +71,22 @@ typedef double f64;
     } while (0)
 
 
+#define vec_dup(a, b)\
+    do {\
+        if ((b)->length > (a)->capacity)\
+        {\
+            (a)->capacity = (b)->length;\
+            (a)->data = realloc((a)->data, (a)->capacity*sizeof((a)->data[0]));\
+        }\
+        memcpy((a)->data, (b)->data, (b)->length*sizeof((a)->data[0]));\
+        (a)->length = (b)->length;\
+    } while (0)
+
+
 #define vec_pusharr(a, arr, count)\
     do {\
-        int c = (count);\
-        int capacity0 = (a)->capacity;\
+        u32 c = (count);\
+        u32 capacity0 = (a)->capacity;\
         while ((a)->length + c > (a)->capacity)\
         {\
             (a)->capacity = !(a)->capacity ? 1 : (a)->capacity << 1;\
@@ -83,7 +95,7 @@ typedef double f64;
         {\
             (a)->data = realloc((a)->data, (a)->capacity*sizeof((a)->data[0]));\
         }\
-        for (int i = 0; i < c; ++i)\
+        for (u32 i = 0; i < c; ++i)\
         {\
             (a)->data[(a)->length + i] = (arr)[i];\
         }\
