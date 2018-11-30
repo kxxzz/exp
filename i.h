@@ -62,7 +62,6 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
 
 
 saga_Cell saga_cellStr(const char* s);
-
 u32 saga_strLen(saga_Cell* a);
 
 
