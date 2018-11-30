@@ -1,0 +1,94 @@
+%YAML 1.2
+---
+
+# https://www.sublimetext.com/docs/3/syntax.html
+
+name: Saga
+file_extensions: [saga]
+scope: source.saga
+
+
+contexts:
+  main:
+    - include: numbers
+    - include: symbols
+    - include: strings
+    - include: comments
+    - include: brackets
+
+  brackets:
+    - match: '\['
+      scope: punctuation.definition.group.begin.saga
+      push:
+        - meta_scope: meta.group.saga
+        - match: '\]'
+          scope: punctuation.definition.group.end.saga
+          pop: true
+        - include: main
+    - match: '\]'
+      scope: invalid.illegal.stray-bracket-end.saga
+
+  numbers:
+    - match: '\b((0(x|X)\h*)|(([0-9]+\.?[0-9]*)|(\.[0-9]+))((e|E)(\+|-)?[0-9]+)?)(?i:l|ul|u|f|ll|ull)?\b'
+      scope: constant.numeric.saga
+
+  symbols:
+    - match: (?<=[\s\[\]\"\']|)([^\s\[\]\"\']+)(?=[\s\[\]\"\'])
+      scope: symbol.other.global.saga
+      captures:
+        1: punctuation.definition.symbol.begin.saga
+        3: punctuation.definition.symbol.end.saga
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.saga
+      push:
+        - meta_scope: string.quoted.double.saga
+        - match: '"'
+          scope: punctuation.definition.string.end.saga
+          pop: true
+        - match: \\.
+          scope: constant.character.escape.saga
+
+  block-comment:
+    - match: '\/\*'
+      scope: punctuation.definition.comment.begin.saga
+      push:
+        - meta_scope: comment.block.saga
+        - include: block-comment
+        - match: '\*\/'
+          scope: punctuation.definition.comment.end.saga
+          pop: true
+
+  comments:
+    - include: block-comment
+    - match: '\*\/'
+      scope: invalid.illegal.stray-comment-end.saga
+    - match: (//).*$\n?
+      scope: comment.line.semicolon.saga
+      captures:
+        1: punctuation.definition.comment.saga
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

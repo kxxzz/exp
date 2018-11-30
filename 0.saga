@@ -1,0 +1,104 @@
+/*/**/*/
+/*vev/*verve*/efee*/
+// egbergbre / **/
+
+app
+
+
+[include-dir "../../library"]
+[shader-dir "../../glsl"]
+
+[include "drag_turn"]
+//[include "wasd_move"]
+//[include "fps_counter"]
+
+
+[: CameraPos [vec3 0 0 5]]
+
+[
+    : CameraM0
+    [
+        mat4
+        1 0 0 0
+        0 1 0 0
+        0 0 1 0
+        0 0 0 1
+    ]
+]
+
+[: CameraM [Mat4TranslateGlobal CameraM0 CameraPos]]
+
+[: CameraPos1 [vec3_add CameraPos Wasd_MoveVec]]
+[replace CameraPos1 CameraPos]
+[save CameraPos]
+
+[
+    : TurnEuler
+    [
+        vec3
+        [. DragTurnEuler1 0]
+        [. DragTurnEuler1 1]
+        0
+    ]
+]
+[: Scale1 [vec3 1 1 1]]
+
+[: CameraM1 [Mat4TrsRecompose CameraPos1 TurnEuler Scale1]]
+[replace CameraM1 CameraM]
+
+[shader render "main.comp"]
+
+[
+    pass Frame render
+    [Surface]
+    [
+        +
+        [/ [. SurfaceSize 0] 32]
+        1
+    ]
+    [
+        +
+        [/ [. SurfaceSize 1] 32]
+        1
+    ]
+    1
+]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
