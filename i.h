@@ -66,8 +66,7 @@ u32 saga_strLen(saga_Cell* a);
 
 
 
-
-bool saga_load(saga_Vec* vec, const char* str, u32 strSize);
+bool saga_load(saga_Vec* vec, const char* str);
 
 u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo);
 u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo);

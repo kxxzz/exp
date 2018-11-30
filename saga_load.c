@@ -413,13 +413,14 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
 
 
 
-
-bool saga_load(saga_Vec* vec, const char* str, u32 strSize)
+bool saga_load(saga_Vec* vec, const char* str)
 {
-    saga_LoadContext ctx = saga_newLoadContext(strSize, str);
+    saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
     bool ok = saga_loadVec(&ctx, vec);
     return ok;
 }
+
+
 
 
 

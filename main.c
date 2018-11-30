@@ -61,7 +61,7 @@ void test(void)
     saga_Vec src = { 0 };
 
 
-    bool ok = saga_load(&src, text, textSize);
+    bool ok = saga_load(&src, text);
     assert(ok);
     free(text);
 
