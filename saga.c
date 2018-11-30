@@ -10,7 +10,7 @@ void saga_cellFree(saga_Cell* cell)
         break;
     case saga_CellType_Str:
     {
-        free(cell->string);
+        free(cell->str);
         break;
     }
     case saga_CellType_Vec:
@@ -31,12 +31,12 @@ void saga_cellDup(saga_Cell* a, const saga_Cell* b)
     switch (b->type)
     {
     case saga_CellType_Num:
-        a->number = b->number;
+        a->num = b->num;
         break;
     case saga_CellType_Str:
     {
-        a->string = (char*)malloc(b->stringLen + 1);
-        strncpy(a->string, b->string, b->stringLen + 1);
+        a->str = (char*)malloc(b->stringLen + 1);
+        strncpy(a->str, b->str, b->stringLen + 1);
         a->stringLen = b->stringLen;
         break;
     }
@@ -214,13 +214,13 @@ u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
         }
         else
         {
-            n = saga_ppDouble(buf, bufSize, cell->number);
+            n = saga_ppDouble(buf, bufSize, cell->num);
         }
         return n;
     }
     case saga_CellType_Str:
     {
-        const char* str = cell->string;
+        const char* str = cell->str;
         u32 n;
         bool isStringTok = false;
         if (withSrcInfo && cell->hasSrcInfo)
@@ -286,7 +286,7 @@ u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
         }
         else
         {
-            n = snprintf(buf, bufSize, "%s", cell->string);
+            n = snprintf(buf, bufSize, "%s", cell->str);
         }
         return n;
     }

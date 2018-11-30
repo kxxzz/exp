@@ -55,8 +55,8 @@ typedef struct saga_Cell
     saga_CellType type;
     union
     {
-        double number;
-        char* string;
+        double num;
+        char* str;
         saga_Vec vec;
     };
     u32 stringLen;
@@ -75,18 +75,18 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
 
 
 
-static saga_Cell saga_number(double n)
+static saga_Cell saga_cellNum(double n)
 {
     saga_Cell cell = { saga_CellType_Num };
-    cell.number = n;
+    cell.num = n;
     return cell;
 }
-static saga_Cell saga_string(const char* s)
+static saga_Cell saga_cellStr(const char* s)
 {
     saga_Cell cell = { saga_CellType_Str };
     cell.stringLen = (u32)strlen(s);
-    cell.string = (char*)malloc(cell.stringLen + 1);
-    strncpy(cell.string, s, cell.stringLen + 1);
+    cell.str = (char*)malloc(cell.stringLen + 1);
+    strncpy(cell.str, s, cell.stringLen + 1);
     return cell;
 }
 

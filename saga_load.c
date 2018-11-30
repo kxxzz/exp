@@ -480,35 +480,35 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
     {
         char* end;
         out->type = saga_CellType_Num;
-        out->number = strtol(ctx->src + tok.begin + 2, &end, 2);
+        out->num = strtol(ctx->src + tok.begin + 2, &end, 2);
         break;
     }
     case saga_TokenType_NumberOCT:
     {
         char* end;
         out->type = saga_CellType_Num;
-        out->number = strtol(ctx->src + tok.begin + 1, &end, 8);
+        out->num = strtol(ctx->src + tok.begin + 1, &end, 8);
         break;
     }
     case saga_TokenType_NumberDEC:
     {
         char* end;
         out->type = saga_CellType_Num;
-        out->number = strtol(ctx->src + tok.begin, &end, 10);
+        out->num = strtol(ctx->src + tok.begin, &end, 10);
         break;
     }
     case saga_TokenType_NumberHEX:
     {
         char* end;
         out->type = saga_CellType_Num;
-        out->number = strtol(ctx->src + tok.begin + 2, &end, 16);
+        out->num = strtol(ctx->src + tok.begin + 2, &end, 16);
         break;
     }
     case saga_TokenType_NumberFloat:
     {
         char* end;
         out->type = saga_CellType_Num;
-        out->number = strtod(ctx->src + tok.begin, &end);
+        out->num = strtod(ctx->src + tok.begin, &end);
         break;
     }
     case saga_TokenType_Name:
@@ -516,13 +516,13 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
         out->type = saga_CellType_Str;
         const char* src = ctx->src + tok.begin;
         out->stringLen = tok.len;
-        out->string = malloc(out->stringLen + 1);
+        out->str = malloc(out->stringLen + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok.len; ++i)
         {
-            out->string[si++] = src[i];
+            out->str[si++] = src[i];
         }
-        out->string[tok.len] = 0;
+        out->str[tok.len] = 0;
         assert(si == out->stringLen);
         break;
     }
@@ -541,19 +541,19 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
             }
         }
         out->stringLen = tok.len - n;
-        out->string = malloc(out->stringLen + 1);
+        out->str = malloc(out->stringLen + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok.len; ++i)
         {
             if ('\\' == src[i])
             {
                 ++i;
-                out->string[si++] = src[i];
+                out->str[si++] = src[i];
                 continue;
             }
-            out->string[si++] = src[i];
+            out->str[si++] = src[i];
         }
-        out->string[tok.len] = 0;
+        out->str[tok.len] = 0;
         assert(si == out->stringLen);
         break;
     }
