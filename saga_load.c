@@ -13,8 +13,8 @@ typedef enum saga_TokenType
     saga_TokenType_Name,
     saga_TokenType_String,
 
-    saga_TokenType_ListBegin,
-    saga_TokenType_ListEnd,
+    saga_TokenType_VecBegin,
+    saga_TokenType_VecEnd,
 
     saga_NumTokenTypes
 } saga_TokenType;
@@ -325,14 +325,14 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        saga_Token tok = { saga_TokenType_ListBegin, ctx->cur, 1 };
+        saga_Token tok = { saga_TokenType_VecBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        saga_Token tok = { saga_TokenType_ListEnd, ctx->cur, 1 };
+        saga_Token tok = { saga_TokenType_VecEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
@@ -375,7 +375,7 @@ static bool saga_loadEnd(saga_LoadContext* ctx)
     }
     return false;
 }
-static bool saga_loadListEnd(saga_LoadContext* ctx)
+static bool saga_loadVecEnd(saga_LoadContext* ctx)
 {
     if (saga_loadEnd(ctx))
     {
@@ -389,7 +389,7 @@ static bool saga_loadListEnd(saga_LoadContext* ctx)
     }
     switch (tok.type)
     {
-    case saga_TokenType_ListEnd:
+    case saga_TokenType_VecEnd:
     {
         return true;
     }
@@ -400,29 +400,29 @@ static bool saga_loadListEnd(saga_LoadContext* ctx)
     return false;
 }
 
-static bool saga_loadList(saga_LoadContext* ctx, saga_List* list)
+static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
 {
     bool ok;
-    saga_List list1 = { 0 };
-    while (!saga_loadListEnd(ctx))
+    saga_Vec vec1 = { 0 };
+    while (!saga_loadVecEnd(ctx))
     {
         saga_Item e = { 0 };
         ok = saga_loadItem(ctx, &e);
         if (!ok)
         {
-            saga_listFree(&list1);
+            saga_vecFree(&vec1);
             return false;
         }
-        saga_listAdd(&list1, &e);
+        saga_vecAdd(&vec1, &e);
     }
-    if (list->length > 0)
+    if (vec->length > 0)
     {
-        saga_listConcat(list, &list1);
-        saga_listFree(&list1);
+        saga_vecConcat(vec, &vec1);
+        saga_vecFree(&vec1);
     }
     else
     {
-        *list = list1;
+        *vec = vec1;
     }
     return true;
 }
@@ -479,41 +479,41 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
     case saga_TokenType_NumberBIN:
     {
         char* end;
-        out->type = saga_ItemType_Number;
+        out->type = saga_ItemType_Num;
         out->number = strtol(ctx->src + tok.begin + 2, &end, 2);
         break;
     }
     case saga_TokenType_NumberOCT:
     {
         char* end;
-        out->type = saga_ItemType_Number;
+        out->type = saga_ItemType_Num;
         out->number = strtol(ctx->src + tok.begin + 1, &end, 8);
         break;
     }
     case saga_TokenType_NumberDEC:
     {
         char* end;
-        out->type = saga_ItemType_Number;
+        out->type = saga_ItemType_Num;
         out->number = strtol(ctx->src + tok.begin, &end, 10);
         break;
     }
     case saga_TokenType_NumberHEX:
     {
         char* end;
-        out->type = saga_ItemType_Number;
+        out->type = saga_ItemType_Num;
         out->number = strtol(ctx->src + tok.begin + 2, &end, 16);
         break;
     }
     case saga_TokenType_NumberFloat:
     {
         char* end;
-        out->type = saga_ItemType_Number;
+        out->type = saga_ItemType_Num;
         out->number = strtod(ctx->src + tok.begin, &end);
         break;
     }
     case saga_TokenType_Name:
     {
-        out->type = saga_ItemType_String;
+        out->type = saga_ItemType_Str;
         const char* src = ctx->src + tok.begin;
         out->stringLen = tok.len;
         out->string = malloc(out->stringLen + 1);
@@ -528,7 +528,7 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
     }
     case saga_TokenType_String:
     {
-        out->type = saga_ItemType_String;
+        out->type = saga_ItemType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -557,11 +557,11 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
         assert(si == out->stringLen);
         break;
     }
-    case saga_TokenType_ListBegin:
+    case saga_TokenType_VecBegin:
     {
-        out->type = saga_ItemType_List;
-        memset(&out->list, 0, sizeof(out->list));
-        ok = saga_loadList(ctx, &out->list);
+        out->type = saga_ItemType_Vec;
+        memset(&out->vec, 0, sizeof(out->vec));
+        ok = saga_loadVec(ctx, &out->vec);
         break;
     }
     default:
@@ -583,10 +583,10 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
 
 
 
-bool saga_load(saga_List* list, const char* str, u32 strSize)
+bool saga_load(saga_Vec* vec, const char* str, u32 strSize)
 {
     saga_LoadContext ctx = saga_newLoadContext(strSize, str);
-    bool ok = saga_loadList(&ctx, list);
+    bool ok = saga_loadVec(&ctx, vec);
     return ok;
 }
 

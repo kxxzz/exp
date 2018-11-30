@@ -6,16 +6,16 @@ void saga_itemFree(saga_Item* item)
 {
     switch (item->type)
     {
-    case saga_ItemType_Number:
+    case saga_ItemType_Num:
         break;
-    case saga_ItemType_String:
+    case saga_ItemType_Str:
     {
         free(item->string);
         break;
     }
-    case saga_ItemType_List:
+    case saga_ItemType_Vec:
     {
-        saga_listFree(&item->list);
+        saga_vecFree(&item->vec);
         break;
     }
     default:
@@ -30,19 +30,19 @@ void saga_itemDup(saga_Item* a, const saga_Item* b)
     a->type = b->type;
     switch (b->type)
     {
-    case saga_ItemType_Number:
+    case saga_ItemType_Num:
         a->number = b->number;
         break;
-    case saga_ItemType_String:
+    case saga_ItemType_Str:
     {
         a->string = (char*)malloc(b->stringLen + 1);
         strncpy(a->string, b->string, b->stringLen + 1);
         a->stringLen = b->stringLen;
         break;
     }
-    case saga_ItemType_List:
+    case saga_ItemType_Vec:
     {
-        saga_listConcat(&a->list, &b->list);
+        saga_vecConcat(&a->vec, &b->vec);
         break;
     }
     default:
@@ -61,28 +61,28 @@ void saga_itemDup(saga_Item* a, const saga_Item* b)
 
 
 
-void saga_listFree(saga_List* list)
+void saga_vecFree(saga_Vec* vec)
 {
-    for (int i = 0; i < list->length; ++i)
+    for (int i = 0; i < vec->length; ++i)
     {
-        saga_itemFree(list->data + i);
+        saga_itemFree(vec->data + i);
     }
-    vec_free(list);
+    vec_free(vec);
 }
 
-void saga_listAdd(saga_List* list, const saga_Item* item)
+void saga_vecAdd(saga_Vec* vec, const saga_Item* item)
 {
-    vec_push(list, *item);
+    vec_push(vec, *item);
 }
 
-void saga_listConcat(saga_List* list, const saga_List* a)
+void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
 {
-    vec_reserve(list, list->length + a->length);
+    vec_reserve(vec, vec->length + a->length);
     for (int i = 0; i < a->length; ++i)
     {
         saga_Item e;
         saga_itemDup(&e, &a->data[i]);
-        vec_push(list, e);
+        vec_push(vec, e);
     }
 }
 
@@ -153,15 +153,15 @@ static u32 saga_ppDouble(char* buf, u32 bufSize, double x)
 
 
 
-u32 saga_psList(const saga_List* list, char* buf, u32 bufSize, bool withSrcInfo)
+u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
     char* bufPtr = buf;
 
-    for (int i = 0; i < list->length; ++i)
+    for (int i = 0; i < vec->length; ++i)
     {
-        u32 en = saga_ps(list->data + i, bufPtr, bufRemain, withSrcInfo);
+        u32 en = saga_ps(vec->data + i, bufPtr, bufRemain, withSrcInfo);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -174,7 +174,7 @@ u32 saga_psList(const saga_List* list, char* buf, u32 bufSize, bool withSrcInfo)
         }
         n += en;
 
-        if (i < list->length - 1)
+        if (i < vec->length - 1)
         {
             if (1 < bufRemain)
             {
@@ -198,7 +198,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
 {
     switch (item->type)
     {
-    case saga_ItemType_Number:
+    case saga_ItemType_Num:
     {
         u32 n;
         if (withSrcInfo && item->hasSrcInfo)
@@ -218,7 +218,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
         }
         return n;
     }
-    case saga_ItemType_String:
+    case saga_ItemType_Str:
     {
         const char* str = item->string;
         u32 n;
@@ -290,10 +290,10 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
         }
         return n;
     }
-    case saga_ItemType_List:
+    case saga_ItemType_Vec:
     {
         u32 n = 0;
-        const saga_List* list = &item->list;
+        const saga_Vec* vec = &item->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -311,7 +311,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
         }
         n += 1;
 
-        u32 n1 = saga_psList(list, bufPtr, bufRemain, withSrcInfo);
+        u32 n1 = saga_psVec(vec, bufPtr, bufRemain, withSrcInfo);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -442,13 +442,13 @@ static void saga_ppAddIdent(saga_PPctx* ctx)
 static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcInfo);
 
 
-static void saga_ppAddList(saga_PPctx* ctx, const saga_List* list, bool withSrcInfo)
+static void saga_ppAddVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
-    for (int i = 0; i < list->length; ++i)
+    for (int i = 0; i < vec->length; ++i)
     {
         saga_ppAddIdent(ctx);
 
-        saga_ppAddItem(ctx, list->data + i, withSrcInfo);
+        saga_ppAddItem(ctx, vec->data + i, withSrcInfo);
 
         saga_ppAdd(ctx, "\n");
     }
@@ -457,9 +457,9 @@ static void saga_ppAddList(saga_PPctx* ctx, const saga_List* list, bool withSrcI
 
 
 
-static void saga_ppAddItemList(saga_PPctx* ctx, const saga_List* list, bool withSrcInfo)
+static void saga_ppAddItemVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
-    saga_Item item = { saga_ItemType_List,.list = *list };
+    saga_Item item = { saga_ItemType_Vec, .vec = *vec };
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
     u32 a = saga_ps(&item, bufPtr, bufRemain, withSrcInfo);
@@ -472,7 +472,7 @@ static void saga_ppAddItemList(saga_PPctx* ctx, const saga_List* list, bool with
         saga_ppAdd(ctx, "[\n");
 
         ++ctx->depth;
-        saga_ppAddList(ctx, list, withSrcInfo);
+        saga_ppAddVec(ctx, vec, withSrcInfo);
         --ctx->depth;
 
         saga_ppAddIdent(ctx);
@@ -486,8 +486,8 @@ static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcI
 {
     switch (item->type)
     {
-    case saga_ItemType_Number:
-    case saga_ItemType_String:
+    case saga_ItemType_Num:
+    case saga_ItemType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
@@ -495,10 +495,10 @@ static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcI
         saga_ppForward(ctx, a);
         return;
     }
-    case saga_ItemType_List:
+    case saga_ItemType_Vec:
     {
-        const saga_List* list = &item->list;
-        saga_ppAddItemList(ctx, list, withSrcInfo);
+        const saga_Vec* vec = &item->vec;
+        saga_ppAddItemVec(ctx, vec, withSrcInfo);
         return;
     }
     default:
@@ -520,13 +520,13 @@ static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcI
 
 
 
-u32 saga_ppList(const saga_List* list, char* buf, u32 bufSize, const saga_PPopt* opt)
+u32 saga_ppVec(const saga_Vec* vec, char* buf, u32 bufSize, const saga_PPopt* opt)
 {
     saga_PPctx ctx =
     {
         opt, bufSize, buf,
     };
-    saga_ppAddList(&ctx, list, opt->withSrcInfo);
+    saga_ppAddVec(&ctx, vec, opt->withSrcInfo);
     return ctx.n;
 }
 
@@ -537,18 +537,18 @@ u32 saga_pp(const saga_Item* item, char* buf, u32 bufSize, const saga_PPopt* opt
 {
     switch (item->type)
     {
-    case saga_ItemType_Number:
-    case saga_ItemType_String:
+    case saga_ItemType_Num:
+    case saga_ItemType_Str:
     {
         return saga_ps(item, buf, bufSize, opt->withSrcInfo);
     }
-    case saga_ItemType_List:
+    case saga_ItemType_Vec:
     {
         saga_PPctx ctx =
         {
             opt, bufSize, buf,
         };
-        saga_ppAddItemList(&ctx, &item->list, opt->withSrcInfo);
+        saga_ppAddItemVec(&ctx, &item->vec, opt->withSrcInfo);
         return ctx.n;
     }
     default:
@@ -565,11 +565,11 @@ u32 saga_pp(const saga_Item* item, char* buf, u32 bufSize, const saga_PPopt* opt
 
 
 
-char* saga_ppListAc(const saga_List* list, const saga_PPopt* opt)
+char* saga_ppVecAc(const saga_Vec* vec, const saga_PPopt* opt)
 {
-    u32 bufSize = saga_ppList(list, NULL, 0, opt) + 1;
+    u32 bufSize = saga_ppVec(vec, NULL, 0, opt) + 1;
     char* buf = (char*)malloc(bufSize);
-    saga_ppList(list, buf, bufSize, opt);
+    saga_ppVec(vec, buf, bufSize, opt);
     return buf;
 }
 

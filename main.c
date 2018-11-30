@@ -58,7 +58,7 @@ void test(void)
     assert(textSize != -1);
 
 
-    saga_List src = { 0 };
+    saga_Vec src = { 0 };
 
 
     bool ok = saga_load(&src, text, textSize);
@@ -69,11 +69,11 @@ void test(void)
     saga_PPopt ppOpt = { 4, 50 };
 
 
-    u32 ppBufSize = saga_ppList(&src, NULL, 0, &ppOpt) + 1;
+    u32 ppBufSize = saga_ppVec(&src, NULL, 0, &ppOpt) + 1;
     char* ppText = malloc(ppBufSize);
 
 
-    u32 writen = saga_ppList(&src, ppText, ppBufSize, &ppOpt) + 1;
+    u32 writen = saga_ppVec(&src, ppText, ppBufSize, &ppOpt) + 1;
     assert(ppBufSize == writen);
 
 
@@ -85,7 +85,7 @@ void test(void)
     free(ppText);
 
 
-    saga_listFree(&src);
+    saga_vecFree(&src);
 }
 
 
