@@ -2,20 +2,20 @@
 
 
 
-void saga_itemFree(saga_Item* item)
+void saga_cellFree(saga_Cell* cell)
 {
-    switch (item->type)
+    switch (cell->type)
     {
-    case saga_ItemType_Num:
+    case saga_CellType_Num:
         break;
-    case saga_ItemType_Str:
+    case saga_CellType_Str:
     {
-        free(item->string);
+        free(cell->string);
         break;
     }
-    case saga_ItemType_Vec:
+    case saga_CellType_Vec:
     {
-        saga_vecFree(&item->vec);
+        saga_vecFree(&cell->vec);
         break;
     }
     default:
@@ -24,23 +24,23 @@ void saga_itemFree(saga_Item* item)
     }
 }
 
-void saga_itemDup(saga_Item* a, const saga_Item* b)
+void saga_cellDup(saga_Cell* a, const saga_Cell* b)
 {
     memset(a, 0, sizeof(*a));
     a->type = b->type;
     switch (b->type)
     {
-    case saga_ItemType_Num:
+    case saga_CellType_Num:
         a->number = b->number;
         break;
-    case saga_ItemType_Str:
+    case saga_CellType_Str:
     {
         a->string = (char*)malloc(b->stringLen + 1);
         strncpy(a->string, b->string, b->stringLen + 1);
         a->stringLen = b->stringLen;
         break;
     }
-    case saga_ItemType_Vec:
+    case saga_CellType_Vec:
     {
         saga_vecConcat(&a->vec, &b->vec);
         break;
@@ -65,14 +65,14 @@ void saga_vecFree(saga_Vec* vec)
 {
     for (int i = 0; i < vec->length; ++i)
     {
-        saga_itemFree(vec->data + i);
+        saga_cellFree(vec->data + i);
     }
     vec_free(vec);
 }
 
-void saga_vecAdd(saga_Vec* vec, const saga_Item* item)
+void saga_vecAdd(saga_Vec* vec, const saga_Cell* cell)
 {
-    vec_push(vec, *item);
+    vec_push(vec, *cell);
 }
 
 void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
@@ -80,8 +80,8 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
     vec_reserve(vec, vec->length + a->length);
     for (int i = 0; i < a->length; ++i)
     {
-        saga_Item e;
-        saga_itemDup(&e, &a->data[i]);
+        saga_Cell e;
+        saga_cellDup(&e, &a->data[i]);
         vec_push(vec, e);
     }
 }
@@ -194,38 +194,38 @@ u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 }
 
 
-u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
+u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
 {
-    switch (item->type)
+    switch (cell->type)
     {
-    case saga_ItemType_Num:
+    case saga_CellType_Num:
     {
         u32 n;
-        if (withSrcInfo && item->hasSrcInfo)
+        if (withSrcInfo && cell->hasSrcInfo)
         {
-            n = (u32)strnlen(item->srcInfo.numStr, saga_NameStr_MAX - 1);
+            n = (u32)strnlen(cell->srcInfo.numStr, saga_NameStr_MAX - 1);
             if (bufSize > 0)
             {
                 assert(buf);
                 u32 c = bufSize > n ? n : bufSize - 1;
-                strncpy(buf, item->srcInfo.numStr, c);
+                strncpy(buf, cell->srcInfo.numStr, c);
                 buf[c] = 0;
             }
         }
         else
         {
-            n = saga_ppDouble(buf, bufSize, item->number);
+            n = saga_ppDouble(buf, bufSize, cell->number);
         }
         return n;
     }
-    case saga_ItemType_Str:
+    case saga_CellType_Str:
     {
-        const char* str = item->string;
+        const char* str = cell->string;
         u32 n;
         bool isStringTok = false;
-        if (withSrcInfo && item->hasSrcInfo)
+        if (withSrcInfo && cell->hasSrcInfo)
         {
-            isStringTok = item->srcInfo.isStringTok;
+            isStringTok = cell->srcInfo.isStringTok;
         }
         else
         {
@@ -235,7 +235,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
             }
             else
             {
-                for (u32 i = 0; i < item->stringLen; ++i)
+                for (u32 i = 0; i < cell->stringLen; ++i)
                 {
                     if (strchr("[]\"' \t\n\r\b\f", str[i]))
                     {
@@ -248,7 +248,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
         if (isStringTok)
         {
             u32 l = 2;
-            for (u32 i = 0; i < item->stringLen; ++i)
+            for (u32 i = 0; i < cell->stringLen; ++i)
             {
                 if (' ' >= str[i])
                 {
@@ -264,7 +264,7 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
             {
                 n = 0;
                 buf[n++] = '"';
-                for (u32 i = 0; i < item->stringLen; ++i)
+                for (u32 i = 0; i < cell->stringLen; ++i)
                 {
                     if (' ' >= str[i])
                     {
@@ -286,14 +286,14 @@ u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo)
         }
         else
         {
-            n = snprintf(buf, bufSize, "%s", item->string);
+            n = snprintf(buf, bufSize, "%s", cell->string);
         }
         return n;
     }
-    case saga_ItemType_Vec:
+    case saga_CellType_Vec:
     {
         u32 n = 0;
-        const saga_Vec* vec = &item->vec;
+        const saga_Vec* vec = &cell->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -439,7 +439,7 @@ static void saga_ppAddIdent(saga_PPctx* ctx)
 
 
 
-static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcInfo);
+static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcInfo);
 
 
 static void saga_ppAddVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
@@ -448,7 +448,7 @@ static void saga_ppAddVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo
     {
         saga_ppAddIdent(ctx);
 
-        saga_ppAddItem(ctx, vec->data + i, withSrcInfo);
+        saga_ppAddCell(ctx, vec->data + i, withSrcInfo);
 
         saga_ppAdd(ctx, "\n");
     }
@@ -457,12 +457,12 @@ static void saga_ppAddVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo
 
 
 
-static void saga_ppAddItemVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_ppAddCellVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
-    saga_Item item = { saga_ItemType_Vec, .vec = *vec };
+    saga_Cell cell = { saga_CellType_Vec, .vec = *vec };
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = saga_ps(&item, bufPtr, bufRemain, withSrcInfo);
+    u32 a = saga_ps(&cell, bufPtr, bufRemain, withSrcInfo);
     bool ok = saga_ppForward(ctx, a);
 
     if (!ok)
@@ -482,23 +482,23 @@ static void saga_ppAddItemVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrc
 
 
 
-static void saga_ppAddItem(saga_PPctx* ctx, const saga_Item* item, bool withSrcInfo)
+static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcInfo)
 {
-    switch (item->type)
+    switch (cell->type)
     {
-    case saga_ItemType_Num:
-    case saga_ItemType_Str:
+    case saga_CellType_Num:
+    case saga_CellType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = saga_ps(item, bufPtr, bufRemain, withSrcInfo);
+        u32 a = saga_ps(cell, bufPtr, bufRemain, withSrcInfo);
         saga_ppForward(ctx, a);
         return;
     }
-    case saga_ItemType_Vec:
+    case saga_CellType_Vec:
     {
-        const saga_Vec* vec = &item->vec;
-        saga_ppAddItemVec(ctx, vec, withSrcInfo);
+        const saga_Vec* vec = &cell->vec;
+        saga_ppAddCellVec(ctx, vec, withSrcInfo);
         return;
     }
     default:
@@ -533,22 +533,22 @@ u32 saga_ppVec(const saga_Vec* vec, char* buf, u32 bufSize, const saga_PPopt* op
 
 
 
-u32 saga_pp(const saga_Item* item, char* buf, u32 bufSize, const saga_PPopt* opt)
+u32 saga_pp(const saga_Cell* cell, char* buf, u32 bufSize, const saga_PPopt* opt)
 {
-    switch (item->type)
+    switch (cell->type)
     {
-    case saga_ItemType_Num:
-    case saga_ItemType_Str:
+    case saga_CellType_Num:
+    case saga_CellType_Str:
     {
-        return saga_ps(item, buf, bufSize, opt->withSrcInfo);
+        return saga_ps(cell, buf, bufSize, opt->withSrcInfo);
     }
-    case saga_ItemType_Vec:
+    case saga_CellType_Vec:
     {
         saga_PPctx ctx =
         {
             opt, bufSize, buf,
         };
-        saga_ppAddItemVec(&ctx, &item->vec, opt->withSrcInfo);
+        saga_ppAddCellVec(&ctx, &cell->vec, opt->withSrcInfo);
         return ctx.n;
     }
     default:
@@ -574,11 +574,11 @@ char* saga_ppVecAc(const saga_Vec* vec, const saga_PPopt* opt)
 }
 
 
-char* saga_ppAc(const saga_Item* item, const saga_PPopt* opt)
+char* saga_ppAc(const saga_Cell* cell, const saga_PPopt* opt)
 {
-    u32 bufSize = saga_pp(item, NULL, 0, opt) + 1;
+    u32 bufSize = saga_pp(cell, NULL, 0, opt) + 1;
     char* buf = (char*)malloc(bufSize);
-    saga_pp(item, buf, bufSize, opt);
+    saga_pp(cell, buf, bufSize, opt);
     return buf;
 }
 

@@ -17,16 +17,16 @@ enum
 
 
 
-typedef enum saga_ItemType
+typedef enum saga_CellType
 {
-    saga_ItemType_Num,
-    saga_ItemType_Str,
-    saga_ItemType_Vec,
+    saga_CellType_Num,
+    saga_CellType_Str,
+    saga_CellType_Vec,
 
-    saga_NumItemTypes
-} saga_ItemType;
+    saga_NumCellTypes
+} saga_CellType;
 
-static const char* saga_ItemTypeNameTable[saga_NumItemTypes] =
+static const char* saga_CellTypeNameTable[saga_NumCellTypes] =
 {
     "Num",
     "Str",
@@ -36,23 +36,23 @@ static const char* saga_ItemTypeNameTable[saga_NumItemTypes] =
 
 
 
-typedef vec_t(struct saga_Item) saga_Vec;
+typedef vec_t(struct saga_Cell) saga_Vec;
 
 
 
 
-typedef struct saga_ItemSrcInfo
+typedef struct saga_CellSrcInfo
 {
     u32 offset;
     u32 line;
     u32 column;
     bool isStringTok;
     char numStr[saga_NameStr_MAX];
-} saga_ItemSrcInfo;
+} saga_CellSrcInfo;
 
-typedef struct saga_Item
+typedef struct saga_Cell
 {
-    saga_ItemType type;
+    saga_CellType type;
     union
     {
         double number;
@@ -61,33 +61,33 @@ typedef struct saga_Item
     };
     u32 stringLen;
     bool hasSrcInfo;
-    saga_ItemSrcInfo srcInfo;
-} saga_Item;
+    saga_CellSrcInfo srcInfo;
+} saga_Cell;
 
 
-void saga_itemFree(saga_Item* item);
-void saga_itemDup(saga_Item* a, const saga_Item* b);
+void saga_cellFree(saga_Cell* cell);
+void saga_cellDup(saga_Cell* a, const saga_Cell* b);
 
 void saga_vecFree(saga_Vec* vec);
-void saga_vecAdd(saga_Vec* vec, const saga_Item* item);
+void saga_vecAdd(saga_Vec* vec, const saga_Cell* cell);
 void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
 
 
 
 
-static saga_Item saga_number(double n)
+static saga_Cell saga_number(double n)
 {
-    saga_Item item = { saga_ItemType_Num };
-    item.number = n;
-    return item;
+    saga_Cell cell = { saga_CellType_Num };
+    cell.number = n;
+    return cell;
 }
-static saga_Item saga_string(const char* s)
+static saga_Cell saga_string(const char* s)
 {
-    saga_Item item = { saga_ItemType_Str };
-    item.stringLen = (u32)strlen(s);
-    item.string = (char*)malloc(item.stringLen + 1);
-    strncpy(item.string, s, item.stringLen + 1);
-    return item;
+    saga_Cell cell = { saga_CellType_Str };
+    cell.stringLen = (u32)strlen(s);
+    cell.string = (char*)malloc(cell.stringLen + 1);
+    strncpy(cell.string, s, cell.stringLen + 1);
+    return cell;
 }
 
 
@@ -96,7 +96,7 @@ static saga_Item saga_string(const char* s)
 
 bool saga_load(saga_Vec* vec, const char* str, u32 strSize);
 
-u32 saga_ps(const saga_Item* item, char* buf, u32 bufSize, bool withSrcInfo);
+u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo);
 u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo);
 
 
@@ -111,10 +111,10 @@ typedef struct saga_PPopt
 } saga_PPopt;
 
 u32 saga_ppVec(const saga_Vec* vec, char* buf, u32 bufSize, const saga_PPopt* opt);
-u32 saga_pp(const saga_Item* item, char* buf, u32 bufSize, const saga_PPopt* opt);
+u32 saga_pp(const saga_Cell* cell, char* buf, u32 bufSize, const saga_PPopt* opt);
 
 char* saga_ppVecAc(const saga_Vec* vec, const saga_PPopt* opt);
-char* saga_ppAc(const saga_Item* item, const saga_PPopt* opt);
+char* saga_ppAc(const saga_Cell* cell, const saga_PPopt* opt);
 
 
 

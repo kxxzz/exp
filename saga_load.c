@@ -364,7 +364,7 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out);
+static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out);
 
 static bool saga_loadEnd(saga_LoadContext* ctx)
 {
@@ -406,8 +406,8 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
     saga_Vec vec1 = { 0 };
     while (!saga_loadVecEnd(ctx))
     {
-        saga_Item e = { 0 };
-        ok = saga_loadItem(ctx, &e);
+        saga_Cell e = { 0 };
+        ok = saga_loadCell(ctx, &e);
         if (!ok)
         {
             saga_vecFree(&vec1);
@@ -429,7 +429,7 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
 
 
 
-static void saga_loadItemSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, saga_ItemSrcInfo* info)
+static void saga_loadCellSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, saga_CellSrcInfo* info)
 {
     info->offset = ctx->cur;
     info->line = ctx->curLine;
@@ -464,56 +464,56 @@ static void saga_loadItemSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, s
 
 
 
-static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
+static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
 {
     saga_Token tok;
     if (!saga_readToken(ctx, &tok))
     {
         return false;
     }
-    saga_ItemSrcInfo srcInfo;
-    saga_loadItemSrcInfo(ctx, &tok, &srcInfo);
+    saga_CellSrcInfo srcInfo;
+    saga_loadCellSrcInfo(ctx, &tok, &srcInfo);
     bool ok = true;
     switch (tok.type)
     {
     case saga_TokenType_NumberBIN:
     {
         char* end;
-        out->type = saga_ItemType_Num;
+        out->type = saga_CellType_Num;
         out->number = strtol(ctx->src + tok.begin + 2, &end, 2);
         break;
     }
     case saga_TokenType_NumberOCT:
     {
         char* end;
-        out->type = saga_ItemType_Num;
+        out->type = saga_CellType_Num;
         out->number = strtol(ctx->src + tok.begin + 1, &end, 8);
         break;
     }
     case saga_TokenType_NumberDEC:
     {
         char* end;
-        out->type = saga_ItemType_Num;
+        out->type = saga_CellType_Num;
         out->number = strtol(ctx->src + tok.begin, &end, 10);
         break;
     }
     case saga_TokenType_NumberHEX:
     {
         char* end;
-        out->type = saga_ItemType_Num;
+        out->type = saga_CellType_Num;
         out->number = strtol(ctx->src + tok.begin + 2, &end, 16);
         break;
     }
     case saga_TokenType_NumberFloat:
     {
         char* end;
-        out->type = saga_ItemType_Num;
+        out->type = saga_CellType_Num;
         out->number = strtod(ctx->src + tok.begin, &end);
         break;
     }
     case saga_TokenType_Name:
     {
-        out->type = saga_ItemType_Str;
+        out->type = saga_CellType_Str;
         const char* src = ctx->src + tok.begin;
         out->stringLen = tok.len;
         out->string = malloc(out->stringLen + 1);
@@ -528,7 +528,7 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
     }
     case saga_TokenType_String:
     {
-        out->type = saga_ItemType_Str;
+        out->type = saga_CellType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -559,7 +559,7 @@ static bool saga_loadItem(saga_LoadContext* ctx, saga_Item* out)
     }
     case saga_TokenType_VecBegin:
     {
-        out->type = saga_ItemType_Vec;
+        out->type = saga_CellType_Vec;
         memset(&out->vec, 0, sizeof(out->vec));
         ok = saga_loadVec(ctx, &out->vec);
         break;
