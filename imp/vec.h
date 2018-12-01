@@ -21,9 +21,6 @@ typedef float f32;
 typedef double f64;
 
 
-#define ARYLEN(a) (sizeof(a) / sizeof((a)[0]))
-
-
 
 
 #define vec_t(T) struct { T* data; u32 length, capacity; }
