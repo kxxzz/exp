@@ -26,50 +26,50 @@ typedef double f64;
 
 
 
-typedef enum saga_CellType
+typedef enum saga_NodeType
 {
-    saga_CellType_Str,
-    saga_CellType_Vec,
+    saga_NodeType_Term,
+    saga_NodeType_Inode,
 
-    saga_NumCellTypes
-} saga_CellType;
+    saga_NumNodeTypes
+} saga_NodeType;
 
-static const char* saga_CellTypeNameTable[saga_NumCellTypes] =
+static const char* saga_NodeTypeNameTable[saga_NumNodeTypes] =
 {
-    "Str",
-    "Vec",
+    "Term",
+    "Inode",
 };
 
 
 
 typedef vec_t(char) saga_Str;
-typedef vec_t(struct saga_Cell) saga_Vec;
+typedef vec_t(struct saga_Node) saga_Vec;
 
 
 
-typedef struct saga_CellSrcInfo
+typedef struct saga_NodeSrcInfo
 {
     u32 offset;
     u32 line;
     u32 column;
     bool isStrTok;
-} saga_CellSrcInfo;
+} saga_NodeSrcInfo;
 
-typedef struct saga_Cell
+typedef struct saga_Node
 {
-    saga_CellType type;
+    saga_NodeType type;
     union
     {
         saga_Str str;
         saga_Vec vec;
     };
     bool hasSrcInfo;
-    saga_CellSrcInfo srcInfo;
-} saga_Cell;
+    saga_NodeSrcInfo srcInfo;
+} saga_Node;
 
 
-void saga_cellFree(saga_Cell* cell);
-void saga_cellDup(saga_Cell* a, const saga_Cell* b);
+void saga_nodeFree(saga_Node* node);
+void saga_nodeDup(saga_Node* a, const saga_Node* b);
 
 void saga_vecFree(saga_Vec* vec);
 void saga_vecDup(saga_Vec* vec, const saga_Vec* a);
@@ -78,14 +78,14 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
 
 
 
-saga_Cell saga_cellStr(const char* s);
-u32 saga_strLen(saga_Cell* a);
+saga_Node saga_nodeStr(const char* s);
+u32 saga_strLen(saga_Node* a);
 
 
 
-bool saga_load(saga_Cell* cell, const char* str);
+bool saga_load(saga_Node* node, const char* str);
 
-u32 saga_saveSL(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo);
+u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
 
 
 
@@ -98,7 +98,7 @@ typedef struct saga_SaveMLopt
     bool withSrcInfo;
 } saga_SaveMLopt;
 
-u32 saga_saveML(const saga_Cell* cell, char* buf, u32 bufSize, const saga_SaveMLopt* opt);
+u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveMLopt* opt);
 
 
 

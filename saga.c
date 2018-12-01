@@ -2,18 +2,18 @@
 
 
 
-void saga_cellFree(saga_Cell* cell)
+void saga_nodeFree(saga_Node* node)
 {
-    switch (cell->type)
+    switch (node->type)
     {
-    case saga_CellType_Str:
+    case saga_NodeType_Term:
     {
-        vec_free(&cell->str);
+        vec_free(&node->str);
         break;
     }
-    case saga_CellType_Vec:
+    case saga_NodeType_Inode:
     {
-        saga_vecFree(&cell->vec);
+        saga_vecFree(&node->vec);
         break;
     }
     default:
@@ -22,18 +22,18 @@ void saga_cellFree(saga_Cell* cell)
     }
 }
 
-void saga_cellDup(saga_Cell* a, const saga_Cell* b)
+void saga_nodeDup(saga_Node* a, const saga_Node* b)
 {
     memset(a, 0, sizeof(*a));
     a->type = b->type;
     switch (b->type)
     {
-    case saga_CellType_Str:
+    case saga_NodeType_Term:
     {
         vec_dup(&a->str, &b->str);
         break;
     }
-    case saga_CellType_Vec:
+    case saga_NodeType_Inode:
     {
         saga_vecDup(&a->vec, &b->vec);
         break;
@@ -58,7 +58,7 @@ void saga_vecFree(saga_Vec* vec)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_cellFree(vec->data + i);
+        saga_nodeFree(vec->data + i);
     }
     vec_free(vec);
 }
@@ -67,14 +67,14 @@ void saga_vecDup(saga_Vec* vec, const saga_Vec* a)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_cellFree(vec->data + i);
+        saga_nodeFree(vec->data + i);
     }
     vec->length = 0;
     vec_reserve(vec, a->length);
     for (u32 i = 0; i < a->length; ++i)
     {
-        saga_Cell e;
-        saga_cellDup(&e, &a->data[i]);
+        saga_Node e;
+        saga_nodeDup(&e, &a->data[i]);
         vec_push(vec, e);
     }
 }
@@ -84,8 +84,8 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
     vec_reserve(vec, vec->length + a->length);
     for (u32 i = 0; i < a->length; ++i)
     {
-        saga_Cell e;
-        saga_cellDup(&e, &a->data[i]);
+        saga_Node e;
+        saga_nodeDup(&e, &a->data[i]);
         vec_push(vec, e);
     }
 }
@@ -101,16 +101,16 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
 
 
 
-saga_Cell saga_cellStr(const char* s)
+saga_Node saga_nodeStr(const char* s)
 {
-    saga_Cell cell = { saga_CellType_Str };
-    vec_pusharr(&cell.str, s, (u32)strlen(s) + 1);
-    return cell;
+    saga_Node node = { saga_NodeType_Term };
+    vec_pusharr(&node.str, s, (u32)strlen(s) + 1);
+    return node;
 }
 
-u32 saga_strLen(saga_Cell* a)
+u32 saga_strLen(saga_Node* a)
 {
-    assert(saga_CellType_Str == a->type);
+    assert(saga_NodeType_Term == a->type);
     return a->str.length > 0 ? a->str.length - 1 : 0;
 }
 
@@ -185,19 +185,19 @@ static u32 saga_saveVecSL(const saga_Vec* vec, char* buf, u32 bufSize, bool with
 }
 
 
-u32 saga_saveSL(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
+u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
 {
-    switch (cell->type)
+    switch (node->type)
     {
-    case saga_CellType_Str:
+    case saga_NodeType_Term:
     {
-        const char* str = cell->str.data;
-        u32 sreLen = (cell->str.length > 0) ? cell->str.length - 1 : 0;
+        const char* str = node->str.data;
+        u32 sreLen = (node->str.length > 0) ? node->str.length - 1 : 0;
         u32 n;
         bool isStrTok = false;
-        if (withSrcInfo && cell->hasSrcInfo)
+        if (withSrcInfo && node->hasSrcInfo)
         {
-            isStrTok = cell->srcInfo.isStrTok;
+            isStrTok = node->srcInfo.isStrTok;
         }
         else
         {
@@ -251,14 +251,14 @@ u32 saga_saveSL(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
         }
         else
         {
-            n = snprintf(buf, bufSize, "%s", cell->str.data);
+            n = snprintf(buf, bufSize, "%s", node->str.data);
         }
         return n;
     }
-    case saga_CellType_Vec:
+    case saga_NodeType_Inode:
     {
         u32 n = 0;
-        const saga_Vec* vec = &cell->vec;
+        const saga_Vec* vec = &node->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -404,7 +404,7 @@ static void saga_saveMlAddIdent(saga_SaveMLctx* ctx)
 
 
 
-static void saga_saveMlAddCell(saga_SaveMLctx* ctx, const saga_Cell* cell, bool withSrcInfo);
+static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo);
 
 
 static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
@@ -413,7 +413,7 @@ static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool wit
     {
         saga_saveMlAddIdent(ctx);
 
-        saga_saveMlAddCell(ctx, vec->data + i, withSrcInfo);
+        saga_saveMlAddNode(ctx, vec->data + i, withSrcInfo);
 
         saga_saveMlAdd(ctx, "\n");
     }
@@ -422,12 +422,12 @@ static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool wit
 
 
 
-static void saga_saveMlAddCellVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_saveMlAddNodeVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
-    saga_Cell cell = { saga_CellType_Vec, .vec = *vec };
+    saga_Node node = { saga_NodeType_Inode, .vec = *vec };
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = saga_saveSL(&cell, bufPtr, bufRemain, withSrcInfo);
+    u32 a = saga_saveSL(&node, bufPtr, bufRemain, withSrcInfo);
     bool ok = saga_saveMlForward(ctx, a);
 
     if (!ok)
@@ -447,22 +447,22 @@ static void saga_saveMlAddCellVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool
 
 
 
-static void saga_saveMlAddCell(saga_SaveMLctx* ctx, const saga_Cell* cell, bool withSrcInfo)
+static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo)
 {
-    switch (cell->type)
+    switch (node->type)
     {
-    case saga_CellType_Str:
+    case saga_NodeType_Term:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = saga_saveSL(cell, bufPtr, bufRemain, withSrcInfo);
+        u32 a = saga_saveSL(node, bufPtr, bufRemain, withSrcInfo);
         saga_saveMlForward(ctx, a);
         return;
     }
-    case saga_CellType_Vec:
+    case saga_NodeType_Inode:
     {
-        const saga_Vec* vec = &cell->vec;
-        saga_saveMlAddCellVec(ctx, vec, withSrcInfo);
+        const saga_Vec* vec = &node->vec;
+        saga_saveMlAddNodeVec(ctx, vec, withSrcInfo);
         return;
     }
     default:
@@ -497,21 +497,21 @@ static u32 saga_saveVecML(const saga_Vec* vec, char* buf, u32 bufSize, const sag
 
 
 
-u32 saga_saveML(const saga_Cell* cell, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
+u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
 {
-    switch (cell->type)
+    switch (node->type)
     {
-    case saga_CellType_Str:
+    case saga_NodeType_Term:
     {
-        return saga_saveSL(cell, buf, bufSize, opt->withSrcInfo);
+        return saga_saveSL(node, buf, bufSize, opt->withSrcInfo);
     }
-    case saga_CellType_Vec:
+    case saga_NodeType_Inode:
     {
         saga_SaveMLctx ctx =
         {
             opt, bufSize, buf,
         };
-        saga_saveMlAddCellVec(&ctx, &cell->vec, opt->withSrcInfo);
+        saga_saveMlAddNodeVec(&ctx, &node->vec, opt->withSrcInfo);
         return ctx.n;
     }
     default:
@@ -537,11 +537,11 @@ u32 saga_saveML(const saga_Cell* cell, char* buf, u32 bufSize, const saga_SaveML
 //}
 //
 //
-//char* saga_saveMlAc(const saga_Cell* cell, const saga_PPopt* opt)
+//char* saga_saveMlAc(const saga_Node* node, const saga_PPopt* opt)
 //{
-//    u32 bufSize = saga_saveMl(cell, NULL, 0, opt) + 1;
+//    u32 bufSize = saga_saveMl(node, NULL, 0, opt) + 1;
 //    char* buf = (char*)malloc(bufSize);
-//    saga_saveMl(cell, buf, bufSize, opt);
+//    saga_saveMl(node, buf, bufSize, opt);
 //    return buf;
 //}
 

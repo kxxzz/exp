@@ -251,7 +251,7 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out);
+static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out);
 
 static bool saga_loadEnd(saga_LoadContext* ctx)
 {
@@ -293,8 +293,8 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
     saga_Vec vec1 = { 0 };
     while (!saga_loadVecEnd(ctx))
     {
-        saga_Cell e = { 0 };
-        ok = saga_loadCell(ctx, &e);
+        saga_Node e = { 0 };
+        ok = saga_loadNode(ctx, &e);
         if (!ok)
         {
             saga_vecFree(&vec1);
@@ -316,7 +316,7 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
 
 
 
-static void saga_loadCellSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, saga_CellSrcInfo* info)
+static void saga_loadNodeSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, saga_NodeSrcInfo* info)
 {
     info->offset = ctx->cur;
     info->line = ctx->curLine;
@@ -335,21 +335,21 @@ static void saga_loadCellSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, s
 
 
 
-static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
+static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
 {
     saga_Token tok;
     if (!saga_readToken(ctx, &tok))
     {
         return false;
     }
-    saga_CellSrcInfo srcInfo;
-    saga_loadCellSrcInfo(ctx, &tok, &srcInfo);
+    saga_NodeSrcInfo srcInfo;
+    saga_loadNodeSrcInfo(ctx, &tok, &srcInfo);
     bool ok = true;
     switch (tok.type)
     {
     case saga_TokenType_Text:
     {
-        out->type = saga_CellType_Str;
+        out->type = saga_NodeType_Term;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&out->str, strLen + 1);
@@ -359,7 +359,7 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
     }
     case saga_TokenType_String:
     {
-        out->type = saga_CellType_Str;
+        out->type = saga_NodeType_Term;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -390,7 +390,7 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
     }
     case saga_TokenType_VecBegin:
     {
-        out->type = saga_CellType_Vec;
+        out->type = saga_NodeType_Inode;
         memset(&out->vec, 0, sizeof(out->vec));
         ok = saga_loadVec(ctx, &out->vec);
         break;
@@ -413,10 +413,10 @@ static bool saga_loadCell(saga_LoadContext* ctx, saga_Cell* out)
 
 
 
-bool saga_load(saga_Cell* cell, const char* str)
+bool saga_load(saga_Node* node, const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    bool ok = saga_loadCell(&ctx, cell);
+    bool ok = saga_loadNode(&ctx, node);
     return ok;
 }
 

@@ -58,7 +58,7 @@ void test(void)
     assert(textSize != -1);
 
 
-    saga_Cell src = { 0 };
+    saga_Node src = { 0 };
 
 
     bool ok = saga_load(&src, text);
@@ -85,7 +85,7 @@ void test(void)
     free(ppText);
 
 
-    saga_cellFree(&src);
+    saga_nodeFree(&src);
 }
 
 
