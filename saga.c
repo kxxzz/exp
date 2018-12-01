@@ -458,12 +458,11 @@ static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool wit
 
 
 
-static void saga_saveMlAddNodeVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_saveMlAddNodeVec(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo)
 {
-    saga_Node node = { saga_NodeType_Inode, .vec = *vec };
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = saga_saveSL(&node, bufPtr, bufRemain, withSrcInfo);
+    u32 a = saga_saveSL(node, bufPtr, bufRemain, withSrcInfo);
     bool ok = saga_saveMlForward(ctx, a);
 
     if (!ok)
@@ -473,7 +472,7 @@ static void saga_saveMlAddNodeVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool
         saga_saveMlAdd(ctx, "[\n");
 
         ++ctx->depth;
-        saga_saveMlAddVec(ctx, vec, withSrcInfo);
+        saga_saveMlAddVec(ctx, &node->vec, withSrcInfo);
         --ctx->depth;
 
         saga_saveMlAddIdent(ctx);
@@ -497,8 +496,7 @@ static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool 
     }
     case saga_NodeType_Inode:
     {
-        const saga_Vec* vec = &node->vec;
-        saga_saveMlAddNodeVec(ctx, vec, withSrcInfo);
+        saga_saveMlAddNodeVec(ctx, node, withSrcInfo);
         return;
     }
     default:
@@ -547,7 +545,7 @@ u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveML
         {
             opt, bufSize, buf,
         };
-        saga_saveMlAddNodeVec(&ctx, &node->vec, opt->withSrcInfo);
+        saga_saveMlAddNodeVec(&ctx, node, opt->withSrcInfo);
         return ctx.n;
     }
     default:

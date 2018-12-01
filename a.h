@@ -61,6 +61,7 @@ typedef vec_t(struct saga_Node*) saga_Vec;
 
 typedef struct saga_Node
 {
+    saga_Node* parent;
     saga_NodeType type;
     union
     {
