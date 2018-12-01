@@ -2,10 +2,27 @@
 
 
 
+#include <stdbool.h>
+#include <stdint.h>
+
+
+typedef unsigned char u8;
+typedef unsigned short u16;
+typedef unsigned int u32;
+typedef unsigned long long u64;
+
+typedef signed char s8;
+typedef signed short s16;
+typedef signed int s32;
+typedef signed long long s64;
+
+typedef float f32;
+typedef double f64;
+
+
+
 
 #include "vec.h"
-
-
 
 
 
@@ -66,27 +83,24 @@ u32 saga_strLen(saga_Cell* a);
 
 
 
-bool saga_load(saga_Vec* vec, const char* str);
+bool saga_load(saga_Cell* cell, const char* str);
 
-u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo);
-u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo);
-
+u32 saga_saveSL(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo);
 
 
 
 
-typedef struct saga_PPopt
+
+typedef struct saga_SaveMLopt
 {
     u32 indent;
     u32 width;
     bool withSrcInfo;
-} saga_PPopt;
+} saga_SaveMLopt;
 
-u32 saga_ppVec(const saga_Vec* vec, char* buf, u32 bufSize, const saga_PPopt* opt);
-u32 saga_pp(const saga_Cell* cell, char* buf, u32 bufSize, const saga_PPopt* opt);
+u32 saga_saveML(const saga_Cell* cell, char* buf, u32 bufSize, const saga_SaveMLopt* opt);
 
-char* saga_ppVecAc(const saga_Vec* vec, const saga_PPopt* opt);
-char* saga_ppAc(const saga_Cell* cell, const saga_PPopt* opt);
+
 
 
 

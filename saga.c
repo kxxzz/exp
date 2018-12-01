@@ -126,7 +126,25 @@ u32 saga_strLen(saga_Cell* a)
 
 
 
-u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static u32 saga_saveVecSL(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
@@ -134,7 +152,7 @@ u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 
     for (u32 i = 0; i < vec->length; ++i)
     {
-        u32 en = saga_ps(vec->data + i, bufPtr, bufRemain, withSrcInfo);
+        u32 en = saga_saveSL(vec->data + i, bufPtr, bufRemain, withSrcInfo);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -167,7 +185,7 @@ u32 saga_psVec(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 }
 
 
-u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
+u32 saga_saveSL(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
 {
     switch (cell->type)
     {
@@ -258,7 +276,7 @@ u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
         }
         n += 1;
 
-        u32 n1 = saga_psVec(vec, bufPtr, bufRemain, withSrcInfo);
+        u32 n1 = saga_saveVecSL(vec, bufPtr, bufRemain, withSrcInfo);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -306,27 +324,27 @@ u32 saga_ps(const saga_Cell* cell, char* buf, u32 bufSize, bool withSrcInfo)
 
 
 
-typedef struct saga_PPctx
+typedef struct saga_SaveMLctx
 {
-    const saga_PPopt* opt;
+    const saga_SaveMLopt* opt;
     const u32 bufSize;
     char* const buf;
 
     u32 n;
     u32 column;
     u32 depth;
-} saga_PPctx;
+} saga_SaveMLctx;
 
 
 
-static bool saga_ppForward(saga_PPctx* ctx, u32 a)
+static bool saga_saveMlForward(saga_SaveMLctx* ctx, u32 a)
 {
     ctx->n += a;
     ctx->column += a;
     return ctx->column <= ctx->opt->width;
 }
 
-static void saga_ppBack(saga_PPctx* ctx, u32 a)
+static void saga_saveMlBack(saga_SaveMLctx* ctx, u32 a)
 {
     assert(ctx->n >= a);
     assert(ctx->column >= a);
@@ -337,7 +355,7 @@ static void saga_ppBack(saga_PPctx* ctx, u32 a)
 
 
 
-static void saga_ppAdd(saga_PPctx* ctx, const char* s)
+static void saga_saveMlAdd(saga_SaveMLctx* ctx, const char* s)
 {
     u32 a = (u32)strlen(s);
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
@@ -371,12 +389,12 @@ static void saga_ppAdd(saga_PPctx* ctx, const char* s)
 
 
 
-static void saga_ppAddIdent(saga_PPctx* ctx)
+static void saga_saveMlAddIdent(saga_SaveMLctx* ctx)
 {
     u32 n = ctx->opt->indent * ctx->depth;
     for (u32 i = 0; i < n; ++i)
     {
-        saga_ppAdd(ctx, " ");
+        saga_saveMlAdd(ctx, " ");
     }
 }
 
@@ -386,50 +404,50 @@ static void saga_ppAddIdent(saga_PPctx* ctx)
 
 
 
-static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcInfo);
+static void saga_saveMlAddCell(saga_SaveMLctx* ctx, const saga_Cell* cell, bool withSrcInfo);
 
 
-static void saga_ppAddVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_ppAddIdent(ctx);
+        saga_saveMlAddIdent(ctx);
 
-        saga_ppAddCell(ctx, vec->data + i, withSrcInfo);
+        saga_saveMlAddCell(ctx, vec->data + i, withSrcInfo);
 
-        saga_ppAdd(ctx, "\n");
+        saga_saveMlAdd(ctx, "\n");
     }
 }
 
 
 
 
-static void saga_ppAddCellVec(saga_PPctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_saveMlAddCellVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
 {
     saga_Cell cell = { saga_CellType_Vec, .vec = *vec };
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = saga_ps(&cell, bufPtr, bufRemain, withSrcInfo);
-    bool ok = saga_ppForward(ctx, a);
+    u32 a = saga_saveSL(&cell, bufPtr, bufRemain, withSrcInfo);
+    bool ok = saga_saveMlForward(ctx, a);
 
     if (!ok)
     {
-        saga_ppBack(ctx, a);
+        saga_saveMlBack(ctx, a);
 
-        saga_ppAdd(ctx, "[\n");
+        saga_saveMlAdd(ctx, "[\n");
 
         ++ctx->depth;
-        saga_ppAddVec(ctx, vec, withSrcInfo);
+        saga_saveMlAddVec(ctx, vec, withSrcInfo);
         --ctx->depth;
 
-        saga_ppAddIdent(ctx);
-        saga_ppAdd(ctx, "]");
+        saga_saveMlAddIdent(ctx);
+        saga_saveMlAdd(ctx, "]");
     }
 }
 
 
 
-static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcInfo)
+static void saga_saveMlAddCell(saga_SaveMLctx* ctx, const saga_Cell* cell, bool withSrcInfo)
 {
     switch (cell->type)
     {
@@ -437,14 +455,14 @@ static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcI
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = saga_ps(cell, bufPtr, bufRemain, withSrcInfo);
-        saga_ppForward(ctx, a);
+        u32 a = saga_saveSL(cell, bufPtr, bufRemain, withSrcInfo);
+        saga_saveMlForward(ctx, a);
         return;
     }
     case saga_CellType_Vec:
     {
         const saga_Vec* vec = &cell->vec;
-        saga_ppAddCellVec(ctx, vec, withSrcInfo);
+        saga_saveMlAddCellVec(ctx, vec, withSrcInfo);
         return;
     }
     default:
@@ -466,34 +484,34 @@ static void saga_ppAddCell(saga_PPctx* ctx, const saga_Cell* cell, bool withSrcI
 
 
 
-u32 saga_ppVec(const saga_Vec* vec, char* buf, u32 bufSize, const saga_PPopt* opt)
+static u32 saga_saveVecML(const saga_Vec* vec, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
 {
-    saga_PPctx ctx =
+    saga_SaveMLctx ctx =
     {
         opt, bufSize, buf,
     };
-    saga_ppAddVec(&ctx, vec, opt->withSrcInfo);
+    saga_saveMlAddVec(&ctx, vec, opt->withSrcInfo);
     return ctx.n;
 }
 
 
 
 
-u32 saga_pp(const saga_Cell* cell, char* buf, u32 bufSize, const saga_PPopt* opt)
+u32 saga_saveML(const saga_Cell* cell, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
 {
     switch (cell->type)
     {
     case saga_CellType_Str:
     {
-        return saga_ps(cell, buf, bufSize, opt->withSrcInfo);
+        return saga_saveSL(cell, buf, bufSize, opt->withSrcInfo);
     }
     case saga_CellType_Vec:
     {
-        saga_PPctx ctx =
+        saga_SaveMLctx ctx =
         {
             opt, bufSize, buf,
         };
-        saga_ppAddCellVec(&ctx, &cell->vec, opt->withSrcInfo);
+        saga_saveMlAddCellVec(&ctx, &cell->vec, opt->withSrcInfo);
         return ctx.n;
     }
     default:
@@ -510,22 +528,22 @@ u32 saga_pp(const saga_Cell* cell, char* buf, u32 bufSize, const saga_PPopt* opt
 
 
 
-char* saga_ppVecAc(const saga_Vec* vec, const saga_PPopt* opt)
-{
-    u32 bufSize = saga_ppVec(vec, NULL, 0, opt) + 1;
-    char* buf = (char*)malloc(bufSize);
-    saga_ppVec(vec, buf, bufSize, opt);
-    return buf;
-}
-
-
-char* saga_ppAc(const saga_Cell* cell, const saga_PPopt* opt)
-{
-    u32 bufSize = saga_pp(cell, NULL, 0, opt) + 1;
-    char* buf = (char*)malloc(bufSize);
-    saga_pp(cell, buf, bufSize, opt);
-    return buf;
-}
+//char* saga_saveMlVecAc(const saga_Vec* vec, const saga_PPopt* opt)
+//{
+//    u32 bufSize = saga_saveMlVec(vec, NULL, 0, opt) + 1;
+//    char* buf = (char*)malloc(bufSize);
+//    saga_saveMlVec(vec, buf, bufSize, opt);
+//    return buf;
+//}
+//
+//
+//char* saga_saveMlAc(const saga_Cell* cell, const saga_PPopt* opt)
+//{
+//    u32 bufSize = saga_saveMl(cell, NULL, 0, opt) + 1;
+//    char* buf = (char*)malloc(bufSize);
+//    saga_saveMl(cell, buf, bufSize, opt);
+//    return buf;
+//}
 
 
 
