@@ -51,6 +51,17 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
 
 
 
+
+const saga_NodeSrcInfo* saga_nodeSrcInfo(const saga_Node* node)
+{
+    return node->hasSrcInfo ? &node->srcInfo : NULL;
+}
+
+
+
+
+
+
 void saga_nodeFree(saga_Node* node)
 {
     switch (node->type)
@@ -108,15 +119,15 @@ saga_Node* saga_nodeDup(const saga_Node* node)
 
 
 
-saga_Node* saga_termNode(const char* s)
+saga_Node* saga_term(const char* str)
 {
     saga_Node* node = zalloc(sizeof(*node));
     node->type = saga_NodeType_Term;
-    vec_pusharr(&node->str, s, (u32)strlen(s) + 1);
+    vec_pusharr(&node->str, str, (u32)strlen(str) + 1);
     return node;
 }
 
-u32 saga_termNodeStrLen(saga_Node* node)
+u32 saga_termStrLen(const saga_Node* node)
 {
     assert(saga_NodeType_Term == node->type);
     return node->str.length > 0 ? node->str.length - 1 : 0;
@@ -126,18 +137,35 @@ u32 saga_termNodeStrLen(saga_Node* node)
 
 
 
+saga_Node* saga_inode(void)
+{
+    saga_Node* node = zalloc(sizeof(*node));
+    node->type = saga_NodeType_Inode;
+    return node;
+}
+
+u32 saga_inodeNumChilden(const saga_Node* node)
+{
+    assert(saga_NodeType_Inode == node->type);
+    return node->vec.length;
+}
+
+saga_Node** saga_inodeChilden(const saga_Node* node)
+{
+    assert(saga_NodeType_Inode == node->type);
+    return node->vec.data;
+}
 
 
 
 
 
 
-
-
-
-
-
-
+void saga_inodeAddChild(saga_Node* node, saga_Node* c)
+{
+    assert(saga_NodeType_Inode == node->type);
+    vec_push(&node->vec, c);
+}
 
 
 

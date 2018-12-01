@@ -21,11 +21,6 @@ typedef double f64;
 
 
 
-
-#include "vec.h"
-
-
-
 typedef enum saga_NodeType
 {
     saga_NodeType_Term,
@@ -40,10 +35,8 @@ static const char* saga_NodeTypeNameTable[saga_NumNodeTypes] =
     "Inode",
 };
 
+typedef struct saga_Node saga_Node;
 
-
-typedef vec_t(char) saga_Str;
-typedef vec_t(struct saga_Node*) saga_Vec;
 
 
 
@@ -55,37 +48,33 @@ typedef struct saga_NodeSrcInfo
     bool isStrTok;
 } saga_NodeSrcInfo;
 
-typedef struct saga_Node
-{
-    saga_NodeType type;
-    union
-    {
-        saga_Str str;
-        saga_Vec vec;
-    };
-    bool hasSrcInfo;
-    saga_NodeSrcInfo srcInfo;
-} saga_Node;
-
-
+const saga_NodeSrcInfo* saga_nodeSrcInfo(const saga_Node* node);
 void saga_nodeFree(saga_Node* node);
-saga_Node* saga_nodeDup(const saga_Node* b);
+saga_Node* saga_nodeDup(const saga_Node* node);
 
 
+saga_Node* saga_term(const char* str);
+u32 saga_termStrLen(const saga_Node* nodea);
 
 
-saga_Node* saga_termNode(const char* s);
-u32 saga_termNodeStrLen(saga_Node* a);
+saga_Node* saga_inode(void);
+u32 saga_inodeNumChilden(const saga_Node* node);
+saga_Node** saga_inodeChilden(const saga_Node* node);
+
+
+void saga_inodeAddChild(saga_Node* node, saga_Node* c);
+
+
 
 
 
 saga_Node* saga_load(const char* str);
 
+
+
+
+
 u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
-
-
-
-
 
 typedef struct saga_SaveMLopt
 {
