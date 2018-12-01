@@ -2,6 +2,57 @@
 
 
 
+
+
+
+
+void saga_vecFree(saga_Vec* vec)
+{
+    for (u32 i = 0; i < vec->length; ++i)
+    {
+        saga_nodeFree(vec->data + i);
+    }
+    vec_free(vec);
+}
+
+void saga_vecDup(saga_Vec* vec, const saga_Vec* a)
+{
+    for (u32 i = 0; i < vec->length; ++i)
+    {
+        saga_nodeFree(vec->data + i);
+    }
+    vec->length = 0;
+    vec_reserve(vec, a->length);
+    for (u32 i = 0; i < a->length; ++i)
+    {
+        saga_Node e;
+        saga_nodeDup(&e, &a->data[i]);
+        vec_push(vec, e);
+    }
+}
+
+void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
+{
+    vec_reserve(vec, vec->length + a->length);
+    for (u32 i = 0; i < a->length; ++i)
+    {
+        saga_Node e;
+        saga_nodeDup(&e, &a->data[i]);
+        vec_push(vec, e);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 void saga_nodeFree(saga_Node* node)
 {
     switch (node->type)
@@ -44,50 +95,6 @@ void saga_nodeDup(saga_Node* a, const saga_Node* b)
     }
     a->hasSrcInfo = b->hasSrcInfo;
     a->srcInfo = b->srcInfo;
-}
-
-
-
-
-
-
-
-
-
-void saga_vecFree(saga_Vec* vec)
-{
-    for (u32 i = 0; i < vec->length; ++i)
-    {
-        saga_nodeFree(vec->data + i);
-    }
-    vec_free(vec);
-}
-
-void saga_vecDup(saga_Vec* vec, const saga_Vec* a)
-{
-    for (u32 i = 0; i < vec->length; ++i)
-    {
-        saga_nodeFree(vec->data + i);
-    }
-    vec->length = 0;
-    vec_reserve(vec, a->length);
-    for (u32 i = 0; i < a->length; ++i)
-    {
-        saga_Node e;
-        saga_nodeDup(&e, &a->data[i]);
-        vec_push(vec, e);
-    }
-}
-
-void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
-{
-    vec_reserve(vec, vec->length + a->length);
-    for (u32 i = 0; i < a->length; ++i)
-    {
-        saga_Node e;
-        saga_nodeDup(&e, &a->data[i]);
-        vec_push(vec, e);
-    }
 }
 
 

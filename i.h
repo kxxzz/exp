@@ -71,10 +71,6 @@ typedef struct saga_Node
 void saga_nodeFree(saga_Node* node);
 void saga_nodeDup(saga_Node* a, const saga_Node* b);
 
-void saga_vecFree(saga_Vec* vec);
-void saga_vecDup(saga_Vec* vec, const saga_Vec* a);
-void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
-
 
 
 
@@ -83,7 +79,7 @@ u32 saga_strLen(saga_Node* a);
 
 
 
-bool saga_load(saga_Node* node, const char* str);
+saga_Node* saga_load(const char* str);
 
 u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
 

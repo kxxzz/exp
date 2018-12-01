@@ -58,22 +58,19 @@ void test(void)
     assert(textSize != -1);
 
 
-    saga_Node src = { 0 };
-
-
-    bool ok = saga_load(&src, text);
-    assert(ok);
+    saga_Node* src = saga_load(text);
+    assert(src);
     free(text);
 
 
     saga_SaveMLopt saveOpt = { 4, 50 };
 
 
-    u32 text1BufSize = saga_saveML(&src, NULL, 0, &saveOpt) + 1;
+    u32 text1BufSize = saga_saveML(src, NULL, 0, &saveOpt) + 1;
     char* text1 = malloc(text1BufSize);
 
 
-    u32 writen = saga_saveML(&src, text1, text1BufSize, &saveOpt) + 1;
+    u32 writen = saga_saveML(src, text1, text1BufSize, &saveOpt) + 1;
     assert(text1BufSize == writen);
 
 
@@ -85,7 +82,8 @@ void test(void)
     free(text1);
 
 
-    saga_nodeFree(&src);
+    saga_nodeFree(src);
+    free(src);
 }
 
 

@@ -413,9 +413,10 @@ static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
 
 
 
-bool saga_load(saga_Node* node, const char* str)
+saga_Node* saga_load(const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
+    saga_Node* node = malloc(sizeof(*node));
     node->type = saga_NodeType_Inode;
     memset(&node->vec, 0, sizeof(node->vec));
     saga_Node e = { 0 };
@@ -427,10 +428,11 @@ bool saga_load(saga_Node* node, const char* str)
     if (!saga_loadEnd(&ctx))
     {
         saga_vecFree(&vec);
-        return false;
+        free(node);
+        return NULL;
     }
     node->vec = vec;
-    return true;
+    return node;
 }
 
 
