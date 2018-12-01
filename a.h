@@ -42,12 +42,21 @@
 
 
 
+static void* zalloc(size_t size)
+{
+    void* p = malloc(size);
+    memset(p, 0, size);
+    return p;
+}
+
+
+
+
 
 
 void saga_vecFree(saga_Vec* vec);
 void saga_vecDup(saga_Vec* vec, const saga_Vec* a);
 void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
-
 
 
 

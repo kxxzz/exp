@@ -251,7 +251,7 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out);
+static saga_Node* saga_loadNode(saga_LoadContext* ctx);
 
 static bool saga_loadEnd(saga_LoadContext* ctx)
 {
@@ -289,28 +289,19 @@ static bool saga_loadVecEnd(saga_LoadContext* ctx)
 
 static bool saga_loadVec(saga_LoadContext* ctx, saga_Vec* vec)
 {
-    bool ok;
     saga_Vec vec1 = { 0 };
     while (!saga_loadVecEnd(ctx))
     {
-        saga_Node e = { 0 };
-        ok = saga_loadNode(ctx, &e);
-        if (!ok)
+        saga_Node* e = NULL;
+        e = saga_loadNode(ctx);
+        if (!e)
         {
             saga_vecFree(&vec1);
             return false;
         }
         vec_push(&vec1, e);
     }
-    if (vec->length > 0)
-    {
-        saga_vecDup(vec, &vec1);
-        saga_vecFree(&vec1);
-    }
-    else
-    {
-        *vec = vec1;
-    }
+    *vec = vec1;
     return true;
 }
 
@@ -335,7 +326,7 @@ static void saga_loadNodeSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, s
 
 
 
-static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
+static saga_Node* saga_loadNode(saga_LoadContext* ctx)
 {
     saga_Token tok;
     if (!saga_readToken(ctx, &tok))
@@ -344,22 +335,22 @@ static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
     }
     saga_NodeSrcInfo srcInfo;
     saga_loadNodeSrcInfo(ctx, &tok, &srcInfo);
-    bool ok = true;
+    saga_Node* node = zalloc(sizeof(*node));
     switch (tok.type)
     {
     case saga_TokenType_Text:
     {
-        out->type = saga_NodeType_Term;
+        node->type = saga_NodeType_Term;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
-        vec_resize(&out->str, strLen + 1);
-        strncpy(out->str.data, src, tok.len);
-        out->str.data[tok.len] = 0;
+        vec_resize(&node->str, strLen + 1);
+        strncpy(node->str.data, src, tok.len);
+        node->str.data[tok.len] = 0;
         break;
     }
     case saga_TokenType_String:
     {
-        out->type = saga_NodeType_Term;
+        node->type = saga_NodeType_Term;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -372,36 +363,40 @@ static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
             }
         }
         u32 strLen = tok.len - n;
-        vec_resize(&out->str, strLen + 1);
+        vec_resize(&node->str, strLen + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok.len; ++i)
         {
             if ('\\' == src[i])
             {
                 ++i;
-                out->str.data[si++] = src[i];
+                node->str.data[si++] = src[i];
                 continue;
             }
-            out->str.data[si++] = src[i];
+            node->str.data[si++] = src[i];
         }
-        out->str.data[tok.len] = 0;
+        node->str.data[tok.len] = 0;
         assert(si == strLen);
         break;
     }
     case saga_TokenType_VecBegin:
     {
-        out->type = saga_NodeType_Inode;
-        memset(&out->vec, 0, sizeof(out->vec));
-        ok = saga_loadVec(ctx, &out->vec);
+        node->type = saga_NodeType_Inode;
+        bool ok = saga_loadVec(ctx, &node->vec);
+        if (!ok)
+        {
+            saga_nodeFree(node);
+            return NULL;
+        }
         break;
     }
     default:
         assert(false);
-        return false;
+        return NULL;
     }
-    out->hasSrcInfo = true;
-    out->srcInfo = srcInfo;
-    return ok;
+    node->hasSrcInfo = true;
+    node->srcInfo = srcInfo;
+    return node;
 }
 
 
@@ -416,22 +411,19 @@ static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
 saga_Node* saga_load(const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    saga_Node* node = malloc(sizeof(*node));
+    saga_Node* node = zalloc(sizeof(*node));
     node->type = saga_NodeType_Inode;
-    memset(&node->vec, 0, sizeof(node->vec));
-    saga_Node e = { 0 };
-    saga_Vec vec = { 0 };
-    while (saga_loadNode(&ctx, &e))
+    saga_Node* e = NULL;
+    while (e = saga_loadNode(&ctx))
     {
-        vec_push(&vec, e);
+        vec_push(&node->vec, e);
     }
     if (!saga_loadEnd(&ctx))
     {
-        saga_vecFree(&vec);
+        saga_vecFree(&node->vec);
         free(node);
         return NULL;
     }
-    node->vec = vec;
     return node;
 }
 

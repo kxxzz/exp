@@ -43,7 +43,7 @@ static const char* saga_NodeTypeNameTable[saga_NumNodeTypes] =
 
 
 typedef vec_t(char) saga_Str;
-typedef vec_t(struct saga_Node) saga_Vec;
+typedef vec_t(struct saga_Node*) saga_Vec;
 
 
 
@@ -69,13 +69,13 @@ typedef struct saga_Node
 
 
 void saga_nodeFree(saga_Node* node);
-void saga_nodeDup(saga_Node* a, const saga_Node* b);
+saga_Node* saga_nodeDup(const saga_Node* b);
 
 
 
 
-saga_Node saga_nodeStr(const char* s);
-u32 saga_strLen(saga_Node* a);
+saga_Node* saga_termNode(const char* s);
+u32 saga_termNodeStrLen(saga_Node* a);
 
 
 

@@ -83,7 +83,6 @@ void test(void)
 
 
     saga_nodeFree(src);
-    free(src);
 }
 
 
