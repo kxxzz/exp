@@ -66,23 +66,23 @@ void test(void)
     free(text);
 
 
-    saga_SaveMLopt ppOpt = { 4, 50 };
+    saga_SaveMLopt saveOpt = { 4, 50 };
 
 
-    u32 ppBufSize = saga_saveML(&src, NULL, 0, &ppOpt) + 1;
-    char* ppText = malloc(ppBufSize);
+    u32 text1BufSize = saga_saveML(&src, NULL, 0, &saveOpt) + 1;
+    char* text1 = malloc(text1BufSize);
 
 
-    u32 writen = saga_saveML(&src, ppText, ppBufSize, &ppOpt) + 1;
-    assert(ppBufSize == writen);
+    u32 writen = saga_saveML(&src, text1, text1BufSize, &saveOpt) + 1;
+    assert(text1BufSize == writen);
 
 
-    u32 ppTextSize = (u32)strlen(ppText);
-    assert(ppTextSize + 1 == ppBufSize);
+    u32 text1Size = (u32)strlen(text1);
+    assert(text1Size + 1 == text1BufSize);
 
 
-    printf("\"\n%s\"\n", ppText);
-    free(ppText);
+    printf("\"\n%s\"\n", text1);
+    free(text1);
 
 
     saga_nodeFree(&src);
