@@ -1,5 +1,5 @@
-cmake_minimum_required(VERSION 3.5)
-project(saga)
+cmake_minimum_required (VERSION 3.5)
+project (saga)
 
 
 set (CMAKE_C_STANDARD 11)
@@ -9,8 +9,8 @@ find_package (Threads REQUIRED)
 
 list (APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
 include (ExternalProject)
-include(FeatureSummary)
-include(CMakeDependentOption)
+include (FeatureSummary)
+include (CMakeDependentOption)
 
 
 include_directories (..)
@@ -30,10 +30,10 @@ if (CMAKE_COMPILER_IS_GNUCC)
 endif ()
 
 
-set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
-set(CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -DDEBUG")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG")
-set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
+set (CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DDEBUG")
+set (CMAKE_C_FLAGS_MINSIZEREL "${CMAKE_C_FLAGS_MINSIZEREL} -DDEBUG")
+set (CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -DNDEBUG")
+set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 
 
 
