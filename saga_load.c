@@ -416,8 +416,21 @@ static bool saga_loadNode(saga_LoadContext* ctx, saga_Node* out)
 bool saga_load(saga_Node* node, const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    bool ok = saga_loadNode(&ctx, node);
-    return ok;
+    node->type = saga_NodeType_Inode;
+    memset(&node->vec, 0, sizeof(node->vec));
+    saga_Node e = { 0 };
+    saga_Vec vec = { 0 };
+    while (saga_loadNode(&ctx, &e))
+    {
+        vec_push(&vec, e);
+    }
+    if (!saga_loadEnd(&ctx))
+    {
+        saga_vecFree(&vec);
+        return false;
+    }
+    node->vec = vec;
+    return true;
 }
 
 
