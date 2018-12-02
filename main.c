@@ -59,7 +59,7 @@ void test(void)
     assert(textSize != -1);
 
 
-    saga_Node* src = saga_load(text);
+    saga_Node* src = saga_loadSeq(text);
     assert(src);
     free(text);
 

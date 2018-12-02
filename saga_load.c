@@ -405,7 +405,22 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
 
 
 
-saga_Node* saga_load(const char* str)
+
+
+
+saga_Node* saga_loadCell(const char* str)
+{
+    saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
+    saga_Node* node = saga_loadNode(&ctx);
+    if (!saga_loadEnd(&ctx))
+    {
+        saga_nodeFree(node);
+        return NULL;
+    }
+    return node;
+}
+
+saga_Node* saga_loadSeq(const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
     saga_Node* node = saga_inode();
@@ -416,8 +431,7 @@ saga_Node* saga_load(const char* str)
     }
     if (!saga_loadEnd(&ctx))
     {
-        saga_vecFree(&node->vec);
-        free(node);
+        saga_nodeFree(node);
         return NULL;
     }
     return node;

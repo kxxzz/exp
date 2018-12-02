@@ -68,7 +68,8 @@ void saga_inodeAddChild(saga_Node* node, saga_Node* c);
 
 
 
-saga_Node* saga_load(const char* str);
+saga_Node* saga_loadCell(const char* str);
+saga_Node* saga_loadSeq(const char* str);
 
 
 

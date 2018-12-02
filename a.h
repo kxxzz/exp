@@ -56,7 +56,6 @@ static void* zalloc(size_t size)
 
 
 
-typedef vec_t(char) saga_Str;
 typedef vec_t(struct saga_Node*) saga_Vec;
 
 typedef struct saga_Node
@@ -64,7 +63,7 @@ typedef struct saga_Node
     saga_NodeType type;
     union
     {
-        saga_Str str;
+        vec_t(char) str;
         saga_Vec vec;
     };
     bool hasSrcInfo;
