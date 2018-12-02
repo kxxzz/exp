@@ -56,7 +56,7 @@ static void* zalloc(size_t size)
 
 
 
-typedef vec_t(struct saga_Node*) saga_Vec;
+typedef vec_t(struct saga_Node*) saga_NodeVec;
 
 typedef struct saga_Node
 {
@@ -64,7 +64,7 @@ typedef struct saga_Node
     union
     {
         vec_t(char) str;
-        saga_Vec vec;
+        saga_NodeVec vec;
     };
     bool hasSrcInfo;
     saga_NodeSrcInfo srcInfo;
@@ -72,9 +72,9 @@ typedef struct saga_Node
 
 
 
-void saga_vecFree(saga_Vec* vec);
-void saga_vecDup(saga_Vec* vec, const saga_Vec* a);
-void saga_vecConcat(saga_Vec* vec, const saga_Vec* a);
+void saga_nodeVecFree(saga_NodeVec* vec);
+void saga_nodeVecDup(saga_NodeVec* vec, const saga_NodeVec* a);
+void saga_nodeVecConcat(saga_NodeVec* vec, const saga_NodeVec* a);
 
 
 

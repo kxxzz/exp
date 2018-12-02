@@ -6,7 +6,7 @@
 
 
 
-void saga_vecFree(saga_Vec* vec)
+void saga_nodeVecFree(saga_NodeVec* vec)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
@@ -15,7 +15,7 @@ void saga_vecFree(saga_Vec* vec)
     vec_free(vec);
 }
 
-void saga_vecDup(saga_Vec* vec, const saga_Vec* a)
+void saga_nodeVecDup(saga_NodeVec* vec, const saga_NodeVec* a)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
@@ -30,7 +30,7 @@ void saga_vecDup(saga_Vec* vec, const saga_Vec* a)
     }
 }
 
-void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
+void saga_nodeVecConcat(saga_NodeVec* vec, const saga_NodeVec* a)
 {
     vec_reserve(vec, vec->length + a->length);
     for (u32 i = 0; i < a->length; ++i)
@@ -71,14 +71,14 @@ void saga_nodeFree(saga_Node* node)
 {
     switch (node->type)
     {
-    case saga_NodeType_Term:
+    case saga_NodeType_Str:
     {
         vec_free(&node->str);
         break;
     }
-    case saga_NodeType_Inode:
+    case saga_NodeType_Vec:
     {
-        saga_vecFree(&node->vec);
+        saga_nodeVecFree(&node->vec);
         break;
     }
     default:
@@ -94,14 +94,14 @@ saga_Node* saga_nodeDup(const saga_Node* node)
     node1->type = node->type;
     switch (node->type)
     {
-    case saga_NodeType_Term:
+    case saga_NodeType_Str:
     {
         vec_dup(&node1->str, &node->str);
         break;
     }
-    case saga_NodeType_Inode:
+    case saga_NodeType_Vec:
     {
-        saga_vecDup(&node1->vec, &node->vec);
+        saga_nodeVecDup(&node1->vec, &node->vec);
         break;
     }
     default:
@@ -124,23 +124,23 @@ saga_Node* saga_nodeDup(const saga_Node* node)
 
 
 
-saga_Node* saga_term(const char* str)
+saga_Node* saga_str(const char* str)
 {
     saga_Node* node = zalloc(sizeof(*node));
-    node->type = saga_NodeType_Term;
+    node->type = saga_NodeType_Str;
     vec_pusharr(&node->str, str, (u32)strlen(str) + 1);
     return node;
 }
 
-u32 saga_termStrLen(const saga_Node* node)
+u32 saga_strLen(const saga_Node* node)
 {
-    assert(saga_NodeType_Term == node->type);
+    assert(saga_NodeType_Str == node->type);
     return node->str.length > 0 ? node->str.length - 1 : 0;
 }
 
-const char* saga_termStr(const saga_Node* node)
+const char* saga_strCstr(const saga_Node* node)
 {
-    assert(saga_NodeType_Term == node->type);
+    assert(saga_NodeType_Str == node->type);
     return node->str.data;
 }
 
@@ -148,22 +148,22 @@ const char* saga_termStr(const saga_Node* node)
 
 
 
-saga_Node* saga_inode(void)
+saga_Node* saga_vec(void)
 {
     saga_Node* node = zalloc(sizeof(*node));
-    node->type = saga_NodeType_Inode;
+    node->type = saga_NodeType_Vec;
     return node;
 }
 
-u32 saga_inodeNumChilden(const saga_Node* node)
+u32 saga_vecLen(const saga_Node* node)
 {
-    assert(saga_NodeType_Inode == node->type);
+    assert(saga_NodeType_Vec == node->type);
     return node->vec.length;
 }
 
-saga_Node** saga_inodeChilden(const saga_Node* node)
+saga_Node** saga_vecElm(const saga_Node* node)
 {
-    assert(saga_NodeType_Inode == node->type);
+    assert(saga_NodeType_Vec == node->type);
     return node->vec.data;
 }
 
@@ -172,19 +172,19 @@ saga_Node** saga_inodeChilden(const saga_Node* node)
 
 
 
-void saga_inodeAdd(saga_Node* node, saga_Node* c)
+void saga_vecPush(saga_Node* node, saga_Node* c)
 {
-    assert(saga_NodeType_Inode == node->type);
+    assert(saga_NodeType_Vec == node->type);
     vec_push(&node->vec, c);
 }
 
-void saga_inodeConcat(saga_Node* node, saga_Node* a)
+void saga_vecConcat(saga_Node* node, saga_Node* a)
 {
-    assert(saga_NodeType_Inode == node->type);
-    assert(saga_NodeType_Inode == a->type);
+    assert(saga_NodeType_Vec == node->type);
+    assert(saga_NodeType_Vec == a->type);
     for (u32 i = 0; i < a->vec.length; ++i)
     {
-        vec_push(&node->vec, a->vec.data[i]);
+        vec_push(&node->vec, saga_nodeDup(a->vec.data[i]));
     }
 }
 
@@ -198,7 +198,7 @@ void saga_inodeConcat(saga_Node* node, saga_Node* a)
 
 
 
-static u32 saga_saveVecSL(const saga_Vec* vec, char* buf, u32 bufSize, bool withSrcInfo)
+static u32 saga_saveVecSL(const saga_NodeVec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
@@ -243,7 +243,7 @@ u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
 {
     switch (node->type)
     {
-    case saga_NodeType_Term:
+    case saga_NodeType_Str:
     {
         const char* str = node->str.data;
         u32 sreLen = (node->str.length > 0) ? node->str.length - 1 : 0;
@@ -309,10 +309,10 @@ u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
         }
         return n;
     }
-    case saga_NodeType_Inode:
+    case saga_NodeType_Vec:
     {
         u32 n = 0;
-        const saga_Vec* vec = &node->vec;
+        const saga_NodeVec* vec = &node->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -461,7 +461,7 @@ static void saga_saveMlAddIdent(saga_SaveMLctx* ctx)
 static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo);
 
 
-static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_Vec* vec, bool withSrcInfo)
+static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_NodeVec* vec, bool withSrcInfo)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
@@ -504,7 +504,7 @@ static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool 
 {
     switch (node->type)
     {
-    case saga_NodeType_Term:
+    case saga_NodeType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
@@ -512,7 +512,7 @@ static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool 
         saga_saveMlForward(ctx, a);
         return;
     }
-    case saga_NodeType_Inode:
+    case saga_NodeType_Vec:
     {
         saga_saveMlAddNodeVec(ctx, node, withSrcInfo);
         return;
@@ -536,7 +536,7 @@ static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool 
 
 
 
-static u32 saga_saveVecML(const saga_Vec* vec, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
+static u32 saga_saveVecML(const saga_NodeVec* vec, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
 {
     saga_SaveMLctx ctx =
     {
@@ -553,11 +553,11 @@ u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveML
 {
     switch (node->type)
     {
-    case saga_NodeType_Term:
+    case saga_NodeType_Str:
     {
         return saga_saveSL(node, buf, bufSize, opt->withSrcInfo);
     }
-    case saga_NodeType_Inode:
+    case saga_NodeType_Vec:
     {
         saga_SaveMLctx ctx =
         {

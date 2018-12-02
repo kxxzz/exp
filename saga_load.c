@@ -287,7 +287,7 @@ static bool saga_loadVecEnd(saga_LoadContext* ctx)
     return false;
 }
 
-static bool saga_loadVec(saga_LoadContext* ctx, saga_Node* inode)
+static bool saga_loadVec(saga_LoadContext* ctx, saga_Node* node)
 {
     while (!saga_loadVecEnd(ctx))
     {
@@ -297,7 +297,7 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Node* inode)
         {
             return false;
         }
-        saga_inodeAdd(inode, e);
+        saga_vecPush(node, e);
     }
     return true;
 }
@@ -337,7 +337,7 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
     {
     case saga_TokenType_Text:
     {
-        node->type = saga_NodeType_Term;
+        node->type = saga_NodeType_Str;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&node->str, strLen + 1);
@@ -347,7 +347,7 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
     }
     case saga_TokenType_String:
     {
-        node->type = saga_NodeType_Term;
+        node->type = saga_NodeType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -378,7 +378,7 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
     }
     case saga_TokenType_VecBegin:
     {
-        node->type = saga_NodeType_Inode;
+        node->type = saga_NodeType_Vec;
         bool ok = saga_loadVec(ctx, node);
         if (!ok)
         {
@@ -423,11 +423,11 @@ saga_Node* saga_loadCell(const char* str)
 saga_Node* saga_loadSeq(const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    saga_Node* node = saga_inode();
+    saga_Node* node = saga_vec();
     saga_Node* e = NULL;
     while (e = saga_loadNode(&ctx))
     {
-        saga_inodeAdd(node, e);
+        saga_vecPush(node, e);
     }
     if (!saga_loadEnd(&ctx))
     {
