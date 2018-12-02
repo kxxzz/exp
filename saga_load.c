@@ -297,7 +297,7 @@ static bool saga_loadVec(saga_LoadContext* ctx, saga_Node* inode)
         {
             return false;
         }
-        saga_inodeAddChild(inode, e);
+        saga_inodeAdd(inode, e);
     }
     return true;
 }
@@ -427,7 +427,7 @@ saga_Node* saga_loadSeq(const char* str)
     saga_Node* e = NULL;
     while (e = saga_loadNode(&ctx))
     {
-        saga_inodeAddChild(node, e);
+        saga_inodeAdd(node, e);
     }
     if (!saga_loadEnd(&ctx))
     {

@@ -138,6 +138,12 @@ u32 saga_termStrLen(const saga_Node* node)
     return node->str.length > 0 ? node->str.length - 1 : 0;
 }
 
+const char* saga_termStr(const saga_Node* node)
+{
+    assert(saga_NodeType_Term == node->type);
+    return node->str.data;
+}
+
 
 
 
@@ -166,7 +172,7 @@ saga_Node** saga_inodeChilden(const saga_Node* node)
 
 
 
-void saga_inodeAddChild(saga_Node* node, saga_Node* c)
+void saga_inodeAdd(saga_Node* node, saga_Node* c)
 {
     assert(saga_NodeType_Inode == node->type);
     vec_push(&node->vec, c);

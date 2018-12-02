@@ -65,7 +65,8 @@ saga_Node* saga_nodeDup(const saga_Node* node);
 
 
 saga_Node* saga_term(const char* str);
-u32 saga_termStrLen(const saga_Node* nodea);
+u32 saga_termStrLen(const saga_Node* node);
+const char* saga_termStr(const saga_Node* node);
 
 
 saga_Node* saga_inode(void);
@@ -73,7 +74,7 @@ u32 saga_inodeNumChilden(const saga_Node* node);
 saga_Node** saga_inodeChilden(const saga_Node* node);
 
 
-void saga_inodeAddChild(saga_Node* node, saga_Node* c);
+void saga_inodeAdd(saga_Node* node, saga_Node* c);
 void saga_inodeConcat(saga_Node* node, saga_Node* a);
 
 
