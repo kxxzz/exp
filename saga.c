@@ -167,8 +167,15 @@ void saga_inodeAddChild(saga_Node* node, saga_Node* c)
     vec_push(&node->vec, c);
 }
 
-
-
+void saga_inodeConcat(saga_Node* node, saga_Node* a)
+{
+    assert(saga_NodeType_Inode == node->type);
+    assert(saga_NodeType_Inode == a->type);
+    for (u32 i = 0; i < a->vec.length; ++i)
+    {
+        vec_push(&node->vec, a->vec.data[i]);
+    }
+}
 
 
 

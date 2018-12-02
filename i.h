@@ -63,7 +63,7 @@ saga_Node** saga_inodeChilden(const saga_Node* node);
 
 
 void saga_inodeAddChild(saga_Node* node, saga_Node* c);
-
+void saga_inodeConcat(saga_Node* node, saga_Node* a);
 
 
 
