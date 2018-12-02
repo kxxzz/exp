@@ -39,6 +39,17 @@ typedef struct saga_Node saga_Node;
 
 
 
+saga_NodeType saga_nodeType(const saga_Node* node);
+
+bool saga_nodeIsTerm(const saga_Node* node)
+{
+    return saga_NodeType_Term == saga_nodeType(node);
+}
+bool saga_nodeIsInode(const saga_Node* node)
+{
+    return saga_NodeType_Inode == saga_nodeType(node);
+}
+
 
 typedef struct saga_NodeSrcInfo
 {

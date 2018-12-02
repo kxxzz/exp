@@ -48,6 +48,11 @@ void saga_vecConcat(saga_Vec* vec, const saga_Vec* a)
 
 
 
+saga_NodeType saga_nodeType(const saga_Node* node)
+{
+    return node->type;
+}
+
 
 
 
