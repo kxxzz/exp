@@ -420,7 +420,7 @@ static void saga_saveMlAdd(saga_SaveMLctx* ctx, const char* s)
         if (wn > 0)
         {
             char* bufPtr = ctx->buf + ctx->n;
-            strncpy(bufPtr, s, wn);
+            stzncpy(bufPtr, s, wn + 1);
             bufPtr[wn] = 0;
         }
     }

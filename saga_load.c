@@ -341,7 +341,7 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&node->str, strLen + 1);
-        strncpy(node->str.data, src, tok.len);
+        stzncpy(node->str.data, src, tok.len + 1);
         node->str.data[tok.len] = 0;
         break;
     }
@@ -424,9 +424,10 @@ saga_Node* saga_loadSeq(const char* str)
 {
     saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
     saga_Node* node = saga_vec();
-    saga_Node* e = NULL;
-    while (e = saga_loadNode(&ctx))
+    for (;;)
     {
+        saga_Node* e = saga_loadNode(&ctx);
+        if (!e) break;
         saga_vecPush(node, e);
     }
     if (!saga_loadEnd(&ctx))

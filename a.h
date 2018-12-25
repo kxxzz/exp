@@ -37,12 +37,20 @@
 
 
 
+#define zalloc(sz) calloc(1, sz)
 
 
-static void* zalloc(size_t size)
+
+static char* stzncpy(char* dst, char const* src, size_t len)
 {
-    void* p = malloc(size);
-    memset(p, 0, size);
+    assert(len > 0);
+    char* p = memccpy(dst, src, 0, len - 1);
+    if (p) --p;
+    else
+    {
+        p = dst + len - 1;
+        *p = 0;
+    }
     return p;
 }
 
