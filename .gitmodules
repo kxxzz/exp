@@ -1,0 +1,3 @@
+[submodule "imp/vec"]
+	path = imp/vec
+	url = https://github.com/kxxzz/vec.git

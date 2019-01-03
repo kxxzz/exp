@@ -44,7 +44,7 @@
 static char* stzncpy(char* dst, char const* src, size_t len)
 {
     assert(len > 0);
-    char* p = memccpy(dst, src, 0, len - 1);
+    char* p = _memccpy(dst, src, 0, len - 1);
     if (p) --p;
     else
     {
@@ -64,25 +64,25 @@ static char* stzncpy(char* dst, char const* src, size_t len)
 
 
 
-typedef vec_t(struct saga_Node*) saga_NodeVec;
+typedef vec_t(struct PRIM_Node*) PRIM_NodeVec;
 
-typedef struct saga_Node
+typedef struct PRIM_Node
 {
-    saga_NodeType type;
+    PRIM_NodeType type;
     union
     {
         vec_t(char) str;
-        saga_NodeVec vec;
+        PRIM_NodeVec vec;
     };
     bool hasSrcInfo;
-    saga_NodeSrcInfo srcInfo;
-} saga_Node;
+    PRIM_NodeSrcInfo srcInfo;
+} PRIM_Node;
 
 
 
-void saga_nodeVecFree(saga_NodeVec* vec);
-void saga_nodeVecDup(saga_NodeVec* vec, const saga_NodeVec* a);
-void saga_nodeVecConcat(saga_NodeVec* vec, const saga_NodeVec* a);
+void PRIM_nodeVecFree(PRIM_NodeVec* vec);
+void PRIM_nodeVecDup(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
+void PRIM_nodeVecConcat(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
 
 
 

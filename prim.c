@@ -6,36 +6,36 @@
 
 
 
-void saga_nodeVecFree(saga_NodeVec* vec)
+void PRIM_nodeVecFree(PRIM_NodeVec* vec)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_nodeFree(vec->data[i]);
+        PRIM_nodeFree(vec->data[i]);
     }
     vec_free(vec);
 }
 
-void saga_nodeVecDup(saga_NodeVec* vec, const saga_NodeVec* a)
+void PRIM_nodeVecDup(PRIM_NodeVec* vec, const PRIM_NodeVec* a)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_nodeFree(vec->data[i]);
+        PRIM_nodeFree(vec->data[i]);
     }
     vec->length = 0;
     vec_reserve(vec, a->length);
     for (u32 i = 0; i < a->length; ++i)
     {
-        saga_Node* e = saga_nodeDup(a->data[i]);
+        PRIM_Node* e = PRIM_nodeDup(a->data[i]);
         vec_push(vec, e);
     }
 }
 
-void saga_nodeVecConcat(saga_NodeVec* vec, const saga_NodeVec* a)
+void PRIM_nodeVecConcat(PRIM_NodeVec* vec, const PRIM_NodeVec* a)
 {
     vec_reserve(vec, vec->length + a->length);
     for (u32 i = 0; i < a->length; ++i)
     {
-        saga_Node* e = saga_nodeDup(a->data[i]);
+        PRIM_Node* e = PRIM_nodeDup(a->data[i]);
         vec_push(vec, e);
     }
 }
@@ -48,7 +48,7 @@ void saga_nodeVecConcat(saga_NodeVec* vec, const saga_NodeVec* a)
 
 
 
-saga_NodeType saga_nodeType(const saga_Node* node)
+PRIM_NodeType PRIM_nodeType(const PRIM_Node* node)
 {
     return node->type;
 }
@@ -57,7 +57,7 @@ saga_NodeType saga_nodeType(const saga_Node* node)
 
 
 
-const saga_NodeSrcInfo* saga_nodeSrcInfo(const saga_Node* node)
+const PRIM_NodeSrcInfo* PRIM_nodeSrcInfo(const PRIM_Node* node)
 {
     return node->hasSrcInfo ? &node->srcInfo : NULL;
 }
@@ -67,18 +67,18 @@ const saga_NodeSrcInfo* saga_nodeSrcInfo(const saga_Node* node)
 
 
 
-void saga_nodeFree(saga_Node* node)
+void PRIM_nodeFree(PRIM_Node* node)
 {
     switch (node->type)
     {
-    case saga_NodeType_Str:
+    case PRIM_NodeType_Str:
     {
         vec_free(&node->str);
         break;
     }
-    case saga_NodeType_Vec:
+    case PRIM_NodeType_Vec:
     {
-        saga_nodeVecFree(&node->vec);
+        PRIM_nodeVecFree(&node->vec);
         break;
     }
     default:
@@ -88,20 +88,20 @@ void saga_nodeFree(saga_Node* node)
     free(node);
 }
 
-saga_Node* saga_nodeDup(const saga_Node* node)
+PRIM_Node* PRIM_nodeDup(const PRIM_Node* node)
 {
-    saga_Node* node1 = zalloc(sizeof(*node1));
+    PRIM_Node* node1 = zalloc(sizeof(*node1));
     node1->type = node->type;
     switch (node->type)
     {
-    case saga_NodeType_Str:
+    case PRIM_NodeType_Str:
     {
         vec_dup(&node1->str, &node->str);
         break;
     }
-    case saga_NodeType_Vec:
+    case PRIM_NodeType_Vec:
     {
-        saga_nodeVecDup(&node1->vec, &node->vec);
+        PRIM_nodeVecDup(&node1->vec, &node->vec);
         break;
     }
     default:
@@ -124,23 +124,23 @@ saga_Node* saga_nodeDup(const saga_Node* node)
 
 
 
-saga_Node* saga_str(const char* str)
+PRIM_Node* PRIM_str(const char* str)
 {
-    saga_Node* node = zalloc(sizeof(*node));
-    node->type = saga_NodeType_Str;
+    PRIM_Node* node = zalloc(sizeof(*node));
+    node->type = PRIM_NodeType_Str;
     vec_pusharr(&node->str, str, (u32)strlen(str) + 1);
     return node;
 }
 
-u32 saga_strLen(const saga_Node* node)
+u32 PRIM_strLen(const PRIM_Node* node)
 {
-    assert(saga_NodeType_Str == node->type);
+    assert(PRIM_NodeType_Str == node->type);
     return node->str.length > 0 ? node->str.length - 1 : 0;
 }
 
-const char* saga_strCstr(const saga_Node* node)
+const char* PRIM_strCstr(const PRIM_Node* node)
 {
-    assert(saga_NodeType_Str == node->type);
+    assert(PRIM_NodeType_Str == node->type);
     return node->str.data;
 }
 
@@ -148,22 +148,22 @@ const char* saga_strCstr(const saga_Node* node)
 
 
 
-saga_Node* saga_vec(void)
+PRIM_Node* PRIM_vec(void)
 {
-    saga_Node* node = zalloc(sizeof(*node));
-    node->type = saga_NodeType_Vec;
+    PRIM_Node* node = zalloc(sizeof(*node));
+    node->type = PRIM_NodeType_Vec;
     return node;
 }
 
-u32 saga_vecLen(const saga_Node* node)
+u32 PRIM_vecLen(const PRIM_Node* node)
 {
-    assert(saga_NodeType_Vec == node->type);
+    assert(PRIM_NodeType_Vec == node->type);
     return node->vec.length;
 }
 
-saga_Node** saga_vecElm(const saga_Node* node)
+PRIM_Node** PRIM_vecElm(const PRIM_Node* node)
 {
-    assert(saga_NodeType_Vec == node->type);
+    assert(PRIM_NodeType_Vec == node->type);
     return node->vec.data;
 }
 
@@ -172,19 +172,19 @@ saga_Node** saga_vecElm(const saga_Node* node)
 
 
 
-void saga_vecPush(saga_Node* node, saga_Node* c)
+void PRIM_vecPush(PRIM_Node* node, PRIM_Node* c)
 {
-    assert(saga_NodeType_Vec == node->type);
+    assert(PRIM_NodeType_Vec == node->type);
     vec_push(&node->vec, c);
 }
 
-void saga_vecConcat(saga_Node* node, saga_Node* a)
+void PRIM_vecConcat(PRIM_Node* node, PRIM_Node* a)
 {
-    assert(saga_NodeType_Vec == node->type);
-    assert(saga_NodeType_Vec == a->type);
+    assert(PRIM_NodeType_Vec == node->type);
+    assert(PRIM_NodeType_Vec == a->type);
     for (u32 i = 0; i < a->vec.length; ++i)
     {
-        vec_push(&node->vec, saga_nodeDup(a->vec.data[i]));
+        vec_push(&node->vec, PRIM_nodeDup(a->vec.data[i]));
     }
 }
 
@@ -198,7 +198,7 @@ void saga_vecConcat(saga_Node* node, saga_Node* a)
 
 
 
-static u32 saga_saveVecSL(const saga_NodeVec* vec, char* buf, u32 bufSize, bool withSrcInfo)
+static u32 PRIM_saveVecSL(const PRIM_NodeVec* vec, char* buf, u32 bufSize, bool withSrcInfo)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
@@ -206,7 +206,7 @@ static u32 saga_saveVecSL(const saga_NodeVec* vec, char* buf, u32 bufSize, bool 
 
     for (u32 i = 0; i < vec->length; ++i)
     {
-        u32 en = saga_saveSL(vec->data[i], bufPtr, bufRemain, withSrcInfo);
+        u32 en = PRIM_saveSL(vec->data[i], bufPtr, bufRemain, withSrcInfo);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -239,11 +239,11 @@ static u32 saga_saveVecSL(const saga_NodeVec* vec, char* buf, u32 bufSize, bool 
 }
 
 
-u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
+u32 PRIM_saveSL(const PRIM_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
 {
     switch (node->type)
     {
-    case saga_NodeType_Str:
+    case PRIM_NodeType_Str:
     {
         const char* str = node->str.data;
         u32 sreLen = (node->str.length > 0) ? node->str.length - 1 : 0;
@@ -309,10 +309,10 @@ u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
         }
         return n;
     }
-    case saga_NodeType_Vec:
+    case PRIM_NodeType_Vec:
     {
         u32 n = 0;
-        const saga_NodeVec* vec = &node->vec;
+        const PRIM_NodeVec* vec = &node->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -330,7 +330,7 @@ u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
         }
         n += 1;
 
-        u32 n1 = saga_saveVecSL(vec, bufPtr, bufRemain, withSrcInfo);
+        u32 n1 = PRIM_saveVecSL(vec, bufPtr, bufRemain, withSrcInfo);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -378,27 +378,27 @@ u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo)
 
 
 
-typedef struct saga_SaveMLctx
+typedef struct PRIM_SaveMLctx
 {
-    const saga_SaveMLopt* opt;
+    const PRIM_SaveMLopt* opt;
     const u32 bufSize;
     char* const buf;
 
     u32 n;
     u32 column;
     u32 depth;
-} saga_SaveMLctx;
+} PRIM_SaveMLctx;
 
 
 
-static bool saga_saveMlForward(saga_SaveMLctx* ctx, u32 a)
+static bool PRIM_saveMlForward(PRIM_SaveMLctx* ctx, u32 a)
 {
     ctx->n += a;
     ctx->column += a;
     return ctx->column <= ctx->opt->width;
 }
 
-static void saga_saveMlBack(saga_SaveMLctx* ctx, u32 a)
+static void PRIM_saveMlBack(PRIM_SaveMLctx* ctx, u32 a)
 {
     assert(ctx->n >= a);
     assert(ctx->column >= a);
@@ -409,7 +409,7 @@ static void saga_saveMlBack(saga_SaveMLctx* ctx, u32 a)
 
 
 
-static void saga_saveMlAdd(saga_SaveMLctx* ctx, const char* s)
+static void PRIM_saveMlAdd(PRIM_SaveMLctx* ctx, const char* s)
 {
     u32 a = (u32)strlen(s);
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
@@ -443,12 +443,12 @@ static void saga_saveMlAdd(saga_SaveMLctx* ctx, const char* s)
 
 
 
-static void saga_saveMlAddIdent(saga_SaveMLctx* ctx)
+static void PRIM_saveMlAddIdent(PRIM_SaveMLctx* ctx)
 {
     u32 n = ctx->opt->indent * ctx->depth;
     for (u32 i = 0; i < n; ++i)
     {
-        saga_saveMlAdd(ctx, " ");
+        PRIM_saveMlAdd(ctx, " ");
     }
 }
 
@@ -458,63 +458,63 @@ static void saga_saveMlAddIdent(saga_SaveMLctx* ctx)
 
 
 
-static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo);
+static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, const PRIM_Node* node, bool withSrcInfo);
 
 
-static void saga_saveMlAddVec(saga_SaveMLctx* ctx, const saga_NodeVec* vec, bool withSrcInfo)
+static void PRIM_saveMlAddVec(PRIM_SaveMLctx* ctx, const PRIM_NodeVec* vec, bool withSrcInfo)
 {
     for (u32 i = 0; i < vec->length; ++i)
     {
-        saga_saveMlAddIdent(ctx);
+        PRIM_saveMlAddIdent(ctx);
 
-        saga_saveMlAddNode(ctx, vec->data[i], withSrcInfo);
+        PRIM_saveMlAddNode(ctx, vec->data[i], withSrcInfo);
 
-        saga_saveMlAdd(ctx, "\n");
+        PRIM_saveMlAdd(ctx, "\n");
     }
 }
 
 
 
 
-static void saga_saveMlAddNodeVec(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo)
+static void PRIM_saveMlAddNodeVec(PRIM_SaveMLctx* ctx, const PRIM_Node* node, bool withSrcInfo)
 {
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = saga_saveSL(node, bufPtr, bufRemain, withSrcInfo);
-    bool ok = saga_saveMlForward(ctx, a);
+    u32 a = PRIM_saveSL(node, bufPtr, bufRemain, withSrcInfo);
+    bool ok = PRIM_saveMlForward(ctx, a);
 
     if (!ok)
     {
-        saga_saveMlBack(ctx, a);
+        PRIM_saveMlBack(ctx, a);
 
-        saga_saveMlAdd(ctx, "[\n");
+        PRIM_saveMlAdd(ctx, "[\n");
 
         ++ctx->depth;
-        saga_saveMlAddVec(ctx, &node->vec, withSrcInfo);
+        PRIM_saveMlAddVec(ctx, &node->vec, withSrcInfo);
         --ctx->depth;
 
-        saga_saveMlAddIdent(ctx);
-        saga_saveMlAdd(ctx, "]");
+        PRIM_saveMlAddIdent(ctx);
+        PRIM_saveMlAdd(ctx, "]");
     }
 }
 
 
 
-static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool withSrcInfo)
+static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, const PRIM_Node* node, bool withSrcInfo)
 {
     switch (node->type)
     {
-    case saga_NodeType_Str:
+    case PRIM_NodeType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = saga_saveSL(node, bufPtr, bufRemain, withSrcInfo);
-        saga_saveMlForward(ctx, a);
+        u32 a = PRIM_saveSL(node, bufPtr, bufRemain, withSrcInfo);
+        PRIM_saveMlForward(ctx, a);
         return;
     }
-    case saga_NodeType_Vec:
+    case PRIM_NodeType_Vec:
     {
-        saga_saveMlAddNodeVec(ctx, node, withSrcInfo);
+        PRIM_saveMlAddNodeVec(ctx, node, withSrcInfo);
         return;
     }
     default:
@@ -536,34 +536,34 @@ static void saga_saveMlAddNode(saga_SaveMLctx* ctx, const saga_Node* node, bool 
 
 
 
-static u32 saga_saveVecML(const saga_NodeVec* vec, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
+static u32 PRIM_saveVecML(const PRIM_NodeVec* vec, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt)
 {
-    saga_SaveMLctx ctx =
+    PRIM_SaveMLctx ctx =
     {
         opt, bufSize, buf,
     };
-    saga_saveMlAddVec(&ctx, vec, opt->withSrcInfo);
+    PRIM_saveMlAddVec(&ctx, vec, opt->withSrcInfo);
     return ctx.n;
 }
 
 
 
 
-u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveMLopt* opt)
+u32 PRIM_saveML(const PRIM_Node* node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt)
 {
     switch (node->type)
     {
-    case saga_NodeType_Str:
+    case PRIM_NodeType_Str:
     {
-        return saga_saveSL(node, buf, bufSize, opt->withSrcInfo);
+        return PRIM_saveSL(node, buf, bufSize, opt->withSrcInfo);
     }
-    case saga_NodeType_Vec:
+    case PRIM_NodeType_Vec:
     {
-        saga_SaveMLctx ctx =
+        PRIM_SaveMLctx ctx =
         {
             opt, bufSize, buf,
         };
-        saga_saveMlAddNodeVec(&ctx, node, opt->withSrcInfo);
+        PRIM_saveMlAddNodeVec(&ctx, node, opt->withSrcInfo);
         return ctx.n;
     }
     default:

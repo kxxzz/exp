@@ -2,42 +2,42 @@
 
 
 
-typedef enum saga_TokenType
+typedef enum PRIM_TokenType
 {
-    saga_TokenType_Text,
-    saga_TokenType_String,
+    PRIM_TokenType_Text,
+    PRIM_TokenType_String,
 
-    saga_TokenType_VecBegin,
-    saga_TokenType_VecEnd,
+    PRIM_TokenType_VecBegin,
+    PRIM_TokenType_VecEnd,
 
-    saga_NumTokenTypes
-} saga_TokenType;
+    PRIM_NumTokenTypes
+} PRIM_TokenType;
 
 
 
-typedef struct saga_Token
+typedef struct PRIM_Token
 {
-    saga_TokenType type;
+    PRIM_TokenType type;
     u32 begin;
     u32 len;
-} saga_Token;
+} PRIM_Token;
 
 
 
-typedef struct saga_LoadContext
+typedef struct PRIM_LoadContext
 {
     u32 srcLen;
     const char* src;
     u32 cur;
     u32 curLine;
-} saga_LoadContext;
+} PRIM_LoadContext;
 
 
 
-static saga_LoadContext saga_newLoadContext(u32 strSize, const char* str)
+static PRIM_LoadContext PRIM_newLoadContext(u32 strSize, const char* str)
 {
     assert(strSize == strlen(str));
-    saga_LoadContext ctx = { strSize, str, 0, 1 };
+    PRIM_LoadContext ctx = { strSize, str, 0, 1 };
     return ctx;
 }
 
@@ -45,7 +45,7 @@ static saga_LoadContext saga_newLoadContext(u32 strSize, const char* str)
 
 
 
-static bool saga_skipSapce(saga_LoadContext* ctx)
+static bool PRIM_skipSapce(PRIM_LoadContext* ctx)
 {
     const char* src = ctx->src;
     for (;;)
@@ -139,12 +139,12 @@ static bool saga_skipSapce(saga_LoadContext* ctx)
 
 
 
-static bool saga_readToken_String(saga_LoadContext* ctx, saga_Token* out)
+static bool PRIM_readToken_String(PRIM_LoadContext* ctx, PRIM_Token* out)
 {
     const char* src = ctx->src;
     char endCh = src[ctx->cur];
     ++ctx->cur;
-    saga_Token tok = { saga_TokenType_String, ctx->cur, 0 };
+    PRIM_Token tok = { PRIM_TokenType_String, ctx->cur, 0 };
     for (;;)
     {
         if (ctx->cur >= ctx->srcLen)
@@ -178,9 +178,9 @@ static bool saga_readToken_String(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_readToken_Text(saga_LoadContext* ctx, saga_Token* out)
+static bool PRIM_readToken_Text(PRIM_LoadContext* ctx, PRIM_Token* out)
 {
-    saga_Token tok = { saga_TokenType_Text, ctx->cur, 0 };
+    PRIM_Token tok = { PRIM_TokenType_Text, ctx->cur, 0 };
     const char* src = ctx->src;
     for (;;)
     {
@@ -206,39 +206,39 @@ static bool saga_readToken_Text(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
+static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
 {
     const char* src = ctx->src;
     if (ctx->cur >= ctx->srcLen)
     {
         return false;
     }
-    if (!saga_skipSapce(ctx))
+    if (!PRIM_skipSapce(ctx))
     {
         return false;
     }
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        saga_Token tok = { saga_TokenType_VecBegin, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_VecBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        saga_Token tok = { saga_TokenType_VecEnd, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_VecEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (('"' == src[ctx->cur]) || ('\'' == src[ctx->cur]))
     {
-        ok = saga_readToken_String(ctx, out);
+        ok = PRIM_readToken_String(ctx, out);
     }
     else
     {
-        ok = saga_readToken_Text(ctx, out);
+        ok = PRIM_readToken_Text(ctx, out);
     }
     return ok;
 }
@@ -251,9 +251,9 @@ static bool saga_readToken(saga_LoadContext* ctx, saga_Token* out)
 
 
 
-static saga_Node* saga_loadNode(saga_LoadContext* ctx);
+static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx);
 
-static bool saga_loadEnd(saga_LoadContext* ctx)
+static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
 {
     assert(ctx->srcLen >= ctx->cur);
     if (ctx->srcLen == ctx->cur)
@@ -262,21 +262,21 @@ static bool saga_loadEnd(saga_LoadContext* ctx)
     }
     return false;
 }
-static bool saga_loadVecEnd(saga_LoadContext* ctx)
+static bool PRIM_loadVecEnd(PRIM_LoadContext* ctx)
 {
-    if (saga_loadEnd(ctx))
+    if (PRIM_loadEnd(ctx))
     {
         return true;
     }
-    saga_LoadContext ctx0 = *ctx;
-    saga_Token tok;
-    if (!saga_readToken(ctx, &tok))
+    PRIM_LoadContext ctx0 = *ctx;
+    PRIM_Token tok;
+    if (!PRIM_readToken(ctx, &tok))
     {
         return true;
     }
     switch (tok.type)
     {
-    case saga_TokenType_VecEnd:
+    case PRIM_TokenType_VecEnd:
     {
         return true;
     }
@@ -287,24 +287,24 @@ static bool saga_loadVecEnd(saga_LoadContext* ctx)
     return false;
 }
 
-static bool saga_loadVec(saga_LoadContext* ctx, saga_Node* node)
+static bool PRIM_loadVec(PRIM_LoadContext* ctx, PRIM_Node* node)
 {
-    while (!saga_loadVecEnd(ctx))
+    while (!PRIM_loadVecEnd(ctx))
     {
-        saga_Node* e = NULL;
-        e = saga_loadNode(ctx);
+        PRIM_Node* e = NULL;
+        e = PRIM_loadNode(ctx);
         if (!e)
         {
             return false;
         }
-        saga_vecPush(node, e);
+        PRIM_vecPush(node, e);
     }
     return true;
 }
 
 
 
-static void saga_loadNodeSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, saga_NodeSrcInfo* info)
+static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, PRIM_NodeSrcInfo* info)
 {
     info->offset = ctx->cur;
     info->line = ctx->curLine;
@@ -318,26 +318,26 @@ static void saga_loadNodeSrcInfo(saga_LoadContext* ctx, const saga_Token* tok, s
             break;
         }
     }
-    info->isStrTok = saga_TokenType_String == tok->type;
+    info->isStrTok = PRIM_TokenType_String == tok->type;
 }
 
 
 
-static saga_Node* saga_loadNode(saga_LoadContext* ctx)
+static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
 {
-    saga_Token tok;
-    if (!saga_readToken(ctx, &tok))
+    PRIM_Token tok;
+    if (!PRIM_readToken(ctx, &tok))
     {
         return false;
     }
-    saga_NodeSrcInfo srcInfo;
-    saga_loadNodeSrcInfo(ctx, &tok, &srcInfo);
-    saga_Node* node = zalloc(sizeof(*node));
+    PRIM_NodeSrcInfo srcInfo;
+    PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
+    PRIM_Node* node = zalloc(sizeof(*node));
     switch (tok.type)
     {
-    case saga_TokenType_Text:
+    case PRIM_TokenType_Text:
     {
-        node->type = saga_NodeType_Str;
+        node->type = PRIM_NodeType_Str;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&node->str, strLen + 1);
@@ -345,9 +345,9 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
         node->str.data[tok.len] = 0;
         break;
     }
-    case saga_TokenType_String:
+    case PRIM_TokenType_String:
     {
-        node->type = saga_NodeType_Str;
+        node->type = PRIM_NodeType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -376,13 +376,13 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
         assert(si == strLen);
         break;
     }
-    case saga_TokenType_VecBegin:
+    case PRIM_TokenType_VecBegin:
     {
-        node->type = saga_NodeType_Vec;
-        bool ok = saga_loadVec(ctx, node);
+        node->type = PRIM_NodeType_Vec;
+        bool ok = PRIM_loadVec(ctx, node);
         if (!ok)
         {
-            saga_nodeFree(node);
+            PRIM_nodeFree(node);
             return NULL;
         }
         break;
@@ -408,31 +408,31 @@ static saga_Node* saga_loadNode(saga_LoadContext* ctx)
 
 
 
-saga_Node* saga_loadCell(const char* str)
+PRIM_Node* PRIM_loadCell(const char* str)
 {
-    saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    saga_Node* node = saga_loadNode(&ctx);
-    if (!saga_loadEnd(&ctx))
+    PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
+    PRIM_Node* node = PRIM_loadNode(&ctx);
+    if (!PRIM_loadEnd(&ctx))
     {
-        saga_nodeFree(node);
+        PRIM_nodeFree(node);
         return NULL;
     }
     return node;
 }
 
-saga_Node* saga_loadSeq(const char* str)
+PRIM_Node* PRIM_loadSeq(const char* str)
 {
-    saga_LoadContext ctx = saga_newLoadContext((u32)strlen(str), str);
-    saga_Node* node = saga_vec();
+    PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
+    PRIM_Node* node = PRIM_vec();
     for (;;)
     {
-        saga_Node* e = saga_loadNode(&ctx);
+        PRIM_Node* e = PRIM_loadNode(&ctx);
         if (!e) break;
-        saga_vecPush(node, e);
+        PRIM_vecPush(node, e);
     }
-    if (!saga_loadEnd(&ctx))
+    if (!PRIM_loadEnd(&ctx))
     {
-        saga_nodeFree(node);
+        PRIM_nodeFree(node);
         return NULL;
     }
     return node;

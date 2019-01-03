@@ -21,82 +21,82 @@ typedef double f64;
 
 
 
-typedef enum saga_NodeType
+typedef enum PRIM_NodeType
 {
-    saga_NodeType_Str,
-    saga_NodeType_Vec,
+    PRIM_NodeType_Str,
+    PRIM_NodeType_Vec,
 
-    saga_NumNodeTypes
-} saga_NodeType;
+    PRIM_NumNodeTypes
+} PRIM_NodeType;
 
-static const char* saga_NodeTypeNameTable[saga_NumNodeTypes] =
+static const char* PRIM_NodeTypeNameTable[PRIM_NumNodeTypes] =
 {
     "Str",
     "Vec",
 };
 
-typedef struct saga_Node saga_Node;
+typedef struct PRIM_Node PRIM_Node;
 
 
 
-saga_NodeType saga_nodeType(const saga_Node* node);
+PRIM_NodeType PRIM_nodeType(const PRIM_Node* node);
 
-static bool saga_nodeIsStr(const saga_Node* node)
+static bool PRIM_nodeIsStr(const PRIM_Node* node)
 {
-    return saga_NodeType_Str == saga_nodeType(node);
+    return PRIM_NodeType_Str == PRIM_nodeType(node);
 }
-static bool saga_nodeIsVec(const saga_Node* node)
+static bool PRIM_nodeIsVec(const PRIM_Node* node)
 {
-    return saga_NodeType_Vec == saga_nodeType(node);
+    return PRIM_NodeType_Vec == PRIM_nodeType(node);
 }
 
 
-typedef struct saga_NodeSrcInfo
+typedef struct PRIM_NodeSrcInfo
 {
     u32 offset;
     u32 line;
     u32 column;
     bool isStrTok;
-} saga_NodeSrcInfo;
+} PRIM_NodeSrcInfo;
 
-const saga_NodeSrcInfo* saga_nodeSrcInfo(const saga_Node* node);
-void saga_nodeFree(saga_Node* node);
-saga_Node* saga_nodeDup(const saga_Node* node);
-
-
-saga_Node* saga_str(const char* str);
-u32 saga_strLen(const saga_Node* node);
-const char* saga_strCstr(const saga_Node* node);
+const PRIM_NodeSrcInfo* PRIM_nodeSrcInfo(const PRIM_Node* node);
+void PRIM_nodeFree(PRIM_Node* node);
+PRIM_Node* PRIM_nodeDup(const PRIM_Node* node);
 
 
-saga_Node* saga_vec(void);
-u32 saga_vecLen(const saga_Node* node);
-saga_Node** saga_vecElm(const saga_Node* node);
+PRIM_Node* PRIM_str(const char* str);
+u32 PRIM_strLen(const PRIM_Node* node);
+const char* PRIM_strCstr(const PRIM_Node* node);
 
 
-void saga_vecPush(saga_Node* node, saga_Node* c);
-void saga_vecConcat(saga_Node* node, saga_Node* a);
+PRIM_Node* PRIM_vec(void);
+u32 PRIM_vecLen(const PRIM_Node* node);
+PRIM_Node** PRIM_vecElm(const PRIM_Node* node);
 
 
-
-
-saga_Node* saga_loadCell(const char* str);
-saga_Node* saga_loadSeq(const char* str);
+void PRIM_vecPush(PRIM_Node* node, PRIM_Node* c);
+void PRIM_vecConcat(PRIM_Node* node, PRIM_Node* a);
 
 
 
 
+PRIM_Node* PRIM_loadCell(const char* str);
+PRIM_Node* PRIM_loadSeq(const char* str);
 
-u32 saga_saveSL(const saga_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
 
-typedef struct saga_SaveMLopt
+
+
+
+u32 PRIM_saveSL(const PRIM_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
+
+typedef struct PRIM_SaveMLopt
 {
     u32 indent;
     u32 width;
     bool withSrcInfo;
-} saga_SaveMLopt;
+} PRIM_SaveMLopt;
 
-u32 saga_saveML(const saga_Node* node, char* buf, u32 bufSize, const saga_SaveMLopt* opt);
+u32 PRIM_saveML(const PRIM_Node* node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt);
 
 
 
