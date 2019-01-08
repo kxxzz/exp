@@ -22,12 +22,16 @@ typedef double f64;
 
 
 
+typedef struct PRIM_Node { u32 id; } PRIM_Node;
+typedef struct PRIM_Space PRIM_Space;
+
+
+static PRIM_Node PRIM_NodeNULL = { (u32)-1 };
 
 
 
-
-
-
+PRIM_Space PRIM_newSpace(void);
+void PRIM_spaceFree(PRIM_Space* space);
 
 
 
