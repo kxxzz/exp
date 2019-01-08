@@ -61,7 +61,6 @@ static char* stzncpy(char* dst, char const* src, size_t len)
 
 
 #include <vec.h>
-#include <strpool.h>
 
 
 
