@@ -60,7 +60,29 @@ static char* stzncpy(char* dst, char const* src, size_t len)
 
 
 
-#include <vec.h>
+#include "vec.h"
+
+
+
+typedef vec_t(struct PRIM_Node*) PRIM_NodeVec;
+
+typedef struct PRIM_Node
+{
+    PRIM_NodeType type;
+    union
+    {
+        vec_t(char) str;
+        PRIM_NodeVec vec;
+    };
+    bool hasSrcInfo;
+    PRIM_NodeSrcInfo srcInfo;
+} PRIM_Node;
+
+
+
+void PRIM_nodeVecFree(PRIM_NodeVec* vec);
+void PRIM_nodeVecDup(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
+void PRIM_nodeVecConcat(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
 
 
 
