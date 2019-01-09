@@ -74,7 +74,6 @@ typedef struct PRIM_Node
         vec_t(char) str;
         PRIM_NodeVec vec;
     };
-    bool hasSrcInfo;
     PRIM_NodeSrcInfo srcInfo;
 } PRIM_Node;
 

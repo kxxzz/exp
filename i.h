@@ -23,16 +23,16 @@ typedef double f64;
 
 typedef enum PRIM_NodeType
 {
-    PRIM_NodeType_Str,
-    PRIM_NodeType_Vec,
+    PRIM_NodeType_Atom,
+    PRIM_NodeType_Expr,
 
     PRIM_NumNodeTypes
 } PRIM_NodeType;
 
 static const char* PRIM_NodeTypeNameTable[PRIM_NumNodeTypes] =
 {
-    "Str",
-    "Vec",
+    "Atom",
+    "Expr",
 };
 
 typedef struct PRIM_Node PRIM_Node;
@@ -41,47 +41,48 @@ typedef struct PRIM_Node PRIM_Node;
 
 PRIM_NodeType PRIM_nodeType(const PRIM_Node* node);
 
-static bool PRIM_nodeIsStr(const PRIM_Node* node)
+static bool PRIM_nodeIsAtom(const PRIM_Node* node)
 {
-    return PRIM_NodeType_Str == PRIM_nodeType(node);
+    return PRIM_NodeType_Atom == PRIM_nodeType(node);
 }
-static bool PRIM_nodeIsVec(const PRIM_Node* node)
+static bool PRIM_nodeIsExp(const PRIM_Node* node)
 {
-    return PRIM_NodeType_Vec == PRIM_nodeType(node);
+    return PRIM_NodeType_Expr == PRIM_nodeType(node);
 }
 
 
 typedef struct PRIM_NodeSrcInfo
 {
+    bool hasSrcInfo;
     u32 offset;
     u32 line;
     u32 column;
     bool isStrTok;
 } PRIM_NodeSrcInfo;
 
-const PRIM_NodeSrcInfo* PRIM_nodeSrcInfo(const PRIM_Node* node);
+PRIM_NodeSrcInfo PRIM_nodeSrcInfo(const PRIM_Node* node);
 void PRIM_nodeFree(PRIM_Node* node);
 PRIM_Node* PRIM_nodeDup(const PRIM_Node* node);
 
 
-PRIM_Node* PRIM_str(const char* str);
-u32 PRIM_strLen(const PRIM_Node* node);
-const char* PRIM_strCstr(const PRIM_Node* node);
+PRIM_Node* PRIM_atom(const char* str);
+u32 PRIM_atomSize(const PRIM_Node* node);
+const char* PRIM_atomCstr(const PRIM_Node* node);
 
 
-PRIM_Node* PRIM_vec(void);
-u32 PRIM_vecLen(const PRIM_Node* node);
-PRIM_Node** PRIM_vecElm(const PRIM_Node* node);
+PRIM_Node* PRIM_expr(void);
+u32 PRIM_exprLen(const PRIM_Node* node);
+PRIM_Node** PRIM_exprElm(const PRIM_Node* node);
 
 
-void PRIM_vecPush(PRIM_Node* node, PRIM_Node* c);
-void PRIM_vecConcat(PRIM_Node* node, PRIM_Node* a);
+void PRIM_exprPush(PRIM_Node* node, PRIM_Node* c);
+void PRIM_exprConcat(PRIM_Node* node, PRIM_Node* a);
 
 
 
 
 PRIM_Node* PRIM_loadCell(const char* str);
-PRIM_Node* PRIM_loadSeq(const char* str);
+PRIM_Node* PRIM_loadList(const char* str);
 
 
 

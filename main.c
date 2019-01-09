@@ -59,7 +59,7 @@ void test(void)
     assert(textSize != -1);
 
 
-    PRIM_Node* src = PRIM_loadSeq(text);
+    PRIM_Node* src = PRIM_loadList(text);
     assert(src);
     free(text);
 

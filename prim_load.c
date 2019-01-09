@@ -7,8 +7,8 @@ typedef enum PRIM_TokenType
     PRIM_TokenType_Text,
     PRIM_TokenType_String,
 
-    PRIM_TokenType_VecBegin,
-    PRIM_TokenType_VecEnd,
+    PRIM_TokenType_ExprBegin,
+    PRIM_TokenType_ExprEnd,
 
     PRIM_NumTokenTypes
 } PRIM_TokenType;
@@ -220,14 +220,14 @@ static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_VecBegin, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_ExprBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_VecEnd, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_ExprEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
@@ -262,7 +262,7 @@ static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
     }
     return false;
 }
-static bool PRIM_loadVecEnd(PRIM_LoadContext* ctx)
+static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
 {
     if (PRIM_loadEnd(ctx))
     {
@@ -276,7 +276,7 @@ static bool PRIM_loadVecEnd(PRIM_LoadContext* ctx)
     }
     switch (tok.type)
     {
-    case PRIM_TokenType_VecEnd:
+    case PRIM_TokenType_ExprEnd:
     {
         return true;
     }
@@ -287,9 +287,9 @@ static bool PRIM_loadVecEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadVec(PRIM_LoadContext* ctx, PRIM_Node* node)
+static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_Node* node)
 {
-    while (!PRIM_loadVecEnd(ctx))
+    while (!PRIM_loadExprEnd(ctx))
     {
         PRIM_Node* e = NULL;
         e = PRIM_loadNode(ctx);
@@ -297,7 +297,7 @@ static bool PRIM_loadVec(PRIM_LoadContext* ctx, PRIM_Node* node)
         {
             return false;
         }
-        PRIM_vecPush(node, e);
+        PRIM_exprPush(node, e);
     }
     return true;
 }
@@ -330,14 +330,14 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
     {
         return false;
     }
-    PRIM_NodeSrcInfo srcInfo;
+    PRIM_NodeSrcInfo srcInfo = { true };
     PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
     PRIM_Node* node = zalloc(sizeof(*node));
     switch (tok.type)
     {
     case PRIM_TokenType_Text:
     {
-        node->type = PRIM_NodeType_Str;
+        node->type = PRIM_NodeType_Atom;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&node->str, strLen + 1);
@@ -347,7 +347,7 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
     }
     case PRIM_TokenType_String:
     {
-        node->type = PRIM_NodeType_Str;
+        node->type = PRIM_NodeType_Atom;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -376,10 +376,10 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
         assert(si == strLen);
         break;
     }
-    case PRIM_TokenType_VecBegin:
+    case PRIM_TokenType_ExprBegin:
     {
-        node->type = PRIM_NodeType_Vec;
-        bool ok = PRIM_loadVec(ctx, node);
+        node->type = PRIM_NodeType_Expr;
+        bool ok = PRIM_loadExpr(ctx, node);
         if (!ok)
         {
             PRIM_nodeFree(node);
@@ -391,7 +391,6 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
         assert(false);
         return NULL;
     }
-    node->hasSrcInfo = true;
     node->srcInfo = srcInfo;
     return node;
 }
@@ -420,15 +419,15 @@ PRIM_Node* PRIM_loadCell(const char* str)
     return node;
 }
 
-PRIM_Node* PRIM_loadSeq(const char* str)
+PRIM_Node* PRIM_loadList(const char* str)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
-    PRIM_Node* node = PRIM_vec();
+    PRIM_Node* node = PRIM_expr();
     for (;;)
     {
         PRIM_Node* e = PRIM_loadNode(&ctx);
         if (!e) break;
-        PRIM_vecPush(node, e);
+        PRIM_exprPush(node, e);
     }
     if (!PRIM_loadEnd(&ctx))
     {
