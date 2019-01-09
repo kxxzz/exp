@@ -48,7 +48,7 @@ void PRIM_nodeVecConcat(PRIM_NodeVec* vec, const PRIM_NodeVec* a)
 
 
 
-PRIM_NodeType PRIM_nodeType(const PRIM_Node* node)
+PRIM_NodeType PRIM_type(const PRIM_Node* node)
 {
     return node->type;
 }
@@ -57,7 +57,7 @@ PRIM_NodeType PRIM_nodeType(const PRIM_Node* node)
 
 
 
-PRIM_NodeSrcInfo PRIM_nodeSrcInfo(const PRIM_Node* node)
+PRIM_NodeSrcInfo PRIM_srcInfo(const PRIM_Node* node)
 {
     return node->srcInfo;
 }

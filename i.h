@@ -39,16 +39,22 @@ typedef struct PRIM_Node PRIM_Node;
 
 
 
-PRIM_NodeType PRIM_nodeType(const PRIM_Node* node);
+void PRIM_nodeFree(PRIM_Node* node);
+PRIM_Node* PRIM_nodeDup(const PRIM_Node* node);
 
-static bool PRIM_nodeIsAtom(const PRIM_Node* node)
+
+
+PRIM_NodeType PRIM_type(const PRIM_Node* node);
+
+static bool PRIM_isAtom(const PRIM_Node* node)
 {
-    return PRIM_NodeType_Atom == PRIM_nodeType(node);
+    return PRIM_NodeType_Atom == PRIM_type(node);
 }
-static bool PRIM_nodeIsExp(const PRIM_Node* node)
+static bool PRIM_isExp(const PRIM_Node* node)
 {
-    return PRIM_NodeType_Expr == PRIM_nodeType(node);
+    return PRIM_NodeType_Expr == PRIM_type(node);
 }
+
 
 
 typedef struct PRIM_NodeSrcInfo
@@ -60,9 +66,7 @@ typedef struct PRIM_NodeSrcInfo
     bool isStrTok;
 } PRIM_NodeSrcInfo;
 
-PRIM_NodeSrcInfo PRIM_nodeSrcInfo(const PRIM_Node* node);
-void PRIM_nodeFree(PRIM_Node* node);
-PRIM_Node* PRIM_nodeDup(const PRIM_Node* node);
+PRIM_NodeSrcInfo PRIM_srcInfo(const PRIM_Node* node);
 
 
 PRIM_Node* PRIM_atom(const char* str);
