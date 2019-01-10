@@ -167,7 +167,7 @@ PRIM_Node* PRIM_expElm(PRIM_Space* space, PRIM_Node node)
 
 
 
-static u32 PRIM_saveVecSL(const PRIM_Space* space, const PRIM_NodeBodyVec* vec, char* buf, u32 bufSize, bool withSrcInfo)
+static u32 PRIM_saveExpSL(const PRIM_Space* space, const PRIM_NodeInfo* expInfo, char* buf, u32 bufSize, bool withSrcInfo)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
@@ -299,7 +299,7 @@ u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
         }
         n += 1;
 
-        u32 n1 = PRIM_saveVecSL(space, vec, bufPtr, bufRemain, withSrcInfo);
+        u32 n1 = PRIM_saveExpSL(space, vec, bufPtr, bufRemain, withSrcInfo);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
