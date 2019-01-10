@@ -407,7 +407,7 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
 
 
 
-PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str)
+PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
     PRIM_NodeBody* node = PRIM_loadNode(&ctx);
@@ -419,7 +419,7 @@ PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str)
     return node;
 }
 
-PRIM_NodeBody* PRIM_loadList(PRIM_Space* space, const char* str)
+PRIM_NodeBody* PRIM_loadList(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
     PRIM_NodeBody* node = PRIM_expr();

@@ -4,6 +4,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <vec.h>
 
 
 typedef unsigned char u8;
@@ -65,18 +66,6 @@ static bool PRIM_isExp(PRIM_Node node)
 
 
 
-typedef struct PRIM_NodeSrcInfo
-{
-    bool hasSrcInfo;
-    u32 offset;
-    u32 line;
-    u32 column;
-    bool isStrTok;
-} PRIM_NodeSrcInfo;
-
-PRIM_NodeSrcInfo PRIM_srcInfo(PRIM_Node node);
-
-
 PRIM_Node PRIM_atom(const char* str);
 u32 PRIM_atomSize(PRIM_Node node);
 const char* PRIM_atomCstr(PRIM_Node node);
@@ -93,8 +82,20 @@ void PRIM_exprConcat(PRIM_Node node, PRIM_Node a);
 
 
 
-PRIM_Node PRIM_loadCell(PRIM_Space* space, const char* str);
-PRIM_Node PRIM_loadList(PRIM_Space* space, const char* str);
+typedef struct PRIM_NodeSrcInfo
+{
+    bool hasSrcInfo;
+    u32 offset;
+    u32 line;
+    u32 column;
+    bool isStrTok;
+} PRIM_NodeSrcInfo;
+
+typedef vec_t(PRIM_NodeSrcInfo) PRIM_NodeSrcInfoTable;
+
+
+PRIM_Node PRIM_loadCell(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable);
+PRIM_Node PRIM_loadList(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable);
 
 
 

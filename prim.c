@@ -77,10 +77,7 @@ PRIM_NodeType PRIM_type(PRIM_Node node)
 
 
 
-PRIM_NodeSrcInfo PRIM_srcInfo(PRIM_Node node)
-{
-    return node->srcInfo;
-}
+
 
 
 
