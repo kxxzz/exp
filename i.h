@@ -35,22 +35,30 @@ static const char* PRIM_NodeTypeNameTable[PRIM_NumNodeTypes] =
     "Expr",
 };
 
-typedef struct PRIM_Node PRIM_Node;
+
+typedef struct PRIM_Space PRIM_Space;
+
+PRIM_Space* PRIM_newSpace(void);
+void PRIM_spaceFree(PRIM_Space* space);
 
 
 
-void PRIM_nodeFree(PRIM_Node* node);
-PRIM_Node* PRIM_nodeDup(const PRIM_Node* node);
+
+typedef struct PRIM_NodeBody* PRIM_Node;
 
 
 
-PRIM_NodeType PRIM_type(const PRIM_Node* node);
+void PRIM_nodeFree(PRIM_Node node);
 
-static bool PRIM_isAtom(const PRIM_Node* node)
+
+
+PRIM_NodeType PRIM_type(PRIM_Node node);
+
+static bool PRIM_isAtom(PRIM_Node node)
 {
     return PRIM_NodeType_Atom == PRIM_type(node);
 }
-static bool PRIM_isExp(const PRIM_Node* node)
+static bool PRIM_isExp(PRIM_Node node)
 {
     return PRIM_NodeType_Expr == PRIM_type(node);
 }
@@ -66,33 +74,33 @@ typedef struct PRIM_NodeSrcInfo
     bool isStrTok;
 } PRIM_NodeSrcInfo;
 
-PRIM_NodeSrcInfo PRIM_srcInfo(const PRIM_Node* node);
+PRIM_NodeSrcInfo PRIM_srcInfo(PRIM_Node node);
 
 
-PRIM_Node* PRIM_atom(const char* str);
-u32 PRIM_atomSize(const PRIM_Node* node);
-const char* PRIM_atomCstr(const PRIM_Node* node);
+PRIM_Node PRIM_atom(const char* str);
+u32 PRIM_atomSize(PRIM_Node node);
+const char* PRIM_atomCstr(PRIM_Node node);
 
 
-PRIM_Node* PRIM_expr(void);
-u32 PRIM_exprLen(const PRIM_Node* node);
-PRIM_Node** PRIM_exprElm(const PRIM_Node* node);
+PRIM_Node PRIM_expr(void);
+u32 PRIM_exprLen(PRIM_Node node);
+PRIM_Node* PRIM_exprElm(PRIM_Node node);
 
 
-void PRIM_exprPush(PRIM_Node* node, PRIM_Node* c);
-void PRIM_exprConcat(PRIM_Node* node, PRIM_Node* a);
-
-
-
-
-PRIM_Node* PRIM_loadCell(const char* str);
-PRIM_Node* PRIM_loadList(const char* str);
+void PRIM_exprPush(PRIM_Node node, PRIM_Node c);
+void PRIM_exprConcat(PRIM_Node node, PRIM_Node a);
 
 
 
 
+PRIM_Node PRIM_loadCell(PRIM_Space* space, const char* str);
+PRIM_Node PRIM_loadList(PRIM_Space* space, const char* str);
 
-u32 PRIM_saveSL(const PRIM_Node* node, char* buf, u32 bufSize, bool withSrcInfo);
+
+
+
+
+u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, bool withSrcInfo);
 
 typedef struct PRIM_SaveMLopt
 {
@@ -101,7 +109,7 @@ typedef struct PRIM_SaveMLopt
     bool withSrcInfo;
 } PRIM_SaveMLopt;
 
-u32 PRIM_saveML(const PRIM_Node* node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt);
+u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt);
 
 
 

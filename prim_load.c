@@ -251,7 +251,7 @@ static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
 
 
 
-static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx);
+static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx);
 
 static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
 {
@@ -287,11 +287,11 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_Node* node)
+static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_NodeBody* node)
 {
     while (!PRIM_loadExprEnd(ctx))
     {
-        PRIM_Node* e = NULL;
+        PRIM_NodeBody* e = NULL;
         e = PRIM_loadNode(ctx);
         if (!e)
         {
@@ -323,7 +323,7 @@ static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, P
 
 
 
-static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
+static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
 {
     PRIM_Token tok;
     if (!PRIM_readToken(ctx, &tok))
@@ -332,7 +332,7 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
     }
     PRIM_NodeSrcInfo srcInfo = { true };
     PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
-    PRIM_Node* node = zalloc(sizeof(*node));
+    PRIM_NodeBody* node = zalloc(sizeof(*node));
     switch (tok.type)
     {
     case PRIM_TokenType_Text:
@@ -407,10 +407,10 @@ static PRIM_Node* PRIM_loadNode(PRIM_LoadContext* ctx)
 
 
 
-PRIM_Node* PRIM_loadCell(const char* str)
+PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
-    PRIM_Node* node = PRIM_loadNode(&ctx);
+    PRIM_NodeBody* node = PRIM_loadNode(&ctx);
     if (!PRIM_loadEnd(&ctx))
     {
         PRIM_nodeFree(node);
@@ -419,13 +419,13 @@ PRIM_Node* PRIM_loadCell(const char* str)
     return node;
 }
 
-PRIM_Node* PRIM_loadList(const char* str)
+PRIM_NodeBody* PRIM_loadList(PRIM_Space* space, const char* str)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
-    PRIM_Node* node = PRIM_expr();
+    PRIM_NodeBody* node = PRIM_expr();
     for (;;)
     {
-        PRIM_Node* e = PRIM_loadNode(&ctx);
+        PRIM_NodeBody* e = PRIM_loadNode(&ctx);
         if (!e) break;
         PRIM_exprPush(node, e);
     }

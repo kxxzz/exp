@@ -59,7 +59,8 @@ void test(void)
     assert(textSize != -1);
 
 
-    PRIM_Node* src = PRIM_loadList(text);
+    PRIM_Space* space = PRIM_newSpace();
+    PRIM_Node src = PRIM_loadList(space, text);
     assert(src);
     free(text);
 
@@ -67,11 +68,11 @@ void test(void)
     PRIM_SaveMLopt saveOpt = { 4, 50 };
 
 
-    u32 text1BufSize = PRIM_saveML(src, NULL, 0, &saveOpt) + 1;
+    u32 text1BufSize = PRIM_saveML(space, src, NULL, 0, &saveOpt) + 1;
     char* text1 = malloc(text1BufSize);
 
 
-    u32 writen = PRIM_saveML(src, text1, text1BufSize, &saveOpt) + 1;
+    u32 writen = PRIM_saveML(space, src, text1, text1BufSize, &saveOpt) + 1;
     assert(text1BufSize == writen);
 
 
@@ -84,6 +85,8 @@ void test(void)
 
 
     PRIM_nodeFree(src);
+
+    PRIM_spaceFree(space);
 }
 
 

@@ -64,24 +64,32 @@ static char* stzncpy(char* dst, char const* src, size_t len)
 
 
 
-typedef vec_t(struct PRIM_Node*) PRIM_NodeVec;
+typedef struct PRIM_Space
+{
+    vec_t(char) strPool;
+} PRIM_Space;
 
-typedef struct PRIM_Node
+
+
+
+typedef vec_t(struct PRIM_NodeBody*) PRIM_NodeBodyVec;
+
+typedef struct PRIM_NodeBody
 {
     PRIM_NodeType type;
     union
     {
         vec_t(char) str;
-        PRIM_NodeVec vec;
+        PRIM_NodeBodyVec vec;
     };
     PRIM_NodeSrcInfo srcInfo;
-} PRIM_Node;
+} PRIM_NodeBody;
 
 
 
-void PRIM_nodeVecFree(PRIM_NodeVec* vec);
-void PRIM_nodeVecDup(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
-void PRIM_nodeVecConcat(PRIM_NodeVec* vec, const PRIM_NodeVec* a);
+void PRIM_nodeVecFree(PRIM_NodeBodyVec* vec);
+void PRIM_nodeVecDup(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a);
+void PRIM_nodeVecConcat(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a);
 
 
 
