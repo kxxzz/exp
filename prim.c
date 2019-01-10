@@ -167,15 +167,19 @@ PRIM_Node* PRIM_expElm(PRIM_Space* space, PRIM_Node node)
 
 
 
-static u32 PRIM_saveExpSL(const PRIM_Space* space, const PRIM_NodeInfo* expInfo, char* buf, u32 bufSize, bool withSrcInfo)
+static u32 PRIM_saveExpSL
+(
+    const PRIM_Space* space, const PRIM_NodeInfo* expInfo, char* buf, u32 bufSize,
+    const PRIM_NodeSrcInfoTable* srcInfoTable
+)
 {
     u32 n = 0;
     u32 bufRemain = bufSize;
     char* bufPtr = buf;
 
-    for (u32 i = 0; i < vec->length; ++i)
+    for (u32 i = 0; i < expInfo->length; ++i)
     {
-        u32 en = PRIM_saveSL(space, vec->data[i], bufPtr, bufRemain, withSrcInfo);
+        u32 en = PRIM_saveSL(space, space->exps.data[expInfo->offset + i], bufPtr, bufRemain, srcInfoTable);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -188,7 +192,7 @@ static u32 PRIM_saveExpSL(const PRIM_Space* space, const PRIM_NodeInfo* expInfo,
         }
         n += en;
 
-        if (i < vec->length - 1)
+        if (i < expInfo->length - 1)
         {
             if (1 < bufRemain)
             {
@@ -208,19 +212,24 @@ static u32 PRIM_saveExpSL(const PRIM_Space* space, const PRIM_NodeInfo* expInfo,
 }
 
 
-u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, bool withSrcInfo)
+u32 PRIM_saveSL
+(
+    const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
+    const PRIM_NodeSrcInfoTable* srcInfoTable
+)
 {
-    switch (node->type)
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    switch (info->type)
     {
     case PRIM_NodeType_Str:
     {
-        const char* str = node->str.data;
-        u32 sreLen = (node->str.length > 0) ? node->str.length - 1 : 0;
+        const char* str = space->strs.data + info->offset;
+        u32 sreLen = info->length;
         u32 n;
         bool isStrTok = false;
-        if (withSrcInfo && node->srcInfo.exist)
+        if (srcInfoTable && srcInfoTable->data[node.id].exist)
         {
-            isStrTok = node->srcInfo.isStrTok;
+            isStrTok = srcInfoTable->data[node.id].isStrTok;
         }
         else
         {
@@ -274,14 +283,13 @@ u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
         }
         else
         {
-            n = snprintf(buf, bufSize, "%s", node->str.data);
+            n = snprintf(buf, bufSize, "%s", str);
         }
         return n;
     }
     case PRIM_NodeType_Exp:
     {
         u32 n = 0;
-        const PRIM_NodeBodyVec* vec = &node->vec;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
@@ -299,7 +307,7 @@ u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
         }
         n += 1;
 
-        u32 n1 = PRIM_saveExpSL(space, vec, bufPtr, bufRemain, withSrcInfo);
+        u32 n1 = PRIM_saveExpSL(space, info, bufPtr, bufRemain, srcInfoTable);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -428,16 +436,17 @@ static void PRIM_saveMlAddIdent(PRIM_SaveMLctx* ctx)
 
 
 
-static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrcInfo);
+static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node);
 
 
-static void PRIM_saveMlAddVec(PRIM_SaveMLctx* ctx, PRIM_NodeBodyVec* vec, bool withSrcInfo)
+static void PRIM_saveMlAddExp(PRIM_SaveMLctx* ctx, const PRIM_NodeInfo* expInfo)
 {
-    for (u32 i = 0; i < vec->length; ++i)
+    const PRIM_Space* space = ctx->space;
+    for (u32 i = 0; i < expInfo->length; ++i)
     {
         PRIM_saveMlAddIdent(ctx);
 
-        PRIM_saveMlAddNode(ctx, vec->data[i], withSrcInfo);
+        PRIM_saveMlAddNode(ctx, space->exps.data[expInfo->offset + i]);
 
         PRIM_saveMlAdd(ctx, "\n");
     }
@@ -446,21 +455,25 @@ static void PRIM_saveMlAddVec(PRIM_SaveMLctx* ctx, PRIM_NodeBodyVec* vec, bool w
 
 
 
-static void PRIM_saveMlAddNodeVec(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrcInfo)
+static void PRIM_saveMlAddNodeExp(PRIM_SaveMLctx* ctx, PRIM_Node node)
 {
+    const PRIM_Space* space = ctx->space;
+
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = PRIM_saveSL(ctx->space, node, bufPtr, bufRemain, withSrcInfo);
+    u32 a = PRIM_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfoTable);
     bool ok = PRIM_saveMlForward(ctx, a);
 
     if (!ok)
     {
+        PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+
         PRIM_saveMlBack(ctx, a);
 
         PRIM_saveMlAdd(ctx, "[\n");
 
         ++ctx->depth;
-        PRIM_saveMlAddVec(ctx, &node->vec, withSrcInfo);
+        PRIM_saveMlAddExp(ctx, info);
         --ctx->depth;
 
         PRIM_saveMlAddIdent(ctx);
@@ -470,21 +483,23 @@ static void PRIM_saveMlAddNodeVec(PRIM_SaveMLctx* ctx, PRIM_Node node, bool with
 
 
 
-static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrcInfo)
+static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node)
 {
-    switch (node->type)
+    const PRIM_Space* space = ctx->space;
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    switch (info->type)
     {
     case PRIM_NodeType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = PRIM_saveSL(ctx->space, node, bufPtr, bufRemain, withSrcInfo);
+        u32 a = PRIM_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfoTable);
         PRIM_saveMlForward(ctx, a);
         return;
     }
     case PRIM_NodeType_Exp:
     {
-        PRIM_saveMlAddNodeVec(ctx, node, withSrcInfo);
+        PRIM_saveMlAddNodeExp(ctx, node);
         return;
     }
     default:
@@ -513,11 +528,12 @@ static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrc
 
 u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt)
 {
-    switch (node->type)
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    switch (info->type)
     {
     case PRIM_NodeType_Str:
     {
-        return PRIM_saveSL(space, node, buf, bufSize, opt->withSrcInfo);
+        return PRIM_saveSL(space, node, buf, bufSize, opt->srcInfoTable);
     }
     case PRIM_NodeType_Exp:
     {
@@ -525,7 +541,7 @@ u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
         {
             space, opt, bufSize, buf,
         };
-        PRIM_saveMlAddNodeVec(&ctx, node, opt->withSrcInfo);
+        PRIM_saveMlAddNodeExp(&ctx, node);
         return ctx.n;
     }
     default:

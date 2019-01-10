@@ -92,13 +92,17 @@ PRIM_Node PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInf
 
 
 
-u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, bool withSrcInfo);
+u32 PRIM_saveSL
+(
+    const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
+    const PRIM_NodeSrcInfoTable* srcInfoTable
+);
 
 typedef struct PRIM_SaveMLopt
 {
     u32 indent;
     u32 width;
-    bool withSrcInfo;
+    PRIM_NodeSrcInfoTable* srcInfoTable;
 } PRIM_SaveMLopt;
 
 u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize, const PRIM_SaveMLopt* opt);
