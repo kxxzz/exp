@@ -62,7 +62,7 @@ void test(void)
     PRIM_Space* space = PRIM_newSpace();
     PRIM_NodeSrcInfoTable srcInfoTable = { 0 };
     PRIM_Node src = PRIM_loadSrcAsList(space, text, &srcInfoTable);
-    assert(src);
+    assert(src.id != -1);
     free(text);
 
 

@@ -2,6 +2,33 @@
 
 
 
+typedef struct PRIM_NodeInfo
+{
+    PRIM_NodeType type;
+    u32 offset;
+    u32 length;
+} PRIM_NodeInfo;
+
+typedef vec_t(PRIM_NodeInfo) PRIM_NodeInfoVec;
+
+
+typedef vec_t(PRIM_Node) PRIM_NodeVec;
+typedef vec_t(PRIM_NodeVec) PRIM_NodeVecVec;
+
+
+typedef struct PRIM_Space
+{
+    PRIM_NodeInfoVec nodeInfoTable;
+    vec_u64 strHashs;
+    vec_u64 expHashs;
+    vec_char strs;
+    PRIM_NodeVec exps;
+    PRIM_NodeVecVec expDefStack;
+} PRIM_Space;
+
+
+
+
 
 
 PRIM_Space* PRIM_newSpace(void)
@@ -12,7 +39,16 @@ PRIM_Space* PRIM_newSpace(void)
 
 void PRIM_spaceFree(PRIM_Space* space)
 {
-    vec_free(&space->strPool);
+    for (u32 i = 0; i < space->expDefStack.length; ++i)
+    {
+        vec_free(space->expDefStack.data + i);
+    }
+    vec_free(&space->expDefStack);
+    vec_free(&space->exps);
+    vec_free(&space->strs);
+    vec_free(&space->expHashs);
+    vec_free(&space->strHashs);
+    vec_free(&space->nodeInfoTable);
     free(space);
 }
 
@@ -22,42 +58,10 @@ void PRIM_spaceFree(PRIM_Space* space)
 
 
 
-
-
-void PRIM_nodeVecFree(PRIM_NodeBodyVec* vec)
+PRIM_NodeType PRIM_nodeType(PRIM_Space* space, PRIM_Node node)
 {
-    for (u32 i = 0; i < vec->length; ++i)
-    {
-        PRIM_nodeFree(vec->data[i]);
-    }
-    vec_free(vec);
-}
-
-PRIM_NodeBody* PRIM_nodeDup(const PRIM_NodeBody* node);
-
-void PRIM_nodeVecDup(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a)
-{
-    for (u32 i = 0; i < vec->length; ++i)
-    {
-        PRIM_nodeFree(vec->data[i]);
-    }
-    vec->length = 0;
-    vec_reserve(vec, a->length);
-    for (u32 i = 0; i < a->length; ++i)
-    {
-        PRIM_NodeBody* e = PRIM_nodeDup(a->data[i]);
-        vec_push(vec, e);
-    }
-}
-
-void PRIM_nodeVecConcat(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a)
-{
-    vec_reserve(vec, vec->length + a->length);
-    for (u32 i = 0; i < a->length; ++i)
-    {
-        PRIM_NodeBody* e = PRIM_nodeDup(a->data[i]);
-        vec_push(vec, e);
-    }
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    return info->type;
 }
 
 
@@ -68,97 +72,28 @@ void PRIM_nodeVecConcat(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a)
 
 
 
-PRIM_NodeType PRIM_type(PRIM_Space* space, PRIM_Node node)
+PRIM_Node PRIM_defStr(PRIM_Space* space, const char* str)
 {
-    return node->type;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-void PRIM_nodeFree(PRIM_NodeBody* node)
-{
-    switch (node->type)
-    {
-    case PRIM_NodeType_Str:
-    {
-        vec_free(&node->str);
-        break;
-    }
-    case PRIM_NodeType_Exp:
-    {
-        PRIM_nodeVecFree(&node->vec);
-        break;
-    }
-    default:
-        assert(false);
-        break;
-    }
-    free(node);
-}
-
-PRIM_NodeBody* PRIM_nodeDup(const PRIM_NodeBody* node)
-{
-    PRIM_NodeBody* node1 = zalloc(sizeof(*node1));
-    node1->type = node->type;
-    switch (node->type)
-    {
-    case PRIM_NodeType_Str:
-    {
-        vec_dup(&node1->str, &node->str);
-        break;
-    }
-    case PRIM_NodeType_Exp:
-    {
-        PRIM_nodeVecDup(&node1->vec, &node->vec);
-        break;
-    }
-    default:
-        assert(false);
-        break;
-    }
-    node1->srcInfo = node->srcInfo;
-    return node1;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-PRIM_NodeBody* PRIM_defStr(PRIM_Space* space, const char* str)
-{
-    PRIM_NodeBody* node = zalloc(sizeof(*node));
-    node->type = PRIM_NodeType_Str;
-    vec_pusharr(&node->str, str, (u32)strlen(str) + 1);
+    u32 l = (u32)strlen(str);
+    PRIM_NodeInfo info = { PRIM_NodeType_Str, space->strs.length, l };
+    vec_pusharr(&space->strs, str, l + 1);
+    PRIM_Node node = { space->nodeInfoTable.length };
+    vec_push(&space->nodeInfoTable, info);
     return node;
 }
 
 u32 PRIM_strSize(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Str == node->type);
-    return node->str.length > 0 ? node->str.length - 1 : 0;
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    assert(PRIM_NodeType_Str == info->type);
+    return info->length;
 }
 
 const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Str == node->type);
-    return node->str.data;
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    assert(PRIM_NodeType_Str == info->type);
+    return space->strs.data + info->offset;
 }
 
 
@@ -171,20 +106,25 @@ const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node)
 
 void PRIM_defExpEnter(PRIM_Space* space)
 {
-
+    PRIM_NodeVec exp = { 0 };
+    vec_push(&space->expDefStack, exp);
 }
 
-void PRIM_defExpPush(PRIM_Space* space, PRIM_Node c)
+void PRIM_defExpPush(PRIM_Space* space, PRIM_Node x)
 {
-    PRIM_Node node = NULL;
-    assert(PRIM_NodeType_Exp == node->type);
-    vec_push(&node->vec, c);
+    assert(space->expDefStack.length > 0);
+    PRIM_NodeVec* exps = space->expDefStack.data + space->expDefStack.length - 1;
+    vec_push(exps, x);
 }
 
-PRIM_NodeBody* PRIM_defExpDone(PRIM_Space* space)
+PRIM_Node PRIM_defExpDone(PRIM_Space* space)
 {
-    PRIM_NodeBody* node = zalloc(sizeof(*node));
-    node->type = PRIM_NodeType_Exp;
+    PRIM_NodeVec* exps = space->expDefStack.data + space->expDefStack.length - 1;
+    PRIM_NodeInfo info = { PRIM_NodeType_Exp, space->exps.length, exps->length };
+    vec_concat(&space->exps, exps);
+    vec_resize(&space->expDefStack, space->expDefStack.length - 1);
+    PRIM_Node node = { space->nodeInfoTable.length };
+    vec_push(&space->nodeInfoTable, info);
     return node;
 }
 
@@ -198,14 +138,16 @@ PRIM_NodeBody* PRIM_defExpDone(PRIM_Space* space)
 
 u32 PRIM_expLen(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Exp == node->type);
-    return node->vec.length;
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    assert(PRIM_NodeType_Exp == info->type);
+    return info->length;
 }
 
-PRIM_NodeBody** PRIM_expElm(PRIM_Space* space, PRIM_Node node)
+PRIM_Node* PRIM_expElm(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Exp == node->type);
-    return node->vec.data;
+    PRIM_NodeInfo* info = space->nodeInfoTable.data + node.id;
+    assert(PRIM_NodeType_Exp == info->type);
+    return space->exps.data + info->offset;
 }
 
 

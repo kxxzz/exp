@@ -43,17 +43,18 @@ PRIM_Space* PRIM_newSpace(void);
 void PRIM_spaceFree(PRIM_Space* space);
 
 
-typedef struct PRIM_NodeBody* PRIM_Node;
+typedef struct PRIM_Node { u32 id; } PRIM_Node;
 
-PRIM_NodeType PRIM_type(PRIM_Space* space, PRIM_Node node);
+
+PRIM_NodeType PRIM_nodeType(PRIM_Space* space, PRIM_Node node);
 
 static bool PRIM_isStr(PRIM_Space* space, PRIM_Node node)
 {
-    return PRIM_NodeType_Str == PRIM_type(space, node);
+    return PRIM_NodeType_Str == PRIM_nodeType(space, node);
 }
 static bool PRIM_isExp(PRIM_Space* space, PRIM_Node node)
 {
-    return PRIM_NodeType_Exp == PRIM_type(space, node);
+    return PRIM_NodeType_Exp == PRIM_nodeType(space, node);
 }
 
 
