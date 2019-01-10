@@ -91,7 +91,7 @@ void PRIM_nodeVecFree(PRIM_NodeBodyVec* vec);
 void PRIM_nodeVecDup(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a);
 void PRIM_nodeVecConcat(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a);
 
-
+void PRIM_nodeFree(PRIM_Node node);
 
 
 

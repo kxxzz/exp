@@ -24,16 +24,16 @@ typedef double f64;
 
 typedef enum PRIM_NodeType
 {
-    PRIM_NodeType_Atom,
-    PRIM_NodeType_Expr,
+    PRIM_NodeType_Str,
+    PRIM_NodeType_Exp,
 
     PRIM_NumNodeTypes
 } PRIM_NodeType;
 
 static const char* PRIM_NodeTypeNameTable[PRIM_NumNodeTypes] =
 {
-    "Atom",
-    "Expr",
+    "Str",
+    "Exp",
 };
 
 
@@ -43,48 +43,38 @@ PRIM_Space* PRIM_newSpace(void);
 void PRIM_spaceFree(PRIM_Space* space);
 
 
-
-
 typedef struct PRIM_NodeBody* PRIM_Node;
 
+PRIM_NodeType PRIM_type(PRIM_Space* space, PRIM_Node node);
 
-
-void PRIM_nodeFree(PRIM_Node node);
-
-
-
-PRIM_NodeType PRIM_type(PRIM_Node node);
-
-static bool PRIM_isAtom(PRIM_Node node)
+static bool PRIM_isStr(PRIM_Space* space, PRIM_Node node)
 {
-    return PRIM_NodeType_Atom == PRIM_type(node);
+    return PRIM_NodeType_Str == PRIM_type(space, node);
 }
-static bool PRIM_isExp(PRIM_Node node)
+static bool PRIM_isExp(PRIM_Space* space, PRIM_Node node)
 {
-    return PRIM_NodeType_Expr == PRIM_type(node);
+    return PRIM_NodeType_Exp == PRIM_type(space, node);
 }
 
 
 
-PRIM_Node PRIM_atom(const char* str);
-u32 PRIM_atomSize(PRIM_Node node);
-const char* PRIM_atomCstr(PRIM_Node node);
+PRIM_Node PRIM_defStr(PRIM_Space* space, const char* str);
+u32 PRIM_strSize(PRIM_Space* space, PRIM_Node node);
+const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node);
 
 
-PRIM_Node PRIM_expr(void);
-u32 PRIM_exprLen(PRIM_Node node);
-PRIM_Node* PRIM_exprElm(PRIM_Node node);
+void PRIM_defExpEnter(PRIM_Space* space);
+void PRIM_defExpPush(PRIM_Space* space, PRIM_Node c);
+PRIM_Node PRIM_defExpDone(PRIM_Space* space);
 
-
-void PRIM_exprPush(PRIM_Node node, PRIM_Node c);
-void PRIM_exprConcat(PRIM_Node node, PRIM_Node a);
-
+u32 PRIM_expLen(PRIM_Space* space, PRIM_Node node);
+PRIM_Node* PRIM_expElm(PRIM_Space* space, PRIM_Node node);
 
 
 
 typedef struct PRIM_NodeSrcInfo
 {
-    bool hasSrcInfo;
+    bool exist;
     u32 offset;
     u32 line;
     u32 column;
@@ -94,8 +84,8 @@ typedef struct PRIM_NodeSrcInfo
 typedef vec_t(PRIM_NodeSrcInfo) PRIM_NodeSrcInfoTable;
 
 
-PRIM_Node PRIM_loadCell(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable);
-PRIM_Node PRIM_loadList(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable);
+PRIM_Node PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable);
+PRIM_Node PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable);
 
 
 

@@ -26,6 +26,7 @@ typedef struct PRIM_Token
 
 typedef struct PRIM_LoadContext
 {
+    PRIM_Space* space;
     u32 srcLen;
     const char* src;
     u32 cur;
@@ -34,10 +35,10 @@ typedef struct PRIM_LoadContext
 
 
 
-static PRIM_LoadContext PRIM_newLoadContext(u32 strSize, const char* str)
+static PRIM_LoadContext PRIM_newLoadContext(PRIM_Space* space, u32 strSize, const char* str)
 {
     assert(strSize == strlen(str));
-    PRIM_LoadContext ctx = { strSize, str, 0, 1 };
+    PRIM_LoadContext ctx = { space, strSize, str, 0, 1 };
     return ctx;
 }
 
@@ -297,7 +298,7 @@ static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_NodeBody* node)
         {
             return false;
         }
-        PRIM_exprPush(node, e);
+        PRIM_defExpPush(ctx->space, e);
     }
     return true;
 }
@@ -337,7 +338,7 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
     {
     case PRIM_TokenType_Text:
     {
-        node->type = PRIM_NodeType_Atom;
+        node->type = PRIM_NodeType_Str;
         const char* src = ctx->src + tok.begin;
         u32 strLen = tok.len;
         vec_resize(&node->str, strLen + 1);
@@ -347,7 +348,7 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
     }
     case PRIM_TokenType_String:
     {
-        node->type = PRIM_NodeType_Atom;
+        node->type = PRIM_NodeType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -378,7 +379,7 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
     }
     case PRIM_TokenType_ExprBegin:
     {
-        node->type = PRIM_NodeType_Expr;
+        node->type = PRIM_NodeType_Exp;
         bool ok = PRIM_loadExpr(ctx, node);
         if (!ok)
         {
@@ -407,9 +408,9 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
 
 
 
-PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable)
+PRIM_NodeBody* PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
+    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
     PRIM_NodeBody* node = PRIM_loadNode(&ctx);
     if (!PRIM_loadEnd(&ctx))
     {
@@ -419,15 +420,15 @@ PRIM_NodeBody* PRIM_loadCell(PRIM_Space* space, const char* str, PRIM_NodeSrcInf
     return node;
 }
 
-PRIM_NodeBody* PRIM_loadList(PRIM_Space* space, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable)
+PRIM_NodeBody* PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext((u32)strlen(str), str);
-    PRIM_NodeBody* node = PRIM_expr();
+    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
+    PRIM_NodeBody* node = PRIM_defExpDone(space);
     for (;;)
     {
         PRIM_NodeBody* e = PRIM_loadNode(&ctx);
         if (!e) break;
-        PRIM_exprPush(node, e);
+        PRIM_defExpPush(ctx.space, e);
     }
     if (!PRIM_loadEnd(&ctx))
     {

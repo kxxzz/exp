@@ -68,10 +68,11 @@ void PRIM_nodeVecConcat(PRIM_NodeBodyVec* vec, const PRIM_NodeBodyVec* a)
 
 
 
-PRIM_NodeType PRIM_type(PRIM_Node node)
+PRIM_NodeType PRIM_type(PRIM_Space* space, PRIM_Node node)
 {
     return node->type;
 }
+
 
 
 
@@ -88,12 +89,12 @@ void PRIM_nodeFree(PRIM_NodeBody* node)
 {
     switch (node->type)
     {
-    case PRIM_NodeType_Atom:
+    case PRIM_NodeType_Str:
     {
         vec_free(&node->str);
         break;
     }
-    case PRIM_NodeType_Expr:
+    case PRIM_NodeType_Exp:
     {
         PRIM_nodeVecFree(&node->vec);
         break;
@@ -111,12 +112,12 @@ PRIM_NodeBody* PRIM_nodeDup(const PRIM_NodeBody* node)
     node1->type = node->type;
     switch (node->type)
     {
-    case PRIM_NodeType_Atom:
+    case PRIM_NodeType_Str:
     {
         vec_dup(&node1->str, &node->str);
         break;
     }
-    case PRIM_NodeType_Expr:
+    case PRIM_NodeType_Exp:
     {
         PRIM_nodeVecDup(&node1->vec, &node->vec);
         break;
@@ -140,23 +141,23 @@ PRIM_NodeBody* PRIM_nodeDup(const PRIM_NodeBody* node)
 
 
 
-PRIM_NodeBody* PRIM_atom(const char* str)
+PRIM_NodeBody* PRIM_defStr(PRIM_Space* space, const char* str)
 {
     PRIM_NodeBody* node = zalloc(sizeof(*node));
-    node->type = PRIM_NodeType_Atom;
+    node->type = PRIM_NodeType_Str;
     vec_pusharr(&node->str, str, (u32)strlen(str) + 1);
     return node;
 }
 
-u32 PRIM_atomSize(PRIM_Node node)
+u32 PRIM_strSize(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Atom == node->type);
+    assert(PRIM_NodeType_Str == node->type);
     return node->str.length > 0 ? node->str.length - 1 : 0;
 }
 
-const char* PRIM_atomCstr(PRIM_Node node)
+const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Atom == node->type);
+    assert(PRIM_NodeType_Str == node->type);
     return node->str.data;
 }
 
@@ -164,22 +165,46 @@ const char* PRIM_atomCstr(PRIM_Node node)
 
 
 
-PRIM_NodeBody* PRIM_expr(void)
+
+
+
+
+void PRIM_defExpEnter(PRIM_Space* space)
+{
+
+}
+
+void PRIM_defExpPush(PRIM_Space* space, PRIM_Node c)
+{
+    PRIM_Node node = NULL;
+    assert(PRIM_NodeType_Exp == node->type);
+    vec_push(&node->vec, c);
+}
+
+PRIM_NodeBody* PRIM_defExpDone(PRIM_Space* space)
 {
     PRIM_NodeBody* node = zalloc(sizeof(*node));
-    node->type = PRIM_NodeType_Expr;
+    node->type = PRIM_NodeType_Exp;
     return node;
 }
 
-u32 PRIM_exprLen(PRIM_Node node)
+
+
+
+
+
+
+
+
+u32 PRIM_expLen(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Expr == node->type);
+    assert(PRIM_NodeType_Exp == node->type);
     return node->vec.length;
 }
 
-PRIM_NodeBody** PRIM_exprElm(PRIM_Node node)
+PRIM_NodeBody** PRIM_expElm(PRIM_Space* space, PRIM_Node node)
 {
-    assert(PRIM_NodeType_Expr == node->type);
+    assert(PRIM_NodeType_Exp == node->type);
     return node->vec.data;
 }
 
@@ -188,21 +213,7 @@ PRIM_NodeBody** PRIM_exprElm(PRIM_Node node)
 
 
 
-void PRIM_exprPush(PRIM_Node node, PRIM_Node c)
-{
-    assert(PRIM_NodeType_Expr == node->type);
-    vec_push(&node->vec, c);
-}
 
-void PRIM_exprConcat(PRIM_Node node, PRIM_Node a)
-{
-    assert(PRIM_NodeType_Expr == node->type);
-    assert(PRIM_NodeType_Expr == a->type);
-    for (u32 i = 0; i < a->vec.length; ++i)
-    {
-        vec_push(&node->vec, PRIM_nodeDup(a->vec.data[i]));
-    }
-}
 
 
 
@@ -259,13 +270,13 @@ u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
 {
     switch (node->type)
     {
-    case PRIM_NodeType_Atom:
+    case PRIM_NodeType_Str:
     {
         const char* str = node->str.data;
         u32 sreLen = (node->str.length > 0) ? node->str.length - 1 : 0;
         u32 n;
         bool isStrTok = false;
-        if (withSrcInfo && node->srcInfo.hasSrcInfo)
+        if (withSrcInfo && node->srcInfo.exist)
         {
             isStrTok = node->srcInfo.isStrTok;
         }
@@ -325,7 +336,7 @@ u32 PRIM_saveSL(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
         }
         return n;
     }
-    case PRIM_NodeType_Expr:
+    case PRIM_NodeType_Exp:
     {
         u32 n = 0;
         const PRIM_NodeBodyVec* vec = &node->vec;
@@ -521,7 +532,7 @@ static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrc
 {
     switch (node->type)
     {
-    case PRIM_NodeType_Atom:
+    case PRIM_NodeType_Str:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
@@ -529,7 +540,7 @@ static void PRIM_saveMlAddNode(PRIM_SaveMLctx* ctx, PRIM_Node node, bool withSrc
         PRIM_saveMlForward(ctx, a);
         return;
     }
-    case PRIM_NodeType_Expr:
+    case PRIM_NodeType_Exp:
     {
         PRIM_saveMlAddNodeVec(ctx, node, withSrcInfo);
         return;
@@ -562,11 +573,11 @@ u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
 {
     switch (node->type)
     {
-    case PRIM_NodeType_Atom:
+    case PRIM_NodeType_Str:
     {
         return PRIM_saveSL(space, node, buf, bufSize, opt->withSrcInfo);
     }
-    case PRIM_NodeType_Expr:
+    case PRIM_NodeType_Exp:
     {
         PRIM_SaveMLctx ctx =
         {

@@ -61,7 +61,7 @@ void test(void)
 
     PRIM_Space* space = PRIM_newSpace();
     PRIM_NodeSrcInfoTable srcInfoTable = { 0 };
-    PRIM_Node src = PRIM_loadList(space, text, &srcInfoTable);
+    PRIM_Node src = PRIM_loadSrcAsList(space, text, &srcInfoTable);
     assert(src);
     free(text);
 
@@ -84,8 +84,6 @@ void test(void)
     printf("\"\n%s\"\n", text1);
     free(text1);
 
-
-    PRIM_nodeFree(src);
 
     PRIM_spaceFree(space);
 }
