@@ -252,7 +252,7 @@ static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
 
 
 
-static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx);
+static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx);
 
 static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
 {
@@ -288,13 +288,13 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_NodeBody* node)
+static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_Node node)
 {
     while (!PRIM_loadExprEnd(ctx))
     {
-        PRIM_NodeBody* e = NULL;
+        PRIM_Node e = { -1 };
         e = PRIM_loadNode(ctx);
-        if (!e)
+        if (-1 == e.id)
         {
             return false;
         }
@@ -324,7 +324,7 @@ static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, P
 
 
 
-static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
+static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
 {
     PRIM_Token tok;
     if (!PRIM_readToken(ctx, &tok))
@@ -333,7 +333,7 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
     }
     PRIM_NodeSrcInfo srcInfo = { true };
     PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
-    PRIM_NodeBody* node = zalloc(sizeof(*node));
+    PRIM_Node node = zalloc(sizeof(*node));
     switch (tok.type)
     {
     case PRIM_TokenType_Text:
@@ -408,10 +408,10 @@ static PRIM_NodeBody* PRIM_loadNode(PRIM_LoadContext* ctx)
 
 
 
-PRIM_NodeBody* PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
+PRIM_Node PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
-    PRIM_NodeBody* node = PRIM_loadNode(&ctx);
+    PRIM_Node node = PRIM_loadNode(&ctx);
     if (!PRIM_loadEnd(&ctx))
     {
         PRIM_nodeFree(node);
@@ -420,13 +420,13 @@ PRIM_NodeBody* PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeS
     return node;
 }
 
-PRIM_NodeBody* PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
+PRIM_Node PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
     PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
     PRIM_NodeBody* node = PRIM_defExpDone(space);
     for (;;)
     {
-        PRIM_NodeBody* e = PRIM_loadNode(&ctx);
+        PRIM_Node e = PRIM_loadNode(&ctx);
         if (!e) break;
         PRIM_defExpPush(ctx.space, e);
     }
