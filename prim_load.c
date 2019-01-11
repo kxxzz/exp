@@ -7,8 +7,8 @@ typedef enum PRIM_TokenType
     PRIM_TokenType_Text,
     PRIM_TokenType_String,
 
-    PRIM_TokenType_ExprBegin,
-    PRIM_TokenType_ExprEnd,
+    PRIM_TokenType_ExpBegin,
+    PRIM_TokenType_ExpEnd,
 
     PRIM_NumTokenTypes
 } PRIM_TokenType;
@@ -231,14 +231,14 @@ static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_ExprBegin, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_ExpBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_ExprEnd, ctx->cur, 1 };
+        PRIM_Token tok = { PRIM_TokenType_ExpEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
@@ -274,7 +274,7 @@ static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
+static bool PRIM_loadExpEnd(PRIM_LoadContext* ctx)
 {
     if (PRIM_loadEnd(ctx))
     {
@@ -289,7 +289,7 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     }
     switch (tok.type)
     {
-    case PRIM_TokenType_ExprEnd:
+    case PRIM_TokenType_ExpEnd:
     {
         return true;
     }
@@ -301,11 +301,11 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static PRIM_Node PRIM_loadExpr(PRIM_LoadContext* ctx)
+static PRIM_Node PRIM_loadExp(PRIM_LoadContext* ctx)
 {
     PRIM_Space* space = ctx->space;
     PRIM_addExpEnter(space);
-    while (!PRIM_loadExprEnd(ctx))
+    while (!PRIM_loadExpEnd(ctx))
     {
         PRIM_Node e = PRIM_loadNode(ctx);
         if (PRIM_InvalidNodeId == e.id)
@@ -392,9 +392,9 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
         node = PRIM_addLenStr(space, len, ctx->tmpStrBuf.data);
         break;
     }
-    case PRIM_TokenType_ExprBegin:
+    case PRIM_TokenType_ExpBegin:
     {
-        node = PRIM_loadExpr(ctx);
+        node = PRIM_loadExp(ctx);
         if (PRIM_InvalidNodeId == node.id)
         {
             return node;
