@@ -42,8 +42,12 @@ typedef struct PRIM_Space PRIM_Space;
 PRIM_Space* PRIM_newSpace(void);
 void PRIM_spaceFree(PRIM_Space* space);
 
+u32 PRIM_spaceNodesTotal(PRIM_Space* space);
+
 
 typedef struct PRIM_Node { u32 id; } PRIM_Node;
+
+static u32 PRIM_InvalidNodeId = (u32)-1;
 
 
 PRIM_NodeType PRIM_nodeType(PRIM_Space* space, PRIM_Node node);
@@ -59,14 +63,17 @@ static bool PRIM_isExp(PRIM_Space* space, PRIM_Node node)
 
 
 
-PRIM_Node PRIM_defStr(PRIM_Space* space, const char* str);
+PRIM_Node PRIM_addStr(PRIM_Space* space, const char* str);
+PRIM_Node PRIM_addLenStr(PRIM_Space* space, u32 len, const char* str);
+
+void PRIM_addExpEnter(PRIM_Space* space);
+void PRIM_addExpPush(PRIM_Space* space, PRIM_Node c);
+void PRIM_addExpCancel(PRIM_Space* space);
+PRIM_Node PRIM_addExpDone(PRIM_Space* space);
+
+
 u32 PRIM_strSize(PRIM_Space* space, PRIM_Node node);
 const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node);
-
-
-void PRIM_defExpEnter(PRIM_Space* space);
-void PRIM_defExpPush(PRIM_Space* space, PRIM_Node c);
-PRIM_Node PRIM_defExpDone(PRIM_Space* space);
 
 u32 PRIM_expLen(PRIM_Space* space, PRIM_Node node);
 PRIM_Node* PRIM_expElm(PRIM_Space* space, PRIM_Node node);

@@ -31,15 +31,25 @@ typedef struct PRIM_LoadContext
     const char* src;
     u32 cur;
     u32 curLine;
+    PRIM_NodeSrcInfoTable* srcInfoTable;
+    vec_char tmpStrBuf;
 } PRIM_LoadContext;
 
 
 
-static PRIM_LoadContext PRIM_newLoadContext(PRIM_Space* space, u32 strSize, const char* str)
+static PRIM_LoadContext PRIM_newLoadContext
+(
+    PRIM_Space* space, u32 strSize, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable
+)
 {
     assert(strSize == strlen(str));
     PRIM_LoadContext ctx = { space, strSize, str, 0, 1 };
     return ctx;
+}
+
+static void PRIM_loadContextFree(PRIM_LoadContext* ctx)
+{
+    vec_free(&ctx->tmpStrBuf);
 }
 
 
@@ -263,6 +273,7 @@ static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
     }
     return false;
 }
+
 static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
 {
     if (PRIM_loadEnd(ctx))
@@ -288,19 +299,23 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadExpr(PRIM_LoadContext* ctx, PRIM_Node node)
+static PRIM_Node PRIM_loadExpr(PRIM_LoadContext* ctx)
 {
+    PRIM_Space* space = ctx->space;
+    PRIM_addExpEnter(space);
     while (!PRIM_loadExprEnd(ctx))
     {
-        PRIM_Node e = { -1 };
-        e = PRIM_loadNode(ctx);
-        if (-1 == e.id)
+        PRIM_Node e = PRIM_loadNode(ctx);
+        if (PRIM_InvalidNodeId == e.id)
         {
-            return false;
+            PRIM_addExpCancel(space);
+            PRIM_Node node = { PRIM_InvalidNodeId };
+            return node;
         }
-        PRIM_defExpPush(ctx->space, e);
+        PRIM_addExpPush(ctx->space, e);
     }
-    return true;
+    PRIM_Node node = PRIM_addExpDone(space);
+    return node;
 }
 
 
@@ -326,29 +341,26 @@ static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, P
 
 static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
 {
+    PRIM_Space* space = ctx->space;
+    PRIM_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
+    PRIM_Node node = { PRIM_InvalidNodeId };
     PRIM_Token tok;
     if (!PRIM_readToken(ctx, &tok))
     {
-        return false;
+        return node;
     }
     PRIM_NodeSrcInfo srcInfo = { true };
     PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
-    PRIM_Node node = zalloc(sizeof(*node));
     switch (tok.type)
     {
     case PRIM_TokenType_Text:
     {
-        node->type = PRIM_NodeType_Str;
-        const char* src = ctx->src + tok.begin;
-        u32 strLen = tok.len;
-        vec_resize(&node->str, strLen + 1);
-        stzncpy(node->str.data, src, tok.len + 1);
-        node->str.data[tok.len] = 0;
+        const char* str = ctx->src + tok.begin;
+        node = PRIM_addLenStr(space, tok.len, str);
         break;
     }
     case PRIM_TokenType_String:
     {
-        node->type = PRIM_NodeType_Str;
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
         u32 n = 0;
@@ -360,39 +372,39 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
                 ++i;
             }
         }
-        u32 strLen = tok.len - n;
-        vec_resize(&node->str, strLen + 1);
+        u32 len = tok.len - n;
+        vec_resize(&ctx->tmpStrBuf, len + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok.len; ++i)
         {
             if ('\\' == src[i])
             {
                 ++i;
-                node->str.data[si++] = src[i];
+                ctx->tmpStrBuf.data[si++] = src[i];
                 continue;
             }
-            node->str.data[si++] = src[i];
+            ctx->tmpStrBuf.data[si++] = src[i];
         }
-        node->str.data[tok.len] = 0;
-        assert(si == strLen);
+        ctx->tmpStrBuf.data[tok.len] = 0;
+        assert(si == len);
+        node = PRIM_addLenStr(space, len, ctx->tmpStrBuf.data);
         break;
     }
     case PRIM_TokenType_ExprBegin:
     {
-        node->type = PRIM_NodeType_Exp;
-        bool ok = PRIM_loadExpr(ctx, node);
-        if (!ok)
+        node = PRIM_loadExpr(ctx);
+        if (PRIM_InvalidNodeId == node.id)
         {
-            PRIM_nodeFree(node);
-            return NULL;
+            return node;
         }
         break;
     }
     default:
         assert(false);
-        return NULL;
+        return node;
     }
-    node->srcInfo = srcInfo;
+    vec_resize(srcInfoTable, PRIM_spaceNodesTotal(space));
+    srcInfoTable->data[node.id] = srcInfo;
     return node;
 }
 
@@ -410,31 +422,37 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
 
 PRIM_Node PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
+    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
     PRIM_Node node = PRIM_loadNode(&ctx);
     if (!PRIM_loadEnd(&ctx))
     {
-        PRIM_nodeFree(node);
-        return NULL;
+        PRIM_loadContextFree(&ctx);
+        PRIM_Node node = { PRIM_InvalidNodeId };
+        return node;
     }
+    PRIM_loadContextFree(&ctx);
     return node;
 }
 
 PRIM_Node PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src);
-    PRIM_NodeBody* node = PRIM_defExpDone(space);
+    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
+    PRIM_addExpEnter(space);
     for (;;)
     {
         PRIM_Node e = PRIM_loadNode(&ctx);
-        if (!e) break;
-        PRIM_defExpPush(ctx.space, e);
+        if (PRIM_InvalidNodeId == e.id) break;
+        PRIM_addExpPush(ctx.space, e);
     }
     if (!PRIM_loadEnd(&ctx))
     {
-        PRIM_nodeFree(node);
-        return NULL;
+        PRIM_loadContextFree(&ctx);
+        PRIM_addExpCancel(space);
+        PRIM_Node node = { PRIM_InvalidNodeId };
+        return node;
     }
+    PRIM_loadContextFree(&ctx);
+    PRIM_Node node = PRIM_addExpDone(space);
     return node;
 }
 
