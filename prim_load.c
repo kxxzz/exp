@@ -280,7 +280,8 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     {
         return true;
     }
-    PRIM_LoadContext ctx0 = *ctx;
+    u32 cur0 = ctx->cur;
+    u32 curLine0 = ctx->curLine;
     PRIM_Token tok;
     if (!PRIM_readToken(ctx, &tok))
     {
@@ -295,7 +296,8 @@ static bool PRIM_loadExprEnd(PRIM_LoadContext* ctx)
     default:
         break;
     }
-    *ctx = ctx0;
+    ctx->cur = cur0;
+    ctx->curLine = curLine0;
     return false;
 }
 
