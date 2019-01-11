@@ -85,6 +85,7 @@ void test(void)
     free(text1);
 
 
+    vec_free(&srcInfoTable);
     PRIM_spaceFree(space);
 }
 
