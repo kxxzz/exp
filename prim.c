@@ -132,32 +132,36 @@ PRIM_Node PRIM_addExpDone(PRIM_Space* space)
 
 
 
+void PRIM_undoAdd1(PRIM_Space* space)
+{
+    assert(space->nodes.length > 0);
+    PRIM_NodeInfo* info = space->nodes.data + space->nodes.length - 1;
+    switch (info->type)
+    {
+    case PRIM_NodeType_Str:
+    {
+        vec_resize(&space->strs, space->strs.length - info->length - 1);
+        assert(space->strs.length == info->offset);
+        break;
+    }
+    case PRIM_NodeType_Exp:
+    {
+        vec_resize(&space->exps, space->exps.length - info->length);
+        assert(space->exps.length == info->offset);
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
+    vec_resize(&space->nodes, space->nodes.length - 1);
+}
 
 void PRIM_undoAdd(PRIM_Space* space, u32 n)
 {
     for (u32 i = 0; i < n; ++i)
     {
-        assert(space->nodes.length > 0);
-        PRIM_NodeInfo* info = space->nodes.data + space->nodes.length - 1;
-        switch (info->type)
-        {
-        case PRIM_NodeType_Str:
-        {
-            vec_resize(&space->strs, space->strs.length - info->length - 1);
-            assert(space->strs.length == info->offset);
-            break;
-        }
-        case PRIM_NodeType_Exp:
-        {
-            vec_resize(&space->exps, space->exps.length - info->length);
-            assert(space->exps.length == info->offset);
-            break;
-        }
-        default:
-            assert(false);
-            break;
-        }
-        vec_resize(&space->nodes, space->nodes.length - 1);
+        PRIM_undoAdd1(space);
     }
 }
 
