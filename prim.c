@@ -74,9 +74,9 @@ PRIM_NodeType PRIM_nodeType(PRIM_Space* space, PRIM_Node node)
 
 PRIM_Node PRIM_addStr(PRIM_Space* space, const char* str)
 {
-    u32 l = (u32)strlen(str);
-    PRIM_NodeInfo info = { PRIM_NodeType_Str, space->strs.length, l };
-    vec_pusharr(&space->strs, str, l + 1);
+    u32 len = (u32)strlen(str);
+    PRIM_NodeInfo info = { PRIM_NodeType_Str, space->strs.length, len };
+    vec_pusharr(&space->strs, str, len + 1);
     PRIM_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
     return node;
