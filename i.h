@@ -42,8 +42,6 @@ typedef struct PRIM_Space PRIM_Space;
 PRIM_Space* PRIM_newSpace(void);
 void PRIM_spaceFree(PRIM_Space* space);
 
-u32 PRIM_spaceNodesTotal(PRIM_Space* space);
-
 
 typedef struct PRIM_Node { u32 id; } PRIM_Node;
 

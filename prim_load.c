@@ -403,8 +403,7 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
         assert(false);
         return node;
     }
-    vec_resize(srcInfoTable, PRIM_spaceNodesTotal(space));
-    srcInfoTable->data[node.id] = srcInfo;
+    vec_push(srcInfoTable, srcInfo);
     return node;
 }
 

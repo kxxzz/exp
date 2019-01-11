@@ -52,11 +52,6 @@ void PRIM_spaceFree(PRIM_Space* space)
     free(space);
 }
 
-u32 PRIM_spaceNodesTotal(PRIM_Space* space)
-{
-    return space->nodeInfoTable.length;
-}
-
 
 
 
