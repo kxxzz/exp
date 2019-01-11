@@ -70,6 +70,9 @@ void PRIM_addExpCancel(PRIM_Space* space);
 PRIM_Node PRIM_addExpDone(PRIM_Space* space);
 
 
+void PRIM_undoAdd(PRIM_Space* space, u32 n);
+
+
 u32 PRIM_strSize(PRIM_Space* space, PRIM_Node node);
 const char* PRIM_strCstr(PRIM_Space* space, PRIM_Node node);
 

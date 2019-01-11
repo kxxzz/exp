@@ -43,7 +43,7 @@ static PRIM_LoadContext PRIM_newLoadContext
 )
 {
     assert(strSize == strlen(str));
-    PRIM_LoadContext ctx = { space, strSize, str, 0, 1 };
+    PRIM_LoadContext ctx = { space, strSize, str, 0, 1, srcInfoTable };
     return ctx;
 }
 
@@ -403,7 +403,10 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
         assert(false);
         return node;
     }
-    vec_push(srcInfoTable, srcInfo);
+    if (srcInfoTable)
+    {
+        vec_push(srcInfoTable, srcInfo);
+    }
     return node;
 }
 
