@@ -1,0 +1,94 @@
+%YAML 1.2
+---
+
+# https://www.sublimetext.com/docs/3/syntax.html
+
+name: Prim
+file_extensions: [prim]
+scope: source.prim
+
+
+contexts:
+  main:
+    - include: comments
+    - include: numbers
+    - include: symbols
+    - include: strings
+    - include: brackets
+
+  brackets:
+    - match: '\['
+      scope: punctuation.definition.group.begin.prim
+      push:
+        - meta_scope: meta.group.prim
+        - match: '\]'
+          scope: punctuation.definition.group.end.prim
+          pop: true
+        - include: main
+    - match: '\]'
+      scope: invalid.illegal.stray-bracket-end.prim
+
+  numbers:
+    - match: '\b((0(x|X)\h*)|(([0-9]+\.?[0-9]*)|(\.[0-9]+))((e|E)(\+|-)?[0-9]+)?)(?i:l|ul|u|f|ll|ull)?\b'
+      scope: constant.numeric.prim
+
+  symbols:
+    - match: (?<=[\s\[\]\"\']|)([^\s\[\]\"\']+)(?=[\s\[\]\"\'])
+      scope: symbol.other.global.prim
+      captures:
+        1: punctuation.definition.symbol.begin.prim
+        3: punctuation.definition.symbol.end.prim
+
+  strings:
+    - match: '"'
+      scope: punctuation.definition.string.begin.prim
+      push:
+        - meta_scope: string.quoted.double.prim
+        - match: '"'
+          scope: punctuation.definition.string.end.prim
+          pop: true
+        - match: \\.
+          scope: constant.character.escape.prim
+
+  block-comment:
+    - match: '\/\*'
+      scope: punctuation.definition.comment.prim
+      push:
+        - meta_scope: comment.block.prim
+        - match: '\*\/'
+          pop: true
+
+  comments:
+    - include: block-comment
+    - match: '\*\/'
+      scope: invalid.illegal.stray-comment-end.prim
+    - match: '//'
+      scope: punctuation.definition.comment.prim
+      push:
+        - meta_scope: comment.line.double-slash.prim
+        - match: $\n?
+          pop: true
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
