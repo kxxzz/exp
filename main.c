@@ -53,6 +53,7 @@ static u32 readFile(const char* path, char** buf)
 }
 
 
+
 void test(void)
 {
     char* text = NULL;
@@ -66,31 +67,20 @@ void test(void)
     assert(src.id != PRIM_InvalidNodeId);
     free(text);
 
-
-    PRIM_SaveMLopt saveOpt = { 4, 50 };
-
-
-    u32 text1BufSize = PRIM_saveML(space, src, NULL, 0, &saveOpt) + 1;
-    char* text1 = malloc(text1BufSize);
-
-
-    u32 writen = PRIM_saveML(space, src, text1, text1BufSize, &saveOpt) + 1;
-    assert(text1BufSize == writen);
-
-
-    u32 text1Size = (u32)strlen(text1);
-    assert(text1Size + 1 == text1BufSize);
-
-
-    printf("\"\n%s\"\n", text1);
-    free(text1);
+    {
+        PRIM_SaveMLopt saveOpt = { 4, 50 };
+        u32 text1BufSize = PRIM_saveML(space, src, NULL, 0, &saveOpt) + 1;
+        char* text1 = malloc(text1BufSize);
+        u32 writen = PRIM_saveML(space, src, text1, text1BufSize, &saveOpt) + 1;
+        assert(text1BufSize == writen);
+        printf("\"\n%s\"\n", text1);
+        free(text1);
+    }
 
 
     vec_free(&srcInfoTable);
     PRIM_spaceFree(space);
 }
-
-
 
 
 
