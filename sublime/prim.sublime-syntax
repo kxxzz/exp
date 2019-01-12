@@ -10,10 +10,10 @@ scope: source.prim
 
 contexts:
   main:
+    - include: comments
     - include: numbers
     - include: symbols
     - include: strings
-    - include: comments
     - include: brackets
 
   brackets:
@@ -52,22 +52,22 @@ contexts:
 
   block-comment:
     - match: '\/\*'
-      scope: punctuation.definition.comment.begin.prim
+      scope: punctuation.definition.comment.prim
       push:
         - meta_scope: comment.block.prim
-        - include: block-comment
         - match: '\*\/'
-          scope: punctuation.definition.comment.end.prim
           pop: true
 
   comments:
     - include: block-comment
     - match: '\*\/'
       scope: invalid.illegal.stray-comment-end.prim
-    - match: (//).*$\n?
-      scope: comment.line.semicolon.prim
-      captures:
-        1: punctuation.definition.comment.prim
+    - match: '//'
+      scope: punctuation.definition.comment.prim
+      push:
+        - meta_scope: comment.line.double-slash.prim
+        - match: $\n?
+          pop: true
 
 
 
