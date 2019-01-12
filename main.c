@@ -21,6 +21,7 @@ static u32 fileSize(FILE* f)
     fseek(f, pos, SEEK_SET);
     return end;
 }
+
 static u32 readFile(const char* path, char** buf)
 {
     FILE* f = fopen(path, "rb");
