@@ -387,7 +387,7 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
             }
             ctx->tmpStrBuf.data[si++] = src[i];
         }
-        ctx->tmpStrBuf.data[tok.len] = 0;
+        ctx->tmpStrBuf.data[len] = 0;
         assert(si == len);
         node = PRIM_addLenStr(space, len, ctx->tmpStrBuf.data);
         break;
