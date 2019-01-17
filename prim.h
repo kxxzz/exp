@@ -124,6 +124,55 @@ u32 PRIM_saveML(const PRIM_Space* space, PRIM_Node node, char* buf, u32 bufSize,
 
 
 
+int PRIM_exec(PRIM_Space* space, PRIM_Node root);
+
+int PRIM_execFile(const char* srcFile, PRIM_NodeSrcInfoTable* srcInfoTable);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

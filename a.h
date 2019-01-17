@@ -2,7 +2,7 @@
 
 
 
-#include "i.h"
+#include "prim.h"
 
 
 
@@ -13,6 +13,8 @@
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
+
+#include <fileu.h>
 
 
 

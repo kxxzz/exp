@@ -1,4 +1,4 @@
-#include "i.h"
+#include "prim.h"
 
 
 
@@ -11,67 +11,29 @@
 #include <stdio.h>
 #include <string.h>
 
-
-
-static u32 fileSize(FILE* f)
-{
-    u32 pos = ftell(f);
-    fseek(f, 0, SEEK_END);
-    u32 end = ftell(f);
-    fseek(f, pos, SEEK_SET);
-    return end;
-}
-
-static u32 readFile(const char* path, char** buf)
-{
-    FILE* f = fopen(path, "rb");
-    if (!f)
-    {
-        return -1;
-    }
-    u32 size = fileSize(f);
-    if (-1 == size)
-    {
-        return -1;
-    }
-    if (0 == size)
-    {
-        return 0;
-    }
-    *buf = (char*)malloc(size + 1);
-    (*buf)[size] = 0;
-    size_t r = fread(*buf, 1, size, f);
-    if (r != (size_t)size)
-    {
-        free(*buf);
-        *buf = NULL;
-        fclose(f);
-        return -1;
-    }
-    fclose(f);
-    return size;
-}
+#include <fileu.h>
 
 
 
-void test(void)
+
+void testLoadSave(void)
 {
     char* text = NULL;
-    u32 textSize = readFile("../0.prim", &text);
+    u32 textSize = fileu_readFile("../0.prim", &text);
     assert(textSize != -1);
 
 
     PRIM_Space* space = PRIM_newSpace();
     PRIM_NodeSrcInfoTable srcInfoTable = { 0 };
-    PRIM_Node src = PRIM_loadSrcAsList(space, text, &srcInfoTable);
-    assert(src.id != PRIM_InvalidNodeId);
+    PRIM_Node root = PRIM_loadSrcAsList(space, text, &srcInfoTable);
+    assert(root.id != PRIM_InvalidNodeId);
     free(text);
 
     {
         PRIM_SaveMLopt saveOpt = { 4, 50 };
-        u32 text1BufSize = PRIM_saveML(space, src, NULL, 0, &saveOpt) + 1;
+        u32 text1BufSize = PRIM_saveML(space, root, NULL, 0, &saveOpt) + 1;
         char* text1 = malloc(text1BufSize);
-        u32 writen = PRIM_saveML(space, src, text1, text1BufSize, &saveOpt) + 1;
+        u32 writen = PRIM_saveML(space, root, text1, text1BufSize, &saveOpt) + 1;
         assert(text1BufSize == writen);
         printf("\"\n%s\"\n", text1);
         free(text1);
@@ -80,6 +42,16 @@ void test(void)
 
     vec_free(&srcInfoTable);
     PRIM_spaceFree(space);
+}
+
+
+
+void testExec(void)
+{
+    PRIM_NodeSrcInfoTable srcInfoTable = { 0 };
+    int r = PRIM_execFile("../1.prim", &srcInfoTable);
+    assert(0 == r);
+    vec_free(&srcInfoTable);
 }
 
 
@@ -101,7 +73,8 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    test();
+    testLoadSave();
+    testExec();
 
     return mainReturn(EXIT_SUCCESS);
 }
