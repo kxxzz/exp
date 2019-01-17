@@ -5,13 +5,7 @@
 typedef struct EXP_ExecContext
 {
     EXP_Space* code;
-    EXP_Space* rt;
 } EXP_ExecContext;
-
-
-
-
-
 
 
 
