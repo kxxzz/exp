@@ -65,13 +65,6 @@ typedef void(*EXP_PrimExpHandler)(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* a
 
 static void EXP_primExpHandle_Def(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
 {
-    EXP_Space* space = ctx->space;
-    if (!numArgs)
-    {
-        ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
-        return;
-    }
 }
 
 static void EXP_primExpHandle_Read(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
@@ -108,12 +101,11 @@ static EXP_PrimExpHandler EXP_PrimExpHandlerTable[EXP_NumPrimExpTypes] =
 
 
 
-static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, EXP_Node expHead)
+static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, const char* expHead)
 {
-    const char* name = EXP_strCstr(space, expHead);
     for (u32 i = 0; i < EXP_NumPrimExpTypes; ++i)
     {
-        if (0 == strcmp(name, EXP_PrimExpTypeNameTable[i]))
+        if (0 == strcmp(expHead, EXP_PrimExpTypeNameTable[i]))
         {
             return i;
         }
@@ -126,9 +118,29 @@ static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, EXP_Node expHead)
 
 
 
-static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, EXP_Node expHead)
+
+
+static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecDefLevel* level, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
+    return node;
+}
+
+static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* expHead)
+{
+    EXP_Node node = { EXP_NodeInvalidId };
+    EXP_Space* space = ctx->space;
+    EXP_ExecDefLevelStack* defLevelStack = &ctx->defLevelStack;
+    for (u32 i = 0; i < defLevelStack->length; ++i)
+    {
+        u32 li = defLevelStack->length - 1 - i;
+        EXP_ExecDefLevel* level = defLevelStack->data + li;
+        node = EXP_getMatchedDefInLevel(level, expHead);
+        if (node.id != EXP_NodeInvalidId)
+        {
+            return node;
+        }
+    }
     return node;
 }
 
@@ -168,18 +180,22 @@ static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP
 {
     EXP_Space* space = ctx->space;
     u32 defLen = EXP_expLen(space, def);
-    assert(defLen >= 2);
+    if (defLen < 2)
+    {
+        ctx->hasHalt = true;
+        ctx->retValue = EXIT_FAILURE;
+        return;
+    }
     EXP_Node* defElms = EXP_expElm(space, def);
-    EXP_Node parms = defElms[1];
-    assert(EXP_isExp(space, parms));
-    u32 numParms = EXP_expLen(space, parms);
+    EXP_Node pat = defElms[1];
+    u32 numParms = EXP_isExp(space, pat) ? EXP_expLen(space, pat) : 0;
     if (numParms != numArgs)
     {
         ctx->hasHalt = true;
         ctx->retValue = EXIT_FAILURE;
         return;
     }
-    EXP_Node* argKeys = EXP_expElm(space, parms);
+    EXP_Node* argKeys = EXP_expElm(space, pat);
     EXP_Node* bodyElms = defElms + 2;
     EXP_execExpList(ctx, defLen - 2, bodyElms, numArgs, argKeys, argVals);
 }
@@ -198,13 +214,13 @@ static void EXP_execExp(EXP_ExecContext* ctx, EXP_Node exp)
         return;
     }
     EXP_Node* elms = EXP_expElm(space, exp);
-    EXP_Node expHead = elms[0];
-    if (!EXP_isStr(space, expHead))
+    if (!EXP_isStr(space, elms[0]))
     {
         ctx->hasHalt = true;
         ctx->retValue = EXIT_FAILURE;
         return;
     }
+    const char* expHead = EXP_strCstr(space, elms[0]);
     EXP_Node def = EXP_getMatchedDef(ctx, expHead);
     if (def.id != EXP_NodeInvalidId)
     {
