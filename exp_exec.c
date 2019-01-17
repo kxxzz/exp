@@ -1,13 +1,31 @@
 #include "a.h"
 
 
-typedef vec_t(EXP_Node) EXP_NodeVec;
+enum
+{
+    EXP_ExecDefArgs_MAX = 8,
+};
+
+
+
+typedef struct EXP_ExecDefLevel
+{
+    u32 bodyLen;
+    EXP_Node* body;
+    u32 numArgs;
+    EXP_Node argKeys[EXP_ExecDefArgs_MAX];
+    EXP_Node argVals[EXP_ExecDefArgs_MAX];
+} EXP_ExecDefLevel;
+
+typedef vec_t(EXP_ExecDefLevel) EXP_ExecDefLevelStack;
+
 
 typedef struct EXP_ExecContext
 {
     EXP_Space* space;
     bool hasHalt;
     int retValue;
+    EXP_ExecDefLevelStack defLevelStack;
 } EXP_ExecContext;
 
 
@@ -121,24 +139,49 @@ static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, EXP_Node expHead)
 
 static void EXP_execExp(EXP_ExecContext* ctx, EXP_Node exp);
 
-static void EXP_execExpList(EXP_ExecContext* ctx, u32 len, EXP_Node* exps)
+static void EXP_execExpList
+(
+    EXP_ExecContext* ctx, u32 len, EXP_Node* exps,
+    u32 numArgs, EXP_Node argKeys[EXP_ExecDefArgs_MAX], EXP_Node argVals[EXP_ExecDefArgs_MAX]
+)
 {
+    EXP_ExecDefLevelStack* defLevelStack = &ctx->defLevelStack;
+    EXP_ExecDefLevel level = { len, exps, numArgs };
+    for (u32 i = 0; i < numArgs; ++i)
+    {
+        level.argKeys[i] = argKeys[i];
+        level.argVals[i] = argVals[i];
+    }
+    vec_push(defLevelStack, level);
+
     for (u32 i = 0; i < len; ++i)
     {
         EXP_execExp(ctx, exps[i]);
         if (ctx->hasHalt) return;
     }
+
+    vec_pop(defLevelStack);
 }
 
 
-static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP_Node* args)
+static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP_Node* argVals)
 {
     EXP_Space* space = ctx->space;
     u32 defLen = EXP_expLen(space, def);
     assert(defLen >= 2);
     EXP_Node* defElms = EXP_expElm(space, def);
+    EXP_Node parms = defElms[1];
+    assert(EXP_isExp(space, parms));
+    u32 numParms = EXP_expLen(space, parms);
+    if (numParms != numArgs)
+    {
+        ctx->hasHalt = true;
+        ctx->retValue = EXIT_FAILURE;
+        return;
+    }
+    EXP_Node* argKeys = EXP_expElm(space, parms);
     EXP_Node* bodyElms = defElms + 2;
-    EXP_execExpList(ctx, defLen - 2, bodyElms);
+    EXP_execExpList(ctx, defLen - 2, bodyElms, numArgs, argKeys, argVals);
 }
 
 
@@ -188,7 +231,7 @@ static void EXP_execExpListBlock(EXP_ExecContext* ctx, EXP_Node expList)
 
     u32 len = EXP_expLen(space, expList);
     EXP_Node* elms = EXP_expElm(space, expList);
-    EXP_execExpList(ctx, len, elms);
+    EXP_execExpList(ctx, len, elms, 0, NULL, NULL);
 }
 
 
