@@ -19,8 +19,8 @@ typedef vec_t(EXP_NodeVec) EXP_NodeVecVec;
 typedef struct EXP_Space
 {
     EXP_NodeInfoVec nodes;
-    vec_u64 strHashs;
-    vec_u64 expHashs;
+    //vec_u64 strHashs;
+    //vec_u64 expHashs;
     vec_char strs;
     EXP_NodeVec exps;
     EXP_NodeVecVec expDefStack;
@@ -46,8 +46,8 @@ void EXP_spaceFree(EXP_Space* space)
     vec_free(&space->expDefStack);
     vec_free(&space->exps);
     vec_free(&space->strs);
-    vec_free(&space->expHashs);
-    vec_free(&space->strHashs);
+    //vec_free(&space->expHashs);
+    //vec_free(&space->strHashs);
     vec_free(&space->nodes);
     free(space);
 }
