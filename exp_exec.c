@@ -4,20 +4,44 @@
 
 typedef struct EXP_ExecContext
 {
-    EXP_Space* code;
+    EXP_Space* space;
+    bool hasHalt;
+    int retValue;
 } EXP_ExecContext;
 
 
 
+void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
+{
+    EXP_Space* space = ctx->space;
+    u32 len = EXP_expLen(space, cmd);
+}
+
+
+void EXP_execCmdList(EXP_ExecContext* ctx, EXP_Node cmdList)
+{
+    EXP_Space* space = ctx->space;
+    assert(EXP_isExp(space, cmdList));
+    u32 len = EXP_expLen(space, cmdList);
+    EXP_Node* elms = EXP_expElm(space, cmdList);
+    for (u32 i = 0; i < len; ++i)
+    {
+        EXP_execCmd(ctx, elms[i]);
+        if (ctx->hasHalt) return;
+    }
+}
 
 
 
 int EXP_exec(EXP_Space* space, EXP_Node root)
 {
-
-
-
-    return 0;
+    if (!EXP_isExp(space, root))
+    {
+        return -1;
+    }
+    EXP_ExecContext ctx = { space };
+    EXP_execCmdList(&ctx, root);
+    return ctx.retValue;
 }
 
 
