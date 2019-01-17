@@ -2,52 +2,52 @@
 
 
 
-typedef enum PRIM_TokenType
+typedef enum EXP_TokenType
 {
-    PRIM_TokenType_Text,
-    PRIM_TokenType_String,
+    EXP_TokenType_Text,
+    EXP_TokenType_String,
 
-    PRIM_TokenType_ExpBegin,
-    PRIM_TokenType_ExpEnd,
+    EXP_TokenType_ExpBegin,
+    EXP_TokenType_ExpEnd,
 
-    PRIM_NumTokenTypes
-} PRIM_TokenType;
+    EXP_NumTokenTypes
+} EXP_TokenType;
 
 
 
-typedef struct PRIM_Token
+typedef struct EXP_Token
 {
-    PRIM_TokenType type;
+    EXP_TokenType type;
     u32 begin;
     u32 len;
-} PRIM_Token;
+} EXP_Token;
 
 
 
-typedef struct PRIM_LoadContext
+typedef struct EXP_LoadContext
 {
-    PRIM_Space* space;
+    EXP_Space* space;
     u32 srcLen;
     const char* src;
     u32 cur;
     u32 curLine;
-    PRIM_NodeSrcInfoTable* srcInfoTable;
+    EXP_NodeSrcInfoTable* srcInfoTable;
     vec_char tmpStrBuf;
-} PRIM_LoadContext;
+} EXP_LoadContext;
 
 
 
-static PRIM_LoadContext PRIM_newLoadContext
+static EXP_LoadContext EXP_newLoadContext
 (
-    PRIM_Space* space, u32 strSize, const char* str, PRIM_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, u32 strSize, const char* str, EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
     assert(strSize == strlen(str));
-    PRIM_LoadContext ctx = { space, strSize, str, 0, 1, srcInfoTable };
+    EXP_LoadContext ctx = { space, strSize, str, 0, 1, srcInfoTable };
     return ctx;
 }
 
-static void PRIM_loadContextFree(PRIM_LoadContext* ctx)
+static void EXP_loadContextFree(EXP_LoadContext* ctx)
 {
     vec_free(&ctx->tmpStrBuf);
 }
@@ -56,7 +56,7 @@ static void PRIM_loadContextFree(PRIM_LoadContext* ctx)
 
 
 
-static bool PRIM_skipSapce(PRIM_LoadContext* ctx)
+static bool EXP_skipSapce(EXP_LoadContext* ctx)
 {
     const char* src = ctx->src;
     for (;;)
@@ -150,12 +150,12 @@ static bool PRIM_skipSapce(PRIM_LoadContext* ctx)
 
 
 
-static bool PRIM_readToken_String(PRIM_LoadContext* ctx, PRIM_Token* out)
+static bool EXP_readToken_String(EXP_LoadContext* ctx, EXP_Token* out)
 {
     const char* src = ctx->src;
     char endCh = src[ctx->cur];
     ++ctx->cur;
-    PRIM_Token tok = { PRIM_TokenType_String, ctx->cur, 0 };
+    EXP_Token tok = { EXP_TokenType_String, ctx->cur, 0 };
     for (;;)
     {
         if (ctx->cur >= ctx->srcLen)
@@ -189,9 +189,9 @@ static bool PRIM_readToken_String(PRIM_LoadContext* ctx, PRIM_Token* out)
 
 
 
-static bool PRIM_readToken_Text(PRIM_LoadContext* ctx, PRIM_Token* out)
+static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
 {
-    PRIM_Token tok = { PRIM_TokenType_Text, ctx->cur, 0 };
+    EXP_Token tok = { EXP_TokenType_Text, ctx->cur, 0 };
     const char* src = ctx->src;
     for (;;)
     {
@@ -217,39 +217,39 @@ static bool PRIM_readToken_Text(PRIM_LoadContext* ctx, PRIM_Token* out)
 
 
 
-static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
+static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
 {
     const char* src = ctx->src;
     if (ctx->cur >= ctx->srcLen)
     {
         return false;
     }
-    if (!PRIM_skipSapce(ctx))
+    if (!EXP_skipSapce(ctx))
     {
         return false;
     }
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_ExpBegin, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_ExpBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        PRIM_Token tok = { PRIM_TokenType_ExpEnd, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_ExpEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (('"' == src[ctx->cur]) || ('\'' == src[ctx->cur]))
     {
-        ok = PRIM_readToken_String(ctx, out);
+        ok = EXP_readToken_String(ctx, out);
     }
     else
     {
-        ok = PRIM_readToken_Text(ctx, out);
+        ok = EXP_readToken_Text(ctx, out);
     }
     return ok;
 }
@@ -262,9 +262,9 @@ static bool PRIM_readToken(PRIM_LoadContext* ctx, PRIM_Token* out)
 
 
 
-static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx);
+static EXP_Node EXP_loadNode(EXP_LoadContext* ctx);
 
-static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
+static bool EXP_loadEnd(EXP_LoadContext* ctx)
 {
     assert(ctx->srcLen >= ctx->cur);
     if (ctx->srcLen == ctx->cur)
@@ -274,22 +274,22 @@ static bool PRIM_loadEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static bool PRIM_loadExpEnd(PRIM_LoadContext* ctx)
+static bool EXP_loadExpEnd(EXP_LoadContext* ctx)
 {
-    if (PRIM_loadEnd(ctx))
+    if (EXP_loadEnd(ctx))
     {
         return true;
     }
     u32 cur0 = ctx->cur;
     u32 curLine0 = ctx->curLine;
-    PRIM_Token tok;
-    if (!PRIM_readToken(ctx, &tok))
+    EXP_Token tok;
+    if (!EXP_readToken(ctx, &tok))
     {
         return true;
     }
     switch (tok.type)
     {
-    case PRIM_TokenType_ExpEnd:
+    case EXP_TokenType_ExpEnd:
     {
         return true;
     }
@@ -301,28 +301,28 @@ static bool PRIM_loadExpEnd(PRIM_LoadContext* ctx)
     return false;
 }
 
-static PRIM_Node PRIM_loadExp(PRIM_LoadContext* ctx)
+static EXP_Node EXP_loadExp(EXP_LoadContext* ctx)
 {
-    PRIM_Space* space = ctx->space;
-    PRIM_addExpEnter(space);
-    while (!PRIM_loadExpEnd(ctx))
+    EXP_Space* space = ctx->space;
+    EXP_addExpEnter(space);
+    while (!EXP_loadExpEnd(ctx))
     {
-        PRIM_Node e = PRIM_loadNode(ctx);
-        if (PRIM_InvalidNodeId == e.id)
+        EXP_Node e = EXP_loadNode(ctx);
+        if (EXP_InvalidNodeId == e.id)
         {
-            PRIM_addExpCancel(space);
-            PRIM_Node node = { PRIM_InvalidNodeId };
+            EXP_addExpCancel(space);
+            EXP_Node node = { EXP_InvalidNodeId };
             return node;
         }
-        PRIM_addExpPush(ctx->space, e);
+        EXP_addExpPush(ctx->space, e);
     }
-    PRIM_Node node = PRIM_addExpDone(space);
+    EXP_Node node = EXP_addExpDone(space);
     return node;
 }
 
 
 
-static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, PRIM_NodeSrcInfo* info)
+static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
 {
     info->offset = ctx->cur;
     info->line = ctx->curLine;
@@ -336,32 +336,32 @@ static void PRIM_loadNodeSrcInfo(PRIM_LoadContext* ctx, const PRIM_Token* tok, P
             break;
         }
     }
-    info->isStrTok = PRIM_TokenType_String == tok->type;
+    info->isStrTok = EXP_TokenType_String == tok->type;
 }
 
 
 
-static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
+static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 {
-    PRIM_Space* space = ctx->space;
-    PRIM_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
-    PRIM_Node node = { PRIM_InvalidNodeId };
-    PRIM_Token tok;
-    if (!PRIM_readToken(ctx, &tok))
+    EXP_Space* space = ctx->space;
+    EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
+    EXP_Node node = { EXP_InvalidNodeId };
+    EXP_Token tok;
+    if (!EXP_readToken(ctx, &tok))
     {
         return node;
     }
-    PRIM_NodeSrcInfo srcInfo = { true };
-    PRIM_loadNodeSrcInfo(ctx, &tok, &srcInfo);
+    EXP_NodeSrcInfo srcInfo = { true };
+    EXP_loadNodeSrcInfo(ctx, &tok, &srcInfo);
     switch (tok.type)
     {
-    case PRIM_TokenType_Text:
+    case EXP_TokenType_Text:
     {
         const char* str = ctx->src + tok.begin;
-        node = PRIM_addLenStr(space, tok.len, str);
+        node = EXP_addLenStr(space, tok.len, str);
         break;
     }
-    case PRIM_TokenType_String:
+    case EXP_TokenType_String:
     {
         char endCh = ctx->src[tok.begin - 1];
         const char* src = ctx->src + tok.begin;
@@ -389,13 +389,13 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
         }
         ctx->tmpStrBuf.data[len] = 0;
         assert(si == len);
-        node = PRIM_addLenStr(space, len, ctx->tmpStrBuf.data);
+        node = EXP_addLenStr(space, len, ctx->tmpStrBuf.data);
         break;
     }
-    case PRIM_TokenType_ExpBegin:
+    case EXP_TokenType_ExpBegin:
     {
-        node = PRIM_loadExp(ctx);
-        if (PRIM_InvalidNodeId == node.id)
+        node = EXP_loadExp(ctx);
+        if (EXP_InvalidNodeId == node.id)
         {
             return node;
         }
@@ -424,39 +424,39 @@ static PRIM_Node PRIM_loadNode(PRIM_LoadContext* ctx)
 
 
 
-PRIM_Node PRIM_loadSrcAsCell(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
+EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
-    PRIM_Node node = PRIM_loadNode(&ctx);
-    if (!PRIM_loadEnd(&ctx))
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
+    EXP_Node node = EXP_loadNode(&ctx);
+    if (!EXP_loadEnd(&ctx))
     {
-        PRIM_loadContextFree(&ctx);
-        PRIM_Node node = { PRIM_InvalidNodeId };
+        EXP_loadContextFree(&ctx);
+        EXP_Node node = { EXP_InvalidNodeId };
         return node;
     }
-    PRIM_loadContextFree(&ctx);
+    EXP_loadContextFree(&ctx);
     return node;
 }
 
-PRIM_Node PRIM_loadSrcAsList(PRIM_Space* space, const char* src, PRIM_NodeSrcInfoTable* srcInfoTable)
+EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
 {
-    PRIM_LoadContext ctx = PRIM_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
-    PRIM_addExpEnter(space);
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
+    EXP_addExpEnter(space);
     for (;;)
     {
-        PRIM_Node e = PRIM_loadNode(&ctx);
-        if (PRIM_InvalidNodeId == e.id) break;
-        PRIM_addExpPush(ctx.space, e);
+        EXP_Node e = EXP_loadNode(&ctx);
+        if (EXP_InvalidNodeId == e.id) break;
+        EXP_addExpPush(ctx.space, e);
     }
-    if (!PRIM_loadEnd(&ctx))
+    if (!EXP_loadEnd(&ctx))
     {
-        PRIM_loadContextFree(&ctx);
-        PRIM_addExpCancel(space);
-        PRIM_Node node = { PRIM_InvalidNodeId };
+        EXP_loadContextFree(&ctx);
+        EXP_addExpCancel(space);
+        EXP_Node node = { EXP_InvalidNodeId };
         return node;
     }
-    PRIM_loadContextFree(&ctx);
-    PRIM_Node node = PRIM_addExpDone(space);
+    EXP_loadContextFree(&ctx);
+    EXP_Node node = EXP_addExpDone(space);
     return node;
 }
 

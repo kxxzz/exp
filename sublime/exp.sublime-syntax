@@ -3,9 +3,9 @@
 
 # https://www.sublimetext.com/docs/3/syntax.html
 
-name: Prim
-file_extensions: [prim]
-scope: source.prim
+name: Exp
+file_extensions: [exp]
+scope: source.exp
 
 
 contexts:
@@ -18,54 +18,54 @@ contexts:
 
   brackets:
     - match: '\['
-      scope: punctuation.definition.group.begin.prim
+      scope: punctuation.definition.group.begin.exp
       push:
-        - meta_scope: meta.group.prim
+        - meta_scope: meta.group.exp
         - match: '\]'
-          scope: punctuation.definition.group.end.prim
+          scope: punctuation.definition.group.end.exp
           pop: true
         - include: main
     - match: '\]'
-      scope: invalid.illegal.stray-bracket-end.prim
+      scope: invalid.illegal.stray-bracket-end.exp
 
   numbers:
     - match: '\b((0(x|X)\h*)|(([0-9]+\.?[0-9]*)|(\.[0-9]+))((e|E)(\+|-)?[0-9]+)?)(?i:l|ul|u|f|ll|ull)?\b'
-      scope: constant.numeric.prim
+      scope: constant.numeric.exp
 
   symbols:
     - match: (?<=[\s\[\]\"\']|)([^\s\[\]\"\']+)(?=[\s\[\]\"\'])
-      scope: symbol.other.global.prim
+      scope: symbol.other.global.exp
       captures:
-        1: punctuation.definition.symbol.begin.prim
-        3: punctuation.definition.symbol.end.prim
+        1: punctuation.definition.symbol.begin.exp
+        3: punctuation.definition.symbol.end.exp
 
   strings:
     - match: '"'
-      scope: punctuation.definition.string.begin.prim
+      scope: punctuation.definition.string.begin.exp
       push:
-        - meta_scope: string.quoted.double.prim
+        - meta_scope: string.quoted.double.exp
         - match: '"'
-          scope: punctuation.definition.string.end.prim
+          scope: punctuation.definition.string.end.exp
           pop: true
         - match: \\.
-          scope: constant.character.escape.prim
+          scope: constant.character.escape.exp
 
   block-comment:
     - match: '\/\*'
-      scope: punctuation.definition.comment.prim
+      scope: punctuation.definition.comment.exp
       push:
-        - meta_scope: comment.block.prim
+        - meta_scope: comment.block.exp
         - match: '\*\/'
           pop: true
 
   comments:
     - include: block-comment
     - match: '\*\/'
-      scope: invalid.illegal.stray-comment-end.prim
+      scope: invalid.illegal.stray-comment-end.exp
     - match: '//'
-      scope: punctuation.definition.comment.prim
+      scope: punctuation.definition.comment.exp
       push:
-        - meta_scope: comment.line.double-slash.prim
+        - meta_scope: comment.line.double-slash.exp
         - match: $\n?
           pop: true
 

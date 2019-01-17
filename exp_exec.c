@@ -2,11 +2,11 @@
 
 
 
-typedef struct PRIM_ExecContext
+typedef struct EXP_ExecContext
 {
-    PRIM_Space* code;
-    PRIM_Space* rt;
-} PRIM_ExecContext;
+    EXP_Space* code;
+    EXP_Space* rt;
+} EXP_ExecContext;
 
 
 
@@ -18,7 +18,7 @@ typedef struct PRIM_ExecContext
 
 
 
-int PRIM_exec(PRIM_Space* space, PRIM_Node root)
+int EXP_exec(EXP_Space* space, EXP_Node root)
 {
 
 
@@ -29,7 +29,7 @@ int PRIM_exec(PRIM_Space* space, PRIM_Node root)
 
 
 
-int PRIM_execFile(const char* srcFile, PRIM_NodeSrcInfoTable* srcInfoTable)
+int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
 {
     char* src = NULL;
     u32 srcSize = fileu_readFile(srcFile, &src);
@@ -42,16 +42,16 @@ int PRIM_execFile(const char* srcFile, PRIM_NodeSrcInfoTable* srcInfoTable)
         return 0;
     }
 
-    PRIM_Space* space = PRIM_newSpace();
-    PRIM_Node root = PRIM_loadSrcAsList(space, src, srcInfoTable);
+    EXP_Space* space = EXP_newSpace();
+    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfoTable);
     free(src);
-    if (PRIM_InvalidNodeId == root.id)
+    if (EXP_InvalidNodeId == root.id)
     {
-        PRIM_spaceFree(space);
+        EXP_spaceFree(space);
         return -1;
     }
-    int r = PRIM_exec(space, root);
-    PRIM_spaceFree(space);
+    int r = EXP_exec(space, root);
+    EXP_spaceFree(space);
     return r;
 }
 
