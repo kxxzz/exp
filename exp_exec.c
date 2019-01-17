@@ -10,8 +10,8 @@ enum
 
 typedef struct EXP_ExecDefLevel
 {
-    u32 bodyLen;
-    EXP_Node* body;
+    u32 numElms;
+    EXP_Node* elms;
     u32 numArgs;
     EXP_Node argKeys[EXP_ExecDefArgs_MAX];
     EXP_Node argVals[EXP_ExecDefArgs_MAX];
@@ -120,22 +120,59 @@ static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, const char* expHead)
 
 
 
-static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecDefLevel* level, const char* expHead)
+static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecDefLevel* level, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
+    EXP_Space* space = ctx->space;
+    for (u32 i = 0; i < level->numElms; ++i)
+    {
+        EXP_Node e = level->elms[i];
+        if (EXP_isExp(space, e) && (EXP_expLen(space, e) >= 2))
+        {
+            EXP_Node* exp = EXP_expElm(space, e);
+            if (!EXP_isStr(space, exp[0]))
+            {
+                continue;
+            }
+            EXP_PrimExpType primType = EXP_getPrimExpType(space, EXP_strCstr(space, exp[0]));
+            if (EXP_PrimExpType_Def != primType)
+            {
+                continue;
+            }
+            const char* name = NULL;
+            if (EXP_isStr(space, exp[1]))
+            {
+                name = EXP_strCstr(space, exp[1]);
+            }
+            else
+            {
+                assert(EXP_isExp(space, exp[1]));
+                if (!EXP_expLen(space, exp[1]))
+                {
+                    ctx->hasHalt = true;
+                    ctx->retValue = EXIT_FAILURE;
+                    return node;
+                }
+                name = EXP_strCstr(space, EXP_expElm(space, exp[1])[0]);
+            }
+            if (0 == strcmp(expHead, name))
+            {
+                return e;
+            }
+        }
+    }
     return node;
 }
 
 static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
-    EXP_Space* space = ctx->space;
     EXP_ExecDefLevelStack* defLevelStack = &ctx->defLevelStack;
     for (u32 i = 0; i < defLevelStack->length; ++i)
     {
         u32 li = defLevelStack->length - 1 - i;
         EXP_ExecDefLevel* level = defLevelStack->data + li;
-        node = EXP_getMatchedDefInLevel(level, expHead);
+        node = EXP_getMatchedDefInLevel(ctx, level, expHead);
         if (node.id != EXP_NodeInvalidId)
         {
             return node;
