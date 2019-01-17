@@ -106,7 +106,7 @@ static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, EXP_Node expHead)
 
 
 
-static EXP_Node EXP_getDefExpDef(EXP_ExecContext* ctx, EXP_Node expHead)
+static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, EXP_Node expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
     return node;
@@ -156,7 +156,7 @@ static void EXP_execExp(EXP_ExecContext* ctx, EXP_Node exp)
         ctx->retValue = EXIT_FAILURE;
         return;
     }
-    EXP_Node def = EXP_getDefExpDef(ctx, expHead);
+    EXP_Node def = EXP_getMatchedDef(ctx, expHead);
     if (def.id != EXP_NodeInvalidId)
     {
         EXP_execCallDef(ctx, def, len - 1, elms + 1);
