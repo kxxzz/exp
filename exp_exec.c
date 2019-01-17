@@ -1,12 +1,14 @@
 #include "a.h"
 
 
+typedef vec_t(EXP_Node) EXP_NodeVec;
 
 typedef struct EXP_ExecContext
 {
     EXP_Space* space;
     bool hasHalt;
     int retValue;
+    EXP_NodeVec defStack;
 } EXP_ExecContext;
 
 
@@ -36,7 +38,6 @@ typedef void(*EXP_PrimCmdHandler)(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* a
 
 void EXP_primCmdHandle_Def(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
 {
-
 }
 
 void EXP_primCmdHandle_Read(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
@@ -89,6 +90,15 @@ static EXP_PrimCmdType EXP_getPrimCmdType(EXP_Space* space, EXP_Node cmdHead)
 
 
 
+static EXP_Node EXP_getDefCmdDef(EXP_ExecContext* ctx, EXP_Node cmdHead)
+{
+    EXP_Node node = { EXP_NodeInvalidId };
+    return node;
+}
+
+
+
+
 void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
 {
     EXP_Space* space = ctx->space;
@@ -107,6 +117,11 @@ void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
         ctx->retValue = EXIT_FAILURE;
         return;
     }
+    EXP_Node def = EXP_getDefCmdDef(ctx, cmdHead);
+    if (def.id != EXP_NodeInvalidId)
+    {
+        return;
+    }
     EXP_PrimCmdType primType = EXP_getPrimCmdType(space, cmdHead);
     if (primType != -1)
     {
@@ -114,7 +129,6 @@ void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
         handler(ctx, len - 1, elms + 1);
         return;
     }
-
 }
 
 
@@ -122,6 +136,10 @@ void EXP_execCmdList(EXP_ExecContext* ctx, EXP_Node cmdList)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_isExp(space, cmdList));
+
+    EXP_NodeVec* defStack = &ctx->defStack;
+    vec_push(defStack, cmdList);
+
     u32 len = EXP_expLen(space, cmdList);
     EXP_Node* elms = EXP_expElm(space, cmdList);
     for (u32 i = 0; i < len; ++i)
@@ -129,6 +147,8 @@ void EXP_execCmdList(EXP_ExecContext* ctx, EXP_Node cmdList)
         EXP_execCmd(ctx, elms[i]);
         if (ctx->hasHalt) return;
     }
+
+    vec_pop(defStack);
 }
 
 
@@ -163,7 +183,7 @@ int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
     EXP_Space* space = EXP_newSpace();
     EXP_Node root = EXP_loadSrcAsList(space, src, srcInfoTable);
     free(src);
-    if (EXP_InvalidNodeId == root.id)
+    if (EXP_NodeInvalidId == root.id)
     {
         EXP_spaceFree(space);
         return EXIT_FAILURE;

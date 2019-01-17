@@ -26,7 +26,7 @@ void testLoadSave(void)
     EXP_Space* space = EXP_newSpace();
     EXP_NodeSrcInfoTable srcInfoTable = { 0 };
     EXP_Node root = EXP_loadSrcAsList(space, text, &srcInfoTable);
-    assert(root.id != EXP_InvalidNodeId);
+    assert(root.id != EXP_NodeInvalidId);
     free(text);
 
     {

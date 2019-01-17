@@ -45,7 +45,7 @@ void EXP_spaceFree(EXP_Space* space);
 
 typedef struct EXP_Node { u32 id; } EXP_Node;
 
-static u32 EXP_InvalidNodeId = (u32)-1;
+static u32 EXP_NodeInvalidId = (u32)-1;
 
 
 EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node);
