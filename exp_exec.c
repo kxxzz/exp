@@ -175,6 +175,9 @@ static void EXP_execExp(EXP_ExecContext* ctx, EXP_Node exp)
         handler(ctx, len - 1, elms + 1);
         return;
     }
+    ctx->hasHalt = true;
+    ctx->retValue = EXIT_FAILURE;
+    return;
 }
 
 
@@ -218,6 +221,7 @@ int EXP_execFile(const char* srcFile)
     }
 
     EXP_Space* space = EXP_newSpace();
+    // todo
     EXP_NodeSrcInfoTable srcInfoTable = { 0 };
     EXP_Node root = EXP_loadSrcAsList(space, src, &srcInfoTable);
     free(src);
