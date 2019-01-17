@@ -126,7 +126,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 int EXP_exec(EXP_Space* space, EXP_Node root);
 
-int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable);
+int EXP_execFile(const char* srcFile);
 
 
 

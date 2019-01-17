@@ -99,6 +99,14 @@ static EXP_Node EXP_getDefCmdDef(EXP_ExecContext* ctx, EXP_Node cmdHead)
 
 
 
+static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+
+
+
 void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
 {
     EXP_Space* space = ctx->space;
@@ -120,6 +128,7 @@ void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
     EXP_Node def = EXP_getDefCmdDef(ctx, cmdHead);
     if (def.id != EXP_NodeInvalidId)
     {
+        EXP_execCallDef(ctx, def, len - 1, elms + 1);
         return;
     }
     EXP_PrimCmdType primType = EXP_getPrimCmdType(space, cmdHead);
@@ -167,7 +176,7 @@ int EXP_exec(EXP_Space* space, EXP_Node root)
 
 
 
-int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
+int EXP_execFile(const char* srcFile)
 {
     char* src = NULL;
     u32 srcSize = fileu_readFile(srcFile, &src);
@@ -181,14 +190,17 @@ int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
     }
 
     EXP_Space* space = EXP_newSpace();
-    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfoTable);
+    EXP_NodeSrcInfoTable srcInfoTable = { 0 };
+    EXP_Node root = EXP_loadSrcAsList(space, src, &srcInfoTable);
     free(src);
     if (EXP_NodeInvalidId == root.id)
     {
+        vec_free(&srcInfoTable);
         EXP_spaceFree(space);
         return EXIT_FAILURE;
     }
     int r = EXP_exec(space, root);
+    vec_free(&srcInfoTable);
     EXP_spaceFree(space);
     return r;
 }

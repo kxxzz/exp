@@ -48,10 +48,8 @@ void testLoadSave(void)
 
 void testExec(void)
 {
-    EXP_NodeSrcInfoTable srcInfoTable = { 0 };
-    int r = EXP_execFile("../1.exp", &srcInfoTable);
+    int r = EXP_execFile("../1.exp");
     assert(0 == r);
-    vec_free(&srcInfoTable);
 }
 
 
