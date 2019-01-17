@@ -10,11 +10,111 @@ typedef struct EXP_ExecContext
 } EXP_ExecContext;
 
 
+typedef enum EXP_PrimCmdType
+{
+    EXP_PrimCmdType_Def,
+    EXP_PrimCmdType_Read,
+    EXP_PrimCmdType_Write,
+    EXP_PrimCmdType_For,
+    EXP_PrimCmdType_Match,
+
+    EXP_NumPrimCmdTypes
+} EXP_PrimCmdType;
+
+static const char* EXP_PrimCmdTypeNameTable[EXP_NumPrimCmdTypes] =
+{
+    "def",
+    "read",
+    "write",
+    "for",
+    "match",
+};
+
+typedef void(*EXP_PrimCmdHandler)(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args);
+
+
+
+void EXP_primCmdHandle_Def(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+void EXP_primCmdHandle_Read(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+void EXP_primCmdHandle_Write(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+void EXP_primCmdHandle_For(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+void EXP_primCmdHandle_Match(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+
+
+static EXP_PrimCmdHandler EXP_PrimCmdHandlerTable[EXP_NumPrimCmdTypes] =
+{
+    EXP_primCmdHandle_Def,
+    EXP_primCmdHandle_Read,
+    EXP_primCmdHandle_Write,
+    EXP_primCmdHandle_For,
+    EXP_primCmdHandle_Match,
+};
+
+
+
+
+static EXP_PrimCmdType EXP_getPrimCmdType(EXP_Space* space, EXP_Node cmdHead)
+{
+    const char* name = EXP_strCstr(space, cmdHead);
+    for (u32 i = 0; i < EXP_NumPrimCmdTypes; ++i)
+    {
+        if (0 == strcmp(name, EXP_PrimCmdTypeNameTable[i]))
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+
 
 void EXP_execCmd(EXP_ExecContext* ctx, EXP_Node cmd)
 {
     EXP_Space* space = ctx->space;
     u32 len = EXP_expLen(space, cmd);
+    if (!len)
+    {
+        ctx->hasHalt = true;
+        ctx->retValue = EXIT_FAILURE;
+        return;
+    }
+    EXP_Node* elms = EXP_expElm(space, cmd);
+    EXP_Node cmdHead = elms[0];
+    if (!EXP_isStr(space, cmdHead))
+    {
+        ctx->hasHalt = true;
+        ctx->retValue = EXIT_FAILURE;
+        return;
+    }
+    EXP_PrimCmdType primType = EXP_getPrimCmdType(space, cmdHead);
+    if (primType != -1)
+    {
+        EXP_PrimCmdHandler handler = EXP_PrimCmdHandlerTable[primType];
+        handler(ctx, len - 1, elms + 1);
+        return;
+    }
+
 }
 
 
@@ -37,7 +137,7 @@ int EXP_exec(EXP_Space* space, EXP_Node root)
 {
     if (!EXP_isExp(space, root))
     {
-        return -1;
+        return EXIT_FAILURE;
     }
     EXP_ExecContext ctx = { space };
     EXP_execCmdList(&ctx, root);
@@ -53,11 +153,11 @@ int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
     u32 srcSize = fileu_readFile(srcFile, &src);
     if (-1 == srcSize)
     {
-        return -1;
+        return EXIT_FAILURE;
     }
     if (0 == srcSize)
     {
-        return 0;
+        return EXIT_SUCCESS;
     }
 
     EXP_Space* space = EXP_newSpace();
@@ -66,7 +166,7 @@ int EXP_execFile(const char* srcFile, EXP_NodeSrcInfoTable* srcInfoTable)
     if (EXP_InvalidNodeId == root.id)
     {
         EXP_spaceFree(space);
-        return -1;
+        return EXIT_FAILURE;
     }
     int r = EXP_exec(space, root);
     EXP_spaceFree(space);

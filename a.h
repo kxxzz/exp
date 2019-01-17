@@ -13,6 +13,7 @@
 #include <float.h>
 #include <math.h>
 #include <stdio.h>
+#include <ctype.h>
 
 #include <fileu.h>
 
@@ -55,7 +56,6 @@ static char* stzncpy(char* dst, char const* src, size_t len)
     }
     return p;
 }
-
 
 
 
