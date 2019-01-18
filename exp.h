@@ -122,6 +122,10 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 
 
+enum
+{
+    EXP_ExecDefVars_MAX = 8,
+};
 
 
 EXP_Node EXP_exec(EXP_Space* space, EXP_Node root);

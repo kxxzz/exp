@@ -1,12 +1,6 @@
 #include "a.h"
 
 
-enum
-{
-    EXP_ExecDefVars_MAX = 8,
-};
-
-
 
 typedef struct EXP_ExecDef
 {
