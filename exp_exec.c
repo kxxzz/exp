@@ -95,18 +95,7 @@ static void EXP_primExpHandle_Match(EXP_ExecContext* ctx, u32 numArgs, EXP_Node*
 
 }
 
-
-
-static EXP_PrimExpHandler EXP_PrimExpHandlerTable[EXP_NumPrimExpTypes] =
-{
-    EXP_primExpHandle_Def,
-    EXP_primExpHandle_Read,
-    EXP_primExpHandle_Write,
-    EXP_primExpHandle_For,
-    EXP_primExpHandle_Match,
-};
-
-
+static EXP_PrimExpHandler EXP_PrimExpHandlerTable[EXP_NumPrimExpTypes];
 
 
 static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, const char* expHead)
@@ -392,6 +381,20 @@ int EXP_execFile(const char* srcFile)
 
 
 
+
+
+
+
+
+
+static EXP_PrimExpHandler EXP_PrimExpHandlerTable[EXP_NumPrimExpTypes] =
+{
+    EXP_primExpHandle_Def,
+    EXP_primExpHandle_Read,
+    EXP_primExpHandle_Write,
+    EXP_primExpHandle_For,
+    EXP_primExpHandle_Match,
+};
 
 
 
