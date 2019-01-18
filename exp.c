@@ -13,17 +13,15 @@ typedef vec_t(EXP_NodeInfo) EXP_NodeInfoVec;
 
 
 typedef vec_t(EXP_Node) EXP_NodeVec;
-typedef vec_t(EXP_NodeVec) EXP_NodeVecVec;
 
 
 typedef struct EXP_Space
 {
     EXP_NodeInfoVec nodes;
-    //vec_u64 strHashs;
-    //vec_u64 expHashs;
     vec_char strs;
     EXP_NodeVec exps;
-    EXP_NodeVecVec expDefStack;
+    EXP_NodeVec expDefStack;
+    vec_u32 expDefStackFrames;
 } EXP_Space;
 
 
@@ -39,15 +37,10 @@ EXP_Space* EXP_newSpace(void)
 
 void EXP_spaceFree(EXP_Space* space)
 {
-    for (u32 i = 0; i < space->expDefStack.length; ++i)
-    {
-        vec_free(space->expDefStack.data + i);
-    }
+    vec_free(&space->expDefStackFrames);
     vec_free(&space->expDefStack);
     vec_free(&space->exps);
     vec_free(&space->strs);
-    //vec_free(&space->expHashs);
-    //vec_free(&space->strHashs);
     vec_free(&space->nodes);
     free(space);
 }
@@ -98,33 +91,34 @@ EXP_Node EXP_addLenStr(EXP_Space* space, u32 len, const char* str)
 
 void EXP_addExpEnter(EXP_Space* space)
 {
-    EXP_NodeVec exp = { 0 };
-    vec_push(&space->expDefStack, exp);
+    vec_push(&space->expDefStackFrames, space->expDefStack.length);
 }
 
 void EXP_addExpPush(EXP_Space* space, EXP_Node x)
 {
-    assert(space->expDefStack.length > 0);
-    EXP_NodeVec* exps = space->expDefStack.data + space->expDefStack.length - 1;
-    vec_push(exps, x);
+    vec_push(&space->expDefStack, x);
 }
 
 void EXP_addExpCancel(EXP_Space* space)
 {
-    EXP_NodeVec* exps = space->expDefStack.data + space->expDefStack.length - 1;
-    vec_free(exps);
-    vec_resize(&space->expDefStack, space->expDefStack.length - 1);
+    assert(space->expDefStackFrames.length > 0);
+    u32 frameP = space->expDefStackFrames.data[space->expDefStackFrames.length - 1];
+    vec_pop(&space->expDefStackFrames);
+    vec_resize(&space->expDefStack, frameP);
 }
 
 EXP_Node EXP_addExpDone(EXP_Space* space)
 {
-    EXP_NodeVec* exps = space->expDefStack.data + space->expDefStack.length - 1;
-    EXP_NodeInfo info = { EXP_NodeType_Exp, space->exps.length, exps->length };
-    vec_concat(&space->exps, exps);
-    vec_free(exps);
-    vec_resize(&space->expDefStack, space->expDefStack.length - 1);
+    assert(space->expDefStackFrames.length > 0);
+    u32 frameP = space->expDefStackFrames.data[space->expDefStackFrames.length - 1];
+    vec_pop(&space->expDefStackFrames);
+    u32 lenExp = space->expDefStack.length - frameP;
+    EXP_Node* exp = space->expDefStack.data + frameP;
+    EXP_NodeInfo expInfo = { EXP_NodeType_Exp, space->exps.length, lenExp };
+    vec_pusharr(&space->exps, exp, lenExp);
+    vec_resize(&space->expDefStack, frameP);
     EXP_Node node = { space->nodes.length };
-    vec_push(&space->nodes, info);
+    vec_push(&space->nodes, expInfo);
     return node;
 }
 
