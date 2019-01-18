@@ -45,7 +45,7 @@ void EXP_spaceFree(EXP_Space* space);
 
 typedef struct EXP_Node { u32 id; } EXP_Node;
 
-static u32 EXP_NodeInvalidId = (u32)-1;
+static u32 EXP_NodeId_Invalid = (u32)-1;
 
 
 EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node);
@@ -124,9 +124,9 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 
 
-int EXP_exec(EXP_Space* space, EXP_Node root);
+EXP_Node EXP_exec(EXP_Space* space, EXP_Node root);
 
-int EXP_execFile(const char* srcFile);
+EXP_Node EXP_execFile(EXP_Space* space, const char* srcFile);
 
 
 

@@ -23,7 +23,6 @@ typedef struct EXP_ExecContext
 {
     EXP_Space* space;
     bool hasHalt;
-    int retValue;
     EXP_ExecDefMap defMap;
     vec_u32 frameStack;
 } EXP_ExecContext;
@@ -163,11 +162,10 @@ static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
     if (!EXP_execCheckCall(space, node))
     {
         ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
         return;
     }
-    EXP_Node* defStmt = EXP_expElm(space, node);
-    const char* defStr = EXP_strCstr(space, defStmt[0]);
+    EXP_Node* defCall = EXP_expElm(space, node);
+    const char* defStr = EXP_strCstr(space, defCall[0]);
     EXP_PrimFunType primType = EXP_getPrimExpType(space, defStr);
     if (primType != EXP_PrimFunType_Def)
     {
@@ -176,21 +174,20 @@ static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
     const char* name = NULL;
     u32 numArgs = 0;
     EXP_Node* args = NULL;
-    if (EXP_isStr(space, defStmt[1]))
+    if (EXP_isStr(space, defCall[1]))
     {
-        name = EXP_strCstr(space, defStmt[1]);
+        name = EXP_strCstr(space, defCall[1]);
     }
-    else if (EXP_execCheckDefPat(space, defStmt[1]))
+    else if (EXP_execCheckDefPat(space, defCall[1]))
     {
-        EXP_Node* pat = EXP_expElm(space, defStmt[1]);
+        EXP_Node* pat = EXP_expElm(space, defCall[1]);
         name = EXP_strCstr(space, pat[0]);
-        numArgs = EXP_expLen(space, defStmt[1]) - 1;
+        numArgs = EXP_expLen(space, defCall[1]) - 1;
         args = pat + 1;
     }
     else
     {
         ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
         return;
     }
     EXP_ExecDef def = { name, numArgs };
@@ -249,7 +246,6 @@ static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP
     if (defLen < 2)
     {
         ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
         return;
     }
     EXP_Node* defElms = EXP_expElm(space, def);
@@ -258,7 +254,6 @@ static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP
     if (numVars != numArgs)
     {
         ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
         return;
     }
     EXP_Node* varsKey = EXP_expElm(space, pat);
@@ -278,7 +273,7 @@ static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP
 
 static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* funName)
 {
-    EXP_Node node = { EXP_NodeInvalidId };
+    EXP_Node node = { EXP_NodeId_Invalid };
 
     return node;
 }
@@ -295,14 +290,13 @@ static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node call)
     if (!EXP_execCheckCall(space, call))
     {
         ctx->hasHalt = true;
-        ctx->retValue = EXIT_FAILURE;
         return;
     }
     EXP_Node* elms = EXP_expElm(space, call);
     u32 len = EXP_expLen(space, call);
     const char* funName = EXP_strCstr(space, elms[0]);
     EXP_Node def = EXP_getMatchedDef(ctx, funName);
-    if (def.id != EXP_NodeInvalidId)
+    if (def.id != EXP_NodeId_Invalid)
     {
         EXP_execCallDef(ctx, def, len - 1, elms + 1);
         return;
@@ -315,7 +309,6 @@ static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node call)
         return;
     }
     ctx->hasHalt = true;
-    ctx->retValue = EXIT_FAILURE;
     return;
 }
 
@@ -334,45 +327,45 @@ static void EXP_execExpListBlock(EXP_ExecContext* ctx, EXP_Node expList)
 
 
 
-int EXP_exec(EXP_Space* space, EXP_Node root)
+EXP_Node EXP_exec(EXP_Space* space, EXP_Node root)
 {
+    EXP_Node node = { EXP_NodeId_Invalid };
     if (!EXP_isExp(space, root))
     {
-        return EXIT_FAILURE;
+        return node;
     }
     EXP_ExecContext ctx = { space };
     EXP_execExpListBlock(&ctx, root);
     EXP_execContextFree(&ctx);
-    return ctx.retValue;
+    return node;
 }
 
 
 
 
-int EXP_execFile(const char* srcFile)
+EXP_Node EXP_execFile(EXP_Space* space, const char* srcFile)
 {
+    EXP_Node node = { EXP_NodeId_Invalid };
     char* src = NULL;
     u32 srcSize = fileu_readFile(srcFile, &src);
     if (-1 == srcSize)
     {
-        return EXIT_FAILURE;
+        return node;
     }
     if (0 == srcSize)
     {
-        return EXIT_SUCCESS;
+        return node;
     }
 
-    EXP_Space* space = EXP_newSpace();
     EXP_Node root = EXP_loadSrcAsList(space, src, NULL);
     free(src);
-    if (EXP_NodeInvalidId == root.id)
+    if (EXP_NodeId_Invalid == root.id)
     {
         EXP_spaceFree(space);
-        return EXIT_FAILURE;
+        return node;
     }
-    int r = EXP_exec(space, root);
-    EXP_spaceFree(space);
-    return r;
+    node = EXP_exec(space, root);
+    return node;
 }
 
 
