@@ -8,16 +8,16 @@ enum
 
 
 
-typedef struct EXP_ExecDefLevel
+typedef struct EXP_ExecFrame
 {
     u32 numElms;
     EXP_Node* elms;
     u32 numArgs;
     EXP_Node argKeys[EXP_ExecDefArgs_MAX];
     EXP_Node argVals[EXP_ExecDefArgs_MAX];
-} EXP_ExecDefLevel;
+} EXP_ExecFrame;
 
-typedef vec_t(EXP_ExecDefLevel) EXP_ExecDefLevelStack;
+typedef vec_t(EXP_ExecFrame) EXP_ExecStack;
 
 
 typedef struct EXP_ExecContext
@@ -25,7 +25,7 @@ typedef struct EXP_ExecContext
     EXP_Space* space;
     bool hasHalt;
     int retValue;
-    EXP_ExecDefLevelStack defLevelStack;
+    EXP_ExecStack stack;
 } EXP_ExecContext;
 
 
@@ -120,13 +120,13 @@ static EXP_PrimExpType EXP_getPrimExpType(EXP_Space* space, const char* expHead)
 
 
 
-static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecDefLevel* level, const char* expHead)
+static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecFrame* frame, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
     EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < level->numElms; ++i)
+    for (u32 i = 0; i < frame->numElms; ++i)
     {
-        EXP_Node e = level->elms[i];
+        EXP_Node e = frame->elms[i];
         if (EXP_isExp(space, e) && (EXP_expLen(space, e) >= 2))
         {
             EXP_Node* exp = EXP_expElm(space, e);
@@ -167,11 +167,11 @@ static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecDefLevel*
 static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
-    EXP_ExecDefLevelStack* defLevelStack = &ctx->defLevelStack;
+    EXP_ExecStack* defLevelStack = &ctx->stack;
     for (u32 i = 0; i < defLevelStack->length; ++i)
     {
         u32 li = defLevelStack->length - 1 - i;
-        EXP_ExecDefLevel* level = defLevelStack->data + li;
+        EXP_ExecFrame* level = defLevelStack->data + li;
         node = EXP_getMatchedDefInLevel(ctx, level, expHead);
         if (node.id != EXP_NodeInvalidId)
         {
@@ -194,8 +194,8 @@ static void EXP_execExpList
     u32 numArgs, EXP_Node argKeys[EXP_ExecDefArgs_MAX], EXP_Node argVals[EXP_ExecDefArgs_MAX]
 )
 {
-    EXP_ExecDefLevelStack* defLevelStack = &ctx->defLevelStack;
-    EXP_ExecDefLevel level = { len, exps, numArgs };
+    EXP_ExecStack* defLevelStack = &ctx->stack;
+    EXP_ExecFrame level = { len, exps, numArgs };
     for (u32 i = 0; i < numArgs; ++i)
     {
         level.argKeys[i] = argKeys[i];
