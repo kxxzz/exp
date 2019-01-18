@@ -25,7 +25,7 @@ typedef struct EXP_ExecContext
     EXP_Space* space;
     bool hasHalt;
     int retValue;
-    EXP_ExecStack stack;
+    EXP_ExecStack frameStack;
 } EXP_ExecContext;
 
 
@@ -127,38 +127,39 @@ static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecFrame* fr
     for (u32 i = 0; i < frame->numElms; ++i)
     {
         EXP_Node e = frame->elms[i];
-        if (EXP_isExp(space, e) && (EXP_expLen(space, e) >= 2))
+        if (!EXP_isExp(space, e) || (EXP_expLen(space, e) < 2))
         {
-            EXP_Node* exp = EXP_expElm(space, e);
-            if (!EXP_isStr(space, exp[0]))
+            continue;
+        }
+        EXP_Node* exp = EXP_expElm(space, e);
+        if (!EXP_isStr(space, exp[0]))
+        {
+            continue;
+        }
+        EXP_PrimExpType primType = EXP_getPrimExpType(space, EXP_strCstr(space, exp[0]));
+        if (EXP_PrimExpType_Def != primType)
+        {
+            continue;
+        }
+        const char* name = NULL;
+        if (EXP_isStr(space, exp[1]))
+        {
+            name = EXP_strCstr(space, exp[1]);
+        }
+        else
+        {
+            assert(EXP_isExp(space, exp[1]));
+            if (!EXP_expLen(space, exp[1]))
             {
-                continue;
+                ctx->hasHalt = true;
+                ctx->retValue = EXIT_FAILURE;
+                return node;
             }
-            EXP_PrimExpType primType = EXP_getPrimExpType(space, EXP_strCstr(space, exp[0]));
-            if (EXP_PrimExpType_Def != primType)
-            {
-                continue;
-            }
-            const char* name = NULL;
-            if (EXP_isStr(space, exp[1]))
-            {
-                name = EXP_strCstr(space, exp[1]);
-            }
-            else
-            {
-                assert(EXP_isExp(space, exp[1]));
-                if (!EXP_expLen(space, exp[1]))
-                {
-                    ctx->hasHalt = true;
-                    ctx->retValue = EXIT_FAILURE;
-                    return node;
-                }
-                name = EXP_strCstr(space, EXP_expElm(space, exp[1])[0]);
-            }
-            if (0 == strcmp(expHead, name))
-            {
-                return e;
-            }
+            name = EXP_strCstr(space, EXP_expElm(space, exp[1])[0]);
+        }
+        if (0 == strcmp(expHead, name))
+        {
+            return e;
         }
     }
     return node;
@@ -167,12 +168,12 @@ static EXP_Node EXP_getMatchedDefInLevel(EXP_ExecContext* ctx, EXP_ExecFrame* fr
 static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* expHead)
 {
     EXP_Node node = { EXP_NodeInvalidId };
-    EXP_ExecStack* defLevelStack = &ctx->stack;
-    for (u32 i = 0; i < defLevelStack->length; ++i)
+    EXP_ExecStack* frameStack = &ctx->frameStack;
+    for (u32 i = 0; i < frameStack->length; ++i)
     {
-        u32 li = defLevelStack->length - 1 - i;
-        EXP_ExecFrame* level = defLevelStack->data + li;
-        node = EXP_getMatchedDefInLevel(ctx, level, expHead);
+        u32 li = frameStack->length - 1 - i;
+        EXP_ExecFrame* frame = frameStack->data + li;
+        node = EXP_getMatchedDefInLevel(ctx, frame, expHead);
         if (node.id != EXP_NodeInvalidId)
         {
             return node;
@@ -194,7 +195,7 @@ static void EXP_execExpList
     u32 numArgs, EXP_Node argKeys[EXP_ExecDefArgs_MAX], EXP_Node argVals[EXP_ExecDefArgs_MAX]
 )
 {
-    EXP_ExecStack* defLevelStack = &ctx->stack;
+    EXP_ExecStack* defLevelStack = &ctx->frameStack;
     EXP_ExecFrame level = { len, exps, numArgs };
     for (u32 i = 0; i < numArgs; ++i)
     {
