@@ -102,7 +102,7 @@ void EXP_addExpPush(EXP_Space* space, EXP_Node x)
 void EXP_addExpCancel(EXP_Space* space)
 {
     assert(space->expDefStackFrames.length > 0);
-    u32 frameP = space->expDefStackFrames.data[space->expDefStackFrames.length - 1];
+    u32 frameP = vec_last(&space->expDefStackFrames);
     vec_pop(&space->expDefStackFrames);
     vec_resize(&space->expDefStack, frameP);
 }
@@ -110,7 +110,7 @@ void EXP_addExpCancel(EXP_Space* space)
 EXP_Node EXP_addExpDone(EXP_Space* space)
 {
     assert(space->expDefStackFrames.length > 0);
-    u32 frameP = space->expDefStackFrames.data[space->expDefStackFrames.length - 1];
+    u32 frameP = vec_last(&space->expDefStackFrames);
     vec_pop(&space->expDefStackFrames);
     u32 lenExp = space->expDefStack.length - frameP;
     EXP_Node* exp = space->expDefStack.data + frameP;
@@ -129,7 +129,7 @@ EXP_Node EXP_addExpDone(EXP_Space* space)
 void EXP_undoAdd1(EXP_Space* space)
 {
     assert(space->nodes.length > 0);
-    EXP_NodeInfo* info = space->nodes.data + space->nodes.length - 1;
+    EXP_NodeInfo* info = &vec_last(&space->nodes);
     switch (info->type)
     {
     case EXP_NodeType_Str:
@@ -148,7 +148,7 @@ void EXP_undoAdd1(EXP_Space* space)
         assert(false);
         break;
     }
-    vec_resize(&space->nodes, space->nodes.length - 1);
+    vec_pop(&space->nodes);
 }
 
 void EXP_undoAdd(EXP_Space* space, u32 n)
