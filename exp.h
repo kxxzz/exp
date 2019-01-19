@@ -124,7 +124,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 enum
 {
-    EXP_EvalFunArgs_MAX = 8,
+    EXP_EvalFunParms_MAX = 8,
 };
 
 

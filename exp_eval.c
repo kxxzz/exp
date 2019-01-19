@@ -6,8 +6,8 @@ typedef struct EXP_EvalDef
 {
     const char* key;
     EXP_Node val;
-    u32 numArgs;
-    EXP_Node args[EXP_EvalFunArgs_MAX];
+    u32 numParms;
+    EXP_Node parms[EXP_EvalFunParms_MAX];
 } EXP_EvalDef;
 
 typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
@@ -17,7 +17,7 @@ typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     bool hasHalt;
-    EXP_EvalDefMap defMap;
+    EXP_EvalDefMap defStack;
     vec_u32 frameStack;
 } EXP_EvalContext;
 
@@ -25,7 +25,7 @@ typedef struct EXP_EvalContext
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->frameStack);
-    vec_free(&ctx->defMap);
+    vec_free(&ctx->defStack);
 }
 
 
@@ -36,6 +36,10 @@ typedef enum EXP_PrimFunType
     EXP_PrimFunType_Write,
     EXP_PrimFunType_For,
     EXP_PrimFunType_Match,
+    EXP_PrimFunType_Add,
+    EXP_PrimFunType_Sub,
+    EXP_PrimFunType_Mul,
+    EXP_PrimFunType_Div,
 
     EXP_NumPrimFunTypes
 } EXP_PrimFunType;
@@ -46,11 +50,19 @@ static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
     "write",
     "for",
     "match",
+    "+",
+    "-",
+    "*",
+    "/",
 };
 static const bool EXP_PrimFunTypeSideEffectTable[EXP_NumPrimFunTypes] =
 {
     false,
     true,
+    false,
+    false,
+    false,
+    false,
     false,
     false,
 };
@@ -100,6 +112,28 @@ static void EXP_primFunHandle_Match(EXP_EvalContext* ctx, u32 numArgs, EXP_Node*
 {
 
 }
+
+
+static void EXP_primFunHandle_Add(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+    printf("+\n");
+}
+
+static void EXP_primFunHandle_Sub(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+    printf("-\n");
+}
+
+static void EXP_primFunHandle_Mul(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+    printf("*\n");
+}
+
+static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+    printf("/\n");
+}
+
 
 
 
@@ -186,9 +220,9 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     EXP_EvalDef def = { name, numArgs };
     for (u32 i = 0; i < numArgs; ++i)
     {
-        def.args[i] = args[i];
+        def.parms[i] = args[i];
     }
-    vec_push(&ctx->defMap, def);
+    vec_push(&ctx->defStack, def);
 }
 
 
@@ -197,37 +231,37 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 
 static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node fun);
 
-static void EXP_evalCallList
+static void EXP_evalSeq
 (
-    EXP_EvalContext* ctx, u32 numCalls, EXP_Node* calls, u32 numArgs, EXP_EvalDef args[EXP_EvalFunArgs_MAX]
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, u32 numArgs, EXP_EvalDef args[EXP_EvalFunParms_MAX]
 )
 {
-    u32 defMapSize0 = ctx->defMap.length;
+    u32 defMapSize0 = ctx->defStack.length;
     vec_push(&ctx->frameStack, defMapSize0);
 
-    for (u32 i = 0; i < numCalls; ++i)
+    for (u32 i = 0; i < len; ++i)
     {
-        EXP_evalLoadDef(ctx, calls[i]);
+        EXP_evalLoadDef(ctx, seq[i]);
         if (ctx->hasHalt)
         {
-            vec_resize(&ctx->defMap, defMapSize0);
+            vec_resize(&ctx->defStack, defMapSize0);
             vec_pop(&ctx->frameStack);
             return;
         }
     }
 
-    for (u32 i = 0; i < numCalls; ++i)
+    for (u32 i = 0; i < len; ++i)
     {
-        EXP_evalCall(ctx, calls[i]);
+        EXP_evalCall(ctx, seq[i]);
         if (ctx->hasHalt)
         {
-            vec_resize(&ctx->defMap, defMapSize0);
+            vec_resize(&ctx->defStack, defMapSize0);
             vec_pop(&ctx->frameStack);
             return;
         }
     }
 
-    vec_resize(&ctx->defMap, defMapSize0);
+    vec_resize(&ctx->defStack, defMapSize0);
     vec_pop(&ctx->frameStack);
 }
 
@@ -237,9 +271,15 @@ static void EXP_evalCallList
 
 static EXP_EvalDef* EXP_getMatchedDef(EXP_EvalContext* ctx, const char* funName)
 {
-    EXP_EvalDef* def = NULL;
-
-    return def;
+    for (u32 i = 0; i < ctx->defStack.length; ++i)
+    {
+        EXP_EvalDef* def = ctx->defStack.data + ctx->defStack.length - 1 - i;
+        if (0 == strcmp(def->key, funName))
+        {
+            return def;
+        }
+    }
+    return NULL;
 }
 
 
@@ -247,13 +287,16 @@ static EXP_EvalDef* EXP_getMatchedDef(EXP_EvalContext* ctx, const char* funName)
 
 static void EXP_evalCallDef(EXP_EvalContext* ctx, EXP_EvalDef* def, EXP_Node* argVals)
 {
-
-    EXP_EvalDef args[EXP_EvalFunArgs_MAX];
-    for (u32 i = 0; i < def->numArgs; ++i)
+    EXP_Space* space = ctx->space;
+    u32 len = EXP_expLen(space, def->val);
+    EXP_Node* seq = EXP_expElm(space, def->val);
+    EXP_EvalDef args[EXP_EvalFunParms_MAX];
+    for (u32 i = 0; i < def->numParms; ++i)
     {
-        //args[i].key = EXP_strCstr(space, argsKey[i]);
+        args[i].key = EXP_strCstr(space, def->parms[i]);
         args[i].val = argVals[i];
     }
+    EXP_evalSeq(ctx, len, seq, def->numParms, args);
 }
 
 
@@ -275,7 +318,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
     EXP_EvalDef* def = EXP_getMatchedDef(ctx, funName);
     if (def)
     {
-        if (def->numArgs != len - 1)
+        if (def->numParms != len - 1)
         {
             ctx->hasHalt = true;
             return;
@@ -297,14 +340,14 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
 
 
 
-static void EXP_evalExpListBlock(EXP_EvalContext* ctx, EXP_Node expList)
+static void EXP_evalSeqBlock(EXP_EvalContext* ctx, EXP_Node expList)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_isExp(space, expList));
 
     u32 len = EXP_expLen(space, expList);
     EXP_Node* elms = EXP_expElm(space, expList);
-    EXP_evalCallList(ctx, len, elms, 0, NULL);
+    EXP_evalSeq(ctx, len, elms, 0, NULL);
 }
 
 
@@ -317,7 +360,7 @@ EXP_Node EXP_eval(EXP_Space* space, EXP_Node root)
         return node;
     }
     EXP_EvalContext ctx = { space };
-    EXP_evalExpListBlock(&ctx, root);
+    EXP_evalSeqBlock(&ctx, root);
     EXP_evalContextFree(&ctx);
     return node;
 }
@@ -373,6 +416,10 @@ static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
     EXP_primFunHandle_Write,
     EXP_primFunHandle_For,
     EXP_primFunHandle_Match,
+    EXP_primFunHandle_Add,
+    EXP_primFunHandle_Sub,
+    EXP_primFunHandle_Mul,
+    EXP_primFunHandle_Div,
 };
 
 
