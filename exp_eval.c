@@ -2,27 +2,27 @@
 
 
 
-typedef struct EXP_ExecDef
+typedef struct EXP_EvalDef
 {
     const char* key;
     EXP_Node val;
-    u32 numVars;
-    EXP_Node vars[EXP_ExecDefVars_MAX];
-} EXP_ExecDef;
+    u32 numArgs;
+    EXP_Node args[EXP_EvalFunArgs_MAX];
+} EXP_EvalDef;
 
-typedef vec_t(EXP_ExecDef) EXP_ExecDefMap;
+typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
 
 
-typedef struct EXP_ExecContext
+typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     bool hasHalt;
-    EXP_ExecDefMap defMap;
+    EXP_EvalDefMap defMap;
     vec_u32 frameStack;
-} EXP_ExecContext;
+} EXP_EvalContext;
 
 
-static void EXP_execContextFree(EXP_ExecContext* ctx)
+static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->frameStack);
     vec_free(&ctx->defMap);
@@ -33,7 +33,6 @@ static void EXP_execContextFree(EXP_ExecContext* ctx)
 typedef enum EXP_PrimFunType
 {
     EXP_PrimFunType_Def,
-    EXP_PrimFunType_Read,
     EXP_PrimFunType_Write,
     EXP_PrimFunType_For,
     EXP_PrimFunType_Match,
@@ -44,7 +43,6 @@ typedef enum EXP_PrimFunType
 static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
 {
     "def",
-    "read",
     "write",
     "for",
     "match",
@@ -53,43 +51,14 @@ static const bool EXP_PrimFunTypeSideEffectTable[EXP_NumPrimFunTypes] =
 {
     false,
     true,
-    true,
     false,
     false,
 };
 
 
-
-typedef void(*EXP_PrimFunHandler)(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args);
-
-
-
-static void EXP_primFunHandle_Def(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
-{
-}
-
-static void EXP_primFunHandle_Read(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
-{
-
-}
-
-static void EXP_primFunHandle_Write(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
-{
-
-}
-
-static void EXP_primFunHandle_For(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
-{
-
-}
-
-static void EXP_primFunHandle_Match(EXP_ExecContext* ctx, u32 numArgs, EXP_Node* args)
-{
-
-}
+typedef void(*EXP_PrimFunHandler)(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args);
 
 static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes];
-
 
 static EXP_PrimFunType EXP_getPrimExpType(EXP_Space* space, const char* funName)
 {
@@ -108,7 +77,37 @@ static EXP_PrimFunType EXP_getPrimExpType(EXP_Space* space, const char* funName)
 
 
 
-static bool EXP_execCheckCall(EXP_Space* space, EXP_Node node)
+
+
+static void EXP_primFunHandle_Def(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+}
+
+
+static void EXP_primFunHandle_Write(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+
+static void EXP_primFunHandle_For(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+
+static void EXP_primFunHandle_Match(EXP_EvalContext* ctx, u32 numArgs, EXP_Node* args)
+{
+
+}
+
+
+
+
+
+
+
+static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 {
     if (!EXP_isExp(space, node))
     {
@@ -127,7 +126,7 @@ static bool EXP_execCheckCall(EXP_Space* space, EXP_Node node)
     return true;
 }
 
-static bool EXP_execCheckDefPat(EXP_Space* space, EXP_Node node)
+static bool EXP_evalCheckDefPat(EXP_Space* space, EXP_Node node)
 {
     if (!EXP_isExp(space, node))
     {
@@ -150,10 +149,10 @@ static bool EXP_execCheckDefPat(EXP_Space* space, EXP_Node node)
 
 
 
-static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
+static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
-    if (!EXP_execCheckCall(space, node))
+    if (!EXP_evalCheckCall(space, node))
     {
         ctx->hasHalt = true;
         return;
@@ -172,7 +171,7 @@ static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
     {
         name = EXP_strCstr(space, defCall[1]);
     }
-    else if (EXP_execCheckDefPat(space, defCall[1]))
+    else if (EXP_evalCheckDefPat(space, defCall[1]))
     {
         EXP_Node* pat = EXP_expElm(space, defCall[1]);
         name = EXP_strCstr(space, pat[0]);
@@ -184,10 +183,10 @@ static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
         ctx->hasHalt = true;
         return;
     }
-    EXP_ExecDef def = { name, numArgs };
+    EXP_EvalDef def = { name, numArgs };
     for (u32 i = 0; i < numArgs; ++i)
     {
-        def.vars[i] = args[i];
+        def.args[i] = args[i];
     }
     vec_push(&ctx->defMap, def);
 }
@@ -196,11 +195,11 @@ static void EXP_execLoadDef(EXP_ExecContext* ctx, EXP_Node node)
 
 
 
-static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node fun);
+static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node fun);
 
-static void EXP_execCallList
+static void EXP_evalCallList
 (
-    EXP_ExecContext* ctx, u32 numCalls, EXP_Node* calls, u32 numVars, EXP_ExecDef vars[EXP_ExecDefVars_MAX]
+    EXP_EvalContext* ctx, u32 numCalls, EXP_Node* calls, u32 numArgs, EXP_EvalDef args[EXP_EvalFunArgs_MAX]
 )
 {
     u32 defMapSize0 = ctx->defMap.length;
@@ -208,7 +207,7 @@ static void EXP_execCallList
 
     for (u32 i = 0; i < numCalls; ++i)
     {
-        EXP_execLoadDef(ctx, calls[i]);
+        EXP_evalLoadDef(ctx, calls[i]);
         if (ctx->hasHalt)
         {
             vec_resize(&ctx->defMap, defMapSize0);
@@ -219,7 +218,7 @@ static void EXP_execCallList
 
     for (u32 i = 0; i < numCalls; ++i)
     {
-        EXP_execCall(ctx, calls[i]);
+        EXP_evalCall(ctx, calls[i]);
         if (ctx->hasHalt)
         {
             vec_resize(&ctx->defMap, defMapSize0);
@@ -233,43 +232,28 @@ static void EXP_execCallList
 }
 
 
-static void EXP_execCallDef(EXP_ExecContext* ctx, EXP_Node def, u32 numArgs, EXP_Node* argsVal)
+
+
+
+static EXP_EvalDef* EXP_getMatchedDef(EXP_EvalContext* ctx, const char* funName)
 {
-    EXP_Space* space = ctx->space;
-    u32 defLen = EXP_expLen(space, def);
-    if (defLen < 2)
-    {
-        ctx->hasHalt = true;
-        return;
-    }
-    EXP_Node* defElms = EXP_expElm(space, def);
-    EXP_Node pat = defElms[1];
-    u32 numVars = EXP_isExp(space, pat) ? EXP_expLen(space, pat) : 0;
-    if (numVars != numArgs)
-    {
-        ctx->hasHalt = true;
-        return;
-    }
-    EXP_Node* varsKey = EXP_expElm(space, pat);
-    EXP_Node* bodyElms = defElms + 2;
-    EXP_ExecDef vars[EXP_ExecDefVars_MAX];
-    for (u32 i = 0; i < numVars; ++i)
-    {
-        vars[i].key = EXP_strCstr(space, varsKey[i]);
-        vars[i].val = argsVal[i];
-    }
-    EXP_execCallList(ctx, defLen - 2, bodyElms, numVars, vars);
+    EXP_EvalDef* def = NULL;
+
+    return def;
 }
 
 
 
 
-
-static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* funName)
+static void EXP_evalCallDef(EXP_EvalContext* ctx, EXP_EvalDef* def, EXP_Node* argVals)
 {
-    EXP_Node node = { EXP_NodeId_Invalid };
 
-    return node;
+    EXP_EvalDef args[EXP_EvalFunArgs_MAX];
+    for (u32 i = 0; i < def->numArgs; ++i)
+    {
+        //args[i].key = EXP_strCstr(space, argsKey[i]);
+        args[i].val = argVals[i];
+    }
 }
 
 
@@ -277,11 +261,10 @@ static EXP_Node EXP_getMatchedDef(EXP_ExecContext* ctx, const char* funName)
 
 
 
-
-static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node call)
+static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
 {
     EXP_Space* space = ctx->space;
-    if (!EXP_execCheckCall(space, call))
+    if (!EXP_evalCheckCall(space, call))
     {
         ctx->hasHalt = true;
         return;
@@ -289,10 +272,15 @@ static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node call)
     EXP_Node* elms = EXP_expElm(space, call);
     u32 len = EXP_expLen(space, call);
     const char* funName = EXP_strCstr(space, elms[0]);
-    EXP_Node def = EXP_getMatchedDef(ctx, funName);
-    if (def.id != EXP_NodeId_Invalid)
+    EXP_EvalDef* def = EXP_getMatchedDef(ctx, funName);
+    if (def)
     {
-        EXP_execCallDef(ctx, def, len - 1, elms + 1);
+        if (def->numArgs != len - 1)
+        {
+            ctx->hasHalt = true;
+            return;
+        }
+        EXP_evalCallDef(ctx, def, elms + 1);
         return;
     }
     EXP_PrimFunType primType = EXP_getPrimExpType(space, funName);
@@ -309,35 +297,35 @@ static void EXP_execCall(EXP_ExecContext* ctx, EXP_Node call)
 
 
 
-static void EXP_execExpListBlock(EXP_ExecContext* ctx, EXP_Node expList)
+static void EXP_evalExpListBlock(EXP_EvalContext* ctx, EXP_Node expList)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_isExp(space, expList));
 
     u32 len = EXP_expLen(space, expList);
     EXP_Node* elms = EXP_expElm(space, expList);
-    EXP_execCallList(ctx, len, elms, 0, NULL);
+    EXP_evalCallList(ctx, len, elms, 0, NULL);
 }
 
 
 
-EXP_Node EXP_exec(EXP_Space* space, EXP_Node root)
+EXP_Node EXP_eval(EXP_Space* space, EXP_Node root)
 {
     EXP_Node node = { EXP_NodeId_Invalid };
     if (!EXP_isExp(space, root))
     {
         return node;
     }
-    EXP_ExecContext ctx = { space };
-    EXP_execExpListBlock(&ctx, root);
-    EXP_execContextFree(&ctx);
+    EXP_EvalContext ctx = { space };
+    EXP_evalExpListBlock(&ctx, root);
+    EXP_evalContextFree(&ctx);
     return node;
 }
 
 
 
 
-EXP_Node EXP_execFile(EXP_Space* space, const char* srcFile)
+EXP_Node EXP_evalFile(EXP_Space* space, const char* srcFile)
 {
     EXP_Node node = { EXP_NodeId_Invalid };
     char* src = NULL;
@@ -358,7 +346,7 @@ EXP_Node EXP_execFile(EXP_Space* space, const char* srcFile)
         EXP_spaceFree(space);
         return node;
     }
-    node = EXP_exec(space, root);
+    node = EXP_eval(space, root);
     return node;
 }
 
@@ -382,7 +370,6 @@ EXP_Node EXP_execFile(EXP_Space* space, const char* srcFile)
 static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
 {
     EXP_primFunHandle_Def,
-    EXP_primFunHandle_Read,
     EXP_primFunHandle_Write,
     EXP_primFunHandle_For,
     EXP_primFunHandle_Match,

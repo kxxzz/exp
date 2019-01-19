@@ -48,10 +48,10 @@ void testLoadSave(void)
 
 
 
-void testExec(void)
+void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
-    EXP_Node r = EXP_execFile(space, "../1.exp");
+    EXP_Node r = EXP_evalFile(space, "../1.exp");
     //assert(r.id != EXP_NodeId_Invalid);
     EXP_spaceFree(space);
 }
@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
 #endif
 
     //testLoadSave();
-    testExec();
+    testEval();
 
     return mainReturn(EXIT_SUCCESS);
 }
