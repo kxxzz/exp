@@ -18,10 +18,10 @@ typedef vec_t(EXP_Node) EXP_NodeVec;
 typedef struct EXP_Space
 {
     EXP_NodeInfoVec nodes;
-    vec_char strs;
-    EXP_NodeVec exps;
-    EXP_NodeVec expDefStack;
-    vec_u32 expDefStackFrames;
+    vec_char toks;
+    EXP_NodeVec seqs;
+    EXP_NodeVec seqDefStack;
+    vec_u32 seqDefStackFrames;
 } EXP_Space;
 
 
@@ -37,10 +37,10 @@ EXP_Space* EXP_newSpace(void)
 
 void EXP_spaceFree(EXP_Space* space)
 {
-    vec_free(&space->expDefStackFrames);
-    vec_free(&space->expDefStack);
-    vec_free(&space->exps);
-    vec_free(&space->strs);
+    vec_free(&space->seqDefStackFrames);
+    vec_free(&space->seqDefStack);
+    vec_free(&space->seqs);
+    vec_free(&space->toks);
     vec_free(&space->nodes);
     free(space);
 }
@@ -65,21 +65,21 @@ EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node)
 
 
 
-EXP_Node EXP_addStr(EXP_Space* space, const char* str)
+EXP_Node EXP_addTok(EXP_Space* space, const char* str)
 {
     u32 len = (u32)strlen(str);
-    EXP_NodeInfo info = { EXP_NodeType_Str, space->strs.length, len };
-    vec_pusharr(&space->strs, str, len + 1);
+    EXP_NodeInfo info = { EXP_NodeType_Tok, space->toks.length, len };
+    vec_pusharr(&space->toks, str, len + 1);
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
     return node;
 }
 
-EXP_Node EXP_addLenStr(EXP_Space* space, u32 len, const char* str)
+EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str)
 {
-    EXP_NodeInfo info = { EXP_NodeType_Str, space->strs.length, len };
-    vec_pusharr(&space->strs, str, len);
-    vec_push(&space->strs, 0);
+    EXP_NodeInfo info = { EXP_NodeType_Tok, space->toks.length, len };
+    vec_pusharr(&space->toks, str, len);
+    vec_push(&space->toks, 0);
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
     return node;
@@ -89,36 +89,36 @@ EXP_Node EXP_addLenStr(EXP_Space* space, u32 len, const char* str)
 
 
 
-void EXP_addExpEnter(EXP_Space* space)
+void EXP_addSeqEnter(EXP_Space* space)
 {
-    vec_push(&space->expDefStackFrames, space->expDefStack.length);
+    vec_push(&space->seqDefStackFrames, space->seqDefStack.length);
 }
 
-void EXP_addExpPush(EXP_Space* space, EXP_Node x)
+void EXP_addSeqPush(EXP_Space* space, EXP_Node x)
 {
-    vec_push(&space->expDefStack, x);
+    vec_push(&space->seqDefStack, x);
 }
 
-void EXP_addExpCancel(EXP_Space* space)
+void EXP_addSeqCancel(EXP_Space* space)
 {
-    assert(space->expDefStackFrames.length > 0);
-    u32 frameP = vec_last(&space->expDefStackFrames);
-    vec_pop(&space->expDefStackFrames);
-    vec_resize(&space->expDefStack, frameP);
+    assert(space->seqDefStackFrames.length > 0);
+    u32 frameP = vec_last(&space->seqDefStackFrames);
+    vec_pop(&space->seqDefStackFrames);
+    vec_resize(&space->seqDefStack, frameP);
 }
 
-EXP_Node EXP_addExpDone(EXP_Space* space)
+EXP_Node EXP_addSeqDone(EXP_Space* space)
 {
-    assert(space->expDefStackFrames.length > 0);
-    u32 frameP = vec_last(&space->expDefStackFrames);
-    vec_pop(&space->expDefStackFrames);
-    u32 lenExp = space->expDefStack.length - frameP;
-    EXP_Node* exp = space->expDefStack.data + frameP;
-    EXP_NodeInfo expInfo = { EXP_NodeType_Exp, space->exps.length, lenExp };
-    vec_pusharr(&space->exps, exp, lenExp);
-    vec_resize(&space->expDefStack, frameP);
+    assert(space->seqDefStackFrames.length > 0);
+    u32 frameP = vec_last(&space->seqDefStackFrames);
+    vec_pop(&space->seqDefStackFrames);
+    u32 lenSeq = space->seqDefStack.length - frameP;
+    EXP_Node* seq = space->seqDefStack.data + frameP;
+    EXP_NodeInfo seqInfo = { EXP_NodeType_Seq, space->seqs.length, lenSeq };
+    vec_pusharr(&space->seqs, seq, lenSeq);
+    vec_resize(&space->seqDefStack, frameP);
     EXP_Node node = { space->nodes.length };
-    vec_push(&space->nodes, expInfo);
+    vec_push(&space->nodes, seqInfo);
     return node;
 }
 
@@ -132,16 +132,16 @@ void EXP_undoAdd1(EXP_Space* space)
     EXP_NodeInfo* info = &vec_last(&space->nodes);
     switch (info->type)
     {
-    case EXP_NodeType_Str:
+    case EXP_NodeType_Tok:
     {
-        vec_resize(&space->strs, space->strs.length - info->length - 1);
-        assert(space->strs.length == info->offset);
+        vec_resize(&space->toks, space->toks.length - info->length - 1);
+        assert(space->toks.length == info->offset);
         break;
     }
-    case EXP_NodeType_Exp:
+    case EXP_NodeType_Seq:
     {
-        vec_resize(&space->exps, space->exps.length - info->length);
-        assert(space->exps.length == info->offset);
+        vec_resize(&space->seqs, space->seqs.length - info->length);
+        assert(space->seqs.length == info->offset);
         break;
     }
     default:
@@ -165,35 +165,35 @@ void EXP_undoAdd(EXP_Space* space, u32 n)
 
 
 
-u32 EXP_strSize(EXP_Space* space, EXP_Node node)
+u32 EXP_tokSize(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Str == info->type);
+    assert(EXP_NodeType_Tok == info->type);
     return info->length;
 }
 
-const char* EXP_strCstr(EXP_Space* space, EXP_Node node)
+const char* EXP_tokCstr(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Str == info->type);
-    return space->strs.data + info->offset;
+    assert(EXP_NodeType_Tok == info->type);
+    return space->toks.data + info->offset;
 }
 
 
 
 
-u32 EXP_expLen(EXP_Space* space, EXP_Node node)
+u32 EXP_seqLen(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Exp == info->type);
+    assert(EXP_NodeType_Seq == info->type);
     return info->length;
 }
 
-EXP_Node* EXP_expElm(EXP_Space* space, EXP_Node node)
+EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Exp == info->type);
-    return space->exps.data + info->offset;
+    assert(EXP_NodeType_Seq == info->type);
+    return space->seqs.data + info->offset;
 }
 
 
@@ -213,9 +213,9 @@ EXP_Node* EXP_expElm(EXP_Space* space, EXP_Node node)
 
 
 
-static u32 EXP_saveExpSL
+static u32 EXP_saveSeqSL
 (
-    const EXP_Space* space, const EXP_NodeInfo* expInfo, char* buf, u32 bufSize,
+    const EXP_Space* space, const EXP_NodeInfo* seqInfo, char* buf, u32 bufSize,
     const EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
@@ -223,9 +223,9 @@ static u32 EXP_saveExpSL
     u32 bufRemain = bufSize;
     char* bufPtr = buf;
 
-    for (u32 i = 0; i < expInfo->length; ++i)
+    for (u32 i = 0; i < seqInfo->length; ++i)
     {
-        u32 en = EXP_saveSL(space, space->exps.data[expInfo->offset + i], bufPtr, bufRemain, srcInfoTable);
+        u32 en = EXP_saveSL(space, space->seqs.data[seqInfo->offset + i], bufPtr, bufRemain, srcInfoTable);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -238,7 +238,7 @@ static u32 EXP_saveExpSL
         }
         n += en;
 
-        if (i < expInfo->length - 1)
+        if (i < seqInfo->length - 1)
         {
             if (1 < bufRemain)
             {
@@ -267,15 +267,15 @@ u32 EXP_saveSL
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)
     {
-    case EXP_NodeType_Str:
+    case EXP_NodeType_Tok:
     {
-        const char* str = space->strs.data + info->offset;
+        const char* str = space->toks.data + info->offset;
         u32 sreLen = info->length;
         u32 n;
         bool isStrTok = false;
         if (srcInfoTable && srcInfoTable->data[node.id].exist)
         {
-            isStrTok = srcInfoTable->data[node.id].isStrTok;
+            isStrTok = srcInfoTable->data[node.id].isQuotStr;
         }
         else
         {
@@ -333,7 +333,7 @@ u32 EXP_saveSL
         }
         return n;
     }
-    case EXP_NodeType_Exp:
+    case EXP_NodeType_Seq:
     {
         u32 n = 0;
 
@@ -353,7 +353,7 @@ u32 EXP_saveSL
         }
         n += 1;
 
-        u32 n1 = EXP_saveExpSL(space, info, bufPtr, bufRemain, srcInfoTable);
+        u32 n1 = EXP_saveSeqSL(space, info, bufPtr, bufRemain, srcInfoTable);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -485,14 +485,14 @@ static void EXP_saveMlAddIdent(EXP_SaveMLctx* ctx)
 static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node);
 
 
-static void EXP_saveMlAddExp(EXP_SaveMLctx* ctx, const EXP_NodeInfo* expInfo)
+static void EXP_saveMlAddSeq(EXP_SaveMLctx* ctx, const EXP_NodeInfo* seqInfo)
 {
     const EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < expInfo->length; ++i)
+    for (u32 i = 0; i < seqInfo->length; ++i)
     {
         EXP_saveMlAddIdent(ctx);
 
-        EXP_saveMlAddNode(ctx, space->exps.data[expInfo->offset + i]);
+        EXP_saveMlAddNode(ctx, space->seqs.data[seqInfo->offset + i]);
 
         EXP_saveMlAdd(ctx, "\n");
     }
@@ -501,7 +501,7 @@ static void EXP_saveMlAddExp(EXP_SaveMLctx* ctx, const EXP_NodeInfo* expInfo)
 
 
 
-static void EXP_saveMlAddNodeExp(EXP_SaveMLctx* ctx, EXP_Node node)
+static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
 {
     const EXP_Space* space = ctx->space;
 
@@ -519,7 +519,7 @@ static void EXP_saveMlAddNodeExp(EXP_SaveMLctx* ctx, EXP_Node node)
         EXP_saveMlAdd(ctx, "[\n");
 
         ++ctx->depth;
-        EXP_saveMlAddExp(ctx, info);
+        EXP_saveMlAddSeq(ctx, info);
         --ctx->depth;
 
         EXP_saveMlAddIdent(ctx);
@@ -535,7 +535,7 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)
     {
-    case EXP_NodeType_Str:
+    case EXP_NodeType_Tok:
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
@@ -543,9 +543,9 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
         EXP_saveMlForward(ctx, a);
         return;
     }
-    case EXP_NodeType_Exp:
+    case EXP_NodeType_Seq:
     {
-        EXP_saveMlAddNodeExp(ctx, node);
+        EXP_saveMlAddNodeSeq(ctx, node);
         return;
     }
     default:
@@ -577,17 +577,17 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)
     {
-    case EXP_NodeType_Str:
+    case EXP_NodeType_Tok:
     {
         return EXP_saveSL(space, node, buf, bufSize, opt->srcInfoTable);
     }
-    case EXP_NodeType_Exp:
+    case EXP_NodeType_Seq:
     {
         EXP_SaveMLctx ctx =
         {
             space, opt, bufSize, buf,
         };
-        EXP_saveMlAddNodeExp(&ctx, node);
+        EXP_saveMlAddNodeSeq(&ctx, node);
         return ctx.n;
     }
     default:

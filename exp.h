@@ -24,16 +24,16 @@ typedef double f64;
 
 typedef enum EXP_NodeType
 {
-    EXP_NodeType_Str,
-    EXP_NodeType_Exp,
+    EXP_NodeType_Tok,
+    EXP_NodeType_Seq,
 
     EXP_NumNodeTypes
 } EXP_NodeType;
 
 static const char* EXP_NodeTypeNameTable[EXP_NumNodeTypes] =
 {
-    "Str",
-    "Exp",
+    "Tok",
+    "Seq",
 };
 
 
@@ -50,34 +50,34 @@ static u32 EXP_NodeId_Invalid = (u32)-1;
 
 EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node);
 
-static bool EXP_isStr(EXP_Space* space, EXP_Node node)
+static bool EXP_isTok(EXP_Space* space, EXP_Node node)
 {
-    return EXP_NodeType_Str == EXP_nodeType(space, node);
+    return EXP_NodeType_Tok == EXP_nodeType(space, node);
 }
-static bool EXP_isExp(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeq(EXP_Space* space, EXP_Node node)
 {
-    return EXP_NodeType_Exp == EXP_nodeType(space, node);
+    return EXP_NodeType_Seq == EXP_nodeType(space, node);
 }
 
 
 
-EXP_Node EXP_addStr(EXP_Space* space, const char* str);
-EXP_Node EXP_addLenStr(EXP_Space* space, u32 len, const char* str);
+EXP_Node EXP_addTok(EXP_Space* space, const char* str);
+EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str);
 
-void EXP_addExpEnter(EXP_Space* space);
-void EXP_addExpPush(EXP_Space* space, EXP_Node c);
-void EXP_addExpCancel(EXP_Space* space);
-EXP_Node EXP_addExpDone(EXP_Space* space);
+void EXP_addSeqEnter(EXP_Space* space);
+void EXP_addSeqPush(EXP_Space* space, EXP_Node c);
+void EXP_addSeqCancel(EXP_Space* space);
+EXP_Node EXP_addSeqDone(EXP_Space* space);
 
 void EXP_undoAdd1(EXP_Space* space);
 void EXP_undoAdd(EXP_Space* space, u32 n);
 
 
-u32 EXP_strSize(EXP_Space* space, EXP_Node node);
-const char* EXP_strCstr(EXP_Space* space, EXP_Node node);
+u32 EXP_tokSize(EXP_Space* space, EXP_Node node);
+const char* EXP_tokCstr(EXP_Space* space, EXP_Node node);
 
-u32 EXP_expLen(EXP_Space* space, EXP_Node node);
-EXP_Node* EXP_expElm(EXP_Space* space, EXP_Node node);
+u32 EXP_seqLen(EXP_Space* space, EXP_Node node);
+EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);
 
 
 
@@ -87,7 +87,7 @@ typedef struct EXP_NodeSrcInfo
     u32 offset;
     u32 line;
     u32 column;
-    bool isStrTok;
+    bool isQuotStr;
 } EXP_NodeSrcInfo;
 
 typedef vec_t(EXP_NodeSrcInfo) EXP_NodeSrcInfoTable;
@@ -121,11 +121,6 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 
 
-
-enum
-{
-    EXP_EvalFunParms_MAX = 8,
-};
 
 
 EXP_Node EXP_eval(EXP_Space* space, EXP_Node root);

@@ -7,8 +7,8 @@ typedef enum EXP_TokenType
     EXP_TokenType_Text,
     EXP_TokenType_String,
 
-    EXP_TokenType_ExpBegin,
-    EXP_TokenType_ExpEnd,
+    EXP_TokenType_SeqBegin,
+    EXP_TokenType_SeqEnd,
 
     EXP_NumTokenTypes
 } EXP_TokenType;
@@ -231,14 +231,14 @@ static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
     bool ok = false;
     if ('[' == src[ctx->cur])
     {
-        EXP_Token tok = { EXP_TokenType_ExpBegin, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_SeqBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        EXP_Token tok = { EXP_TokenType_ExpEnd, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_SeqEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
@@ -274,7 +274,7 @@ static bool EXP_loadEnd(EXP_LoadContext* ctx)
     return false;
 }
 
-static bool EXP_loadExpEnd(EXP_LoadContext* ctx)
+static bool EXP_loadSeqEnd(EXP_LoadContext* ctx)
 {
     if (EXP_loadEnd(ctx))
     {
@@ -289,7 +289,7 @@ static bool EXP_loadExpEnd(EXP_LoadContext* ctx)
     }
     switch (tok.type)
     {
-    case EXP_TokenType_ExpEnd:
+    case EXP_TokenType_SeqEnd:
     {
         return true;
     }
@@ -301,22 +301,22 @@ static bool EXP_loadExpEnd(EXP_LoadContext* ctx)
     return false;
 }
 
-static EXP_Node EXP_loadExp(EXP_LoadContext* ctx)
+static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_addExpEnter(space);
-    while (!EXP_loadExpEnd(ctx))
+    EXP_addSeqEnter(space);
+    while (!EXP_loadSeqEnd(ctx))
     {
         EXP_Node e = EXP_loadNode(ctx);
         if (EXP_NodeId_Invalid == e.id)
         {
-            EXP_addExpCancel(space);
+            EXP_addSeqCancel(space);
             EXP_Node node = { EXP_NodeId_Invalid };
             return node;
         }
-        EXP_addExpPush(ctx->space, e);
+        EXP_addSeqPush(ctx->space, e);
     }
-    EXP_Node node = EXP_addExpDone(space);
+    EXP_Node node = EXP_addSeqDone(space);
     return node;
 }
 
@@ -336,7 +336,7 @@ static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_
             break;
         }
     }
-    info->isStrTok = EXP_TokenType_String == tok->type;
+    info->isQuotStr = EXP_TokenType_String == tok->type;
 }
 
 
@@ -358,7 +358,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     case EXP_TokenType_Text:
     {
         const char* str = ctx->src + tok.begin;
-        node = EXP_addLenStr(space, tok.len, str);
+        node = EXP_addTokL(space, tok.len, str);
         break;
     }
     case EXP_TokenType_String:
@@ -389,12 +389,12 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
         }
         ctx->tmpStrBuf.data[len] = 0;
         assert(si == len);
-        node = EXP_addLenStr(space, len, ctx->tmpStrBuf.data);
+        node = EXP_addTokL(space, len, ctx->tmpStrBuf.data);
         break;
     }
-    case EXP_TokenType_ExpBegin:
+    case EXP_TokenType_SeqBegin:
     {
-        node = EXP_loadExp(ctx);
+        node = EXP_loadSeq(ctx);
         if (EXP_NodeId_Invalid == node.id)
         {
             return node;
@@ -441,22 +441,22 @@ EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
 EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
 {
     EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
-    EXP_addExpEnter(space);
+    EXP_addSeqEnter(space);
     for (;;)
     {
         EXP_Node e = EXP_loadNode(&ctx);
         if (EXP_NodeId_Invalid == e.id) break;
-        EXP_addExpPush(ctx.space, e);
+        EXP_addSeqPush(ctx.space, e);
     }
     if (!EXP_loadEnd(&ctx))
     {
         EXP_loadContextFree(&ctx);
-        EXP_addExpCancel(space);
+        EXP_addSeqCancel(space);
         EXP_Node node = { EXP_NodeId_Invalid };
         return node;
     }
     EXP_loadContextFree(&ctx);
-    EXP_Node node = EXP_addExpDone(space);
+    EXP_Node node = EXP_addSeqDone(space);
     return node;
 }
 
