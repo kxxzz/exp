@@ -479,30 +479,6 @@ static void EXP_primFunHandle_Def(EXP_EvalContext* ctx, u32 numParms, EXP_Node* 
 }
 
 
-static void EXP_primFunHandle_Write(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-
-}
-
-
-static void EXP_primFunHandle_WriteFmt(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-
-}
-
-
-static void EXP_primFunHandle_For(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-
-}
-
-
-static void EXP_primFunHandle_Match(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-
-}
-
-
 static void EXP_primFunHandle_Add(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
     printf("+\n");
