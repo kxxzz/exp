@@ -6,10 +6,11 @@ typedef struct EXP_EvalDef
 {
     EXP_Node key;
     EXP_Node val;
+    bool hasRtVal;
+    uintptr_t rtVal;
 } EXP_EvalDef;
 
 typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
-
 
 typedef struct EXP_EvalContext
 {
@@ -355,7 +356,6 @@ EXP_Node EXP_evalFile(EXP_Space* space, const char* srcFile)
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
-        EXP_spaceFree(space);
         return node;
     }
     node = EXP_eval(space, root);
