@@ -264,20 +264,20 @@ static void EXP_evalPopScope(EXP_EvalContext* ctx)
 }
 
 
-static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
+static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
 {
-    vec_push(&ctx->blockStack, ctx->curBlock);
-    EXP_EvalBlock blk = { seq, len, 0 };
-    ctx->curBlock = blk;
-
     for (u32 i = 0; i < len; ++i)
     {
         EXP_evalLoadDef(ctx, seq[i]);
         if (ctx->hasHalt)
         {
-            break;
+            return false;;
         }
     }
+    vec_push(&ctx->blockStack, ctx->curBlock);
+    EXP_EvalBlock blk = { seq, len, 0 };
+    ctx->curBlock = blk;
+    return true;
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
@@ -334,24 +334,33 @@ next:
             vec_push(&ctx->defStack, def);
         }
         EXP_Node* body = EXP_evalDefGetBody(ctx, *val);
-        EXP_evalEnterBlock(ctx, 1, body);
-        goto next;
-        return;
+        if (EXP_evalEnterBlock(ctx, 1, body))
+        {
+            goto next;
+        }
+        else
+        {
+            return;
+        }
     }
     EXP_PrimFunType primType = EXP_getPrimFunType(space, funName);
     if (EXP_PrimFunType_Block == primType)
     {
         EXP_evalPushScope(ctx);
-        EXP_evalEnterBlock(ctx, len - 1, elms + 1);
-        goto next;
-        return;
+        if (EXP_evalEnterBlock(ctx, len - 1, elms + 1))
+        {
+            goto next;
+        }
+        else
+        {
+            return;
+        }
     }
     else if (primType != -1)
     {
         EXP_PrimFunHandler handler = EXP_PrimFunHandlerTable[primType];
         handler(ctx, len - 1, elms + 1);
         goto next;
-        return;
     }
     EXP_evalSyntaxErrorAtNode(ctx, call);
     return;
