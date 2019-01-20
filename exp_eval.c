@@ -373,6 +373,14 @@ next:
 
 
 
+
+
+
+
+
+
+
+
 EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcInfoTable)
 {
     EXP_EvalRet ret = { 0 };
@@ -389,6 +397,23 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     EXP_evalContextFree(&ctx);
     return ret;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
