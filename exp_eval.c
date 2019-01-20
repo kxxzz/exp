@@ -28,7 +28,7 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 typedef enum EXP_PrimFunType
 {
-    EXP_PrimFunType_Seq,
+    EXP_PrimFunType_Block,
     EXP_PrimFunType_Def,
     EXP_PrimFunType_Write,
     EXP_PrimFunType_For,
@@ -43,7 +43,7 @@ typedef enum EXP_PrimFunType
 
 static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
 {
-    "seq",
+    "block",
     "def",
     "write",
     "for",
@@ -229,35 +229,6 @@ static EXP_Node EXP_getMatched(EXP_EvalContext* ctx, const char* funName)
 
 static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node fun);
 
-static void EXP_evalSeq(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
-{
-    u32 defMapSize0 = ctx->defStack.length;
-
-    for (u32 i = 0; i < len; ++i)
-    {
-        EXP_evalLoadDef(ctx, seq[i]);
-        if (ctx->hasHalt)
-        {
-            vec_resize(&ctx->defStack, defMapSize0);
-            return;
-        }
-    }
-    for (u32 i = 0; i < len; ++i)
-    {
-        EXP_evalCall(ctx, seq[i]);
-        if (ctx->hasHalt)
-        {
-            vec_resize(&ctx->defStack, defMapSize0);
-            return;
-        }
-    }
-
-    vec_resize(&ctx->defStack, defMapSize0);
-}
-
-
-
-
 static void EXP_evalApply(EXP_EvalContext* ctx, EXP_Node body, u32 numParms, EXP_Node* parms, EXP_Node* args)
 {
     EXP_Space* space = ctx->space;
@@ -275,11 +246,6 @@ static void EXP_evalApply(EXP_EvalContext* ctx, EXP_Node body, u32 numParms, EXP
 
     vec_resize(&ctx->defStack, defMapSize0);
 }
-
-
-
-
-
 
 static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
 {
@@ -322,6 +288,37 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
 
 
 
+static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
+{
+    u32 defMapSize0 = ctx->defStack.length;
+
+    for (u32 i = 0; i < len; ++i)
+    {
+        EXP_evalLoadDef(ctx, seq[i]);
+        if (ctx->hasHalt)
+        {
+            vec_resize(&ctx->defStack, defMapSize0);
+            return;
+        }
+    }
+    for (u32 i = 0; i < len; ++i)
+    {
+        EXP_evalCall(ctx, seq[i]);
+        if (ctx->hasHalt)
+        {
+            vec_resize(&ctx->defStack, defMapSize0);
+            return;
+        }
+    }
+
+    vec_resize(&ctx->defStack, defMapSize0);
+}
+
+
+
+
+
+
 EXP_Node EXP_eval(EXP_Space* space, EXP_Node root)
 {
     EXP_Node node = { EXP_NodeId_Invalid };
@@ -332,7 +329,7 @@ EXP_Node EXP_eval(EXP_Space* space, EXP_Node root)
     EXP_EvalContext ctx = { space };
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalSeq(&ctx, len, seq);
+    EXP_evalBlock(&ctx, len, seq);
     EXP_evalContextFree(&ctx);
     return node;
 }
@@ -389,9 +386,9 @@ EXP_Node EXP_evalFile(EXP_Space* space, const char* srcFile)
 
 
 
-static void EXP_primFunHandle_Seq(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+static void EXP_primFunHandle_Block(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
-    EXP_evalSeq(ctx, numParms, args);
+    EXP_evalBlock(ctx, numParms, args);
 }
 
 
@@ -440,7 +437,7 @@ static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numParms, EXP_Node* 
 
 static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
 {
-    EXP_primFunHandle_Seq,
+    EXP_primFunHandle_Block,
     EXP_primFunHandle_Def,
     EXP_primFunHandle_Write,
     EXP_primFunHandle_For,
