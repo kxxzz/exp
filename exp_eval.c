@@ -49,6 +49,7 @@ typedef enum EXP_PrimFunType
 {
     EXP_PrimFunType_Block,
     EXP_PrimFunType_Def,
+    EXP_PrimFunType_If,
     EXP_PrimFunType_Add,
     EXP_PrimFunType_Sub,
     EXP_PrimFunType_Mul,
@@ -61,20 +62,13 @@ static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
 {
     "block",
     "def",
+    "if",
     "+",
     "-",
     "*",
     "/",
 };
-static const bool EXP_PrimFunTypeSideEffectTable[EXP_NumPrimFunTypes] =
-{
-    false,
-    false,
-    false,
-    false,
-    false,
-    false,
-};
+
 
 
 typedef void(*EXP_PrimFunHandler)(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
@@ -473,8 +467,11 @@ static void EXP_primFunHandle_Block(EXP_EvalContext* ctx, u32 numParms, EXP_Node
 {
 }
 
-
 static void EXP_primFunHandle_Def(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+{
+}
+
+static void EXP_primFunHandle_If(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
 }
 
@@ -506,6 +503,7 @@ static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
 {
     EXP_primFunHandle_Block,
     EXP_primFunHandle_Def,
+    EXP_primFunHandle_If,
     EXP_primFunHandle_Add,
     EXP_primFunHandle_Sub,
     EXP_primFunHandle_Mul,
