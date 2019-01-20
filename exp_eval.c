@@ -19,11 +19,13 @@ typedef struct EXP_EvalContext
     EXP_EvalRet ret;
     bool hasHalt;
     EXP_EvalDefMap defStack;
+    vec_u32 scopeStack;
 } EXP_EvalContext;
 
 
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    vec_free(&ctx->scopeStack);
     vec_free(&ctx->defStack);
 }
 
@@ -250,13 +252,26 @@ static EXP_Node EXP_getMatched(EXP_EvalContext* ctx, const char* funName)
 
 
 
+
 static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node fun);
+static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq);
+
+static void EXP_evalEnterScope(EXP_EvalContext* ctx)
+{
+    vec_push(&ctx->scopeStack, ctx->defStack.length);
+}
+static void EXP_evalLeaveScope(EXP_EvalContext* ctx)
+{
+    u32 defMapSize0 = vec_last(&ctx->scopeStack);
+    vec_pop(&ctx->scopeStack);
+    vec_resize(&ctx->defStack, defMapSize0);
+}
 
 static void EXP_evalApply(EXP_EvalContext* ctx, EXP_Node body, u32 numParms, EXP_Node* parms, EXP_Node* args)
 {
     EXP_Space* space = ctx->space;
 
-    u32 defMapSize0 = ctx->defStack.length;
+    EXP_evalEnterScope(ctx);
 
     for (u32 i = 0; i < numParms; ++i)
     {
@@ -267,7 +282,7 @@ static void EXP_evalApply(EXP_EvalContext* ctx, EXP_Node body, u32 numParms, EXP
     }
     EXP_evalCall(ctx, body);
 
-    vec_resize(&ctx->defStack, defMapSize0);
+    EXP_evalLeaveScope(ctx);
 }
 
 static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
@@ -296,7 +311,12 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
         return;
     }
     EXP_PrimFunType primType = EXP_getPrimFunType(space, funName);
-    if (primType != -1)
+    if (EXP_PrimFunType_Block == primType)
+    {
+        EXP_evalBlock(ctx, len - 1, elms + 1);
+        return;
+    }
+    else if (primType != -1)
     {
         EXP_PrimFunHandler handler = EXP_PrimFunHandlerTable[primType];
         handler(ctx, len - 1, elms + 1);
@@ -306,21 +326,16 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
     return;
 }
 
-
-
-
-
-
 static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
 {
-    u32 defMapSize0 = ctx->defStack.length;
+    EXP_evalEnterScope(ctx);
 
     for (u32 i = 0; i < len; ++i)
     {
         EXP_evalLoadDef(ctx, seq[i]);
         if (ctx->hasHalt)
         {
-            vec_resize(&ctx->defStack, defMapSize0);
+            EXP_evalLeaveScope(ctx);
             return;
         }
     }
@@ -329,12 +344,12 @@ static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
         EXP_evalCall(ctx, seq[i]);
         if (ctx->hasHalt)
         {
-            vec_resize(&ctx->defStack, defMapSize0);
+            EXP_evalLeaveScope(ctx);
             return;
         }
     }
 
-    vec_resize(&ctx->defStack, defMapSize0);
+    EXP_evalLeaveScope(ctx);
 }
 
 
@@ -442,7 +457,6 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 static void EXP_primFunHandle_Block(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
-    EXP_evalBlock(ctx, numParms, args);
 }
 
 
@@ -494,6 +508,9 @@ static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numParms, EXP_Node* 
 {
     printf("/\n");
 }
+
+
+
 
 static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
 {

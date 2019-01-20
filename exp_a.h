@@ -44,7 +44,7 @@
 
 
 
-static char* stzncpy(char* dst, char const* src, size_t len)
+static char* stzncpy(char* dst, char const* src, u32 len)
 {
     assert(len > 0);
     char* p = _memccpy(dst, src, 0, len - 1);
