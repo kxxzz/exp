@@ -15,6 +15,8 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
+    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_EvalRet ret;
     bool hasHalt;
     EXP_EvalDefMap defStack;
 } EXP_EvalContext;
@@ -136,13 +138,30 @@ static bool EXP_evalCheckDefPat(EXP_Space* space, EXP_Node node)
 
 
 
+static void EXP_evalSyntaxErrorAtNode(EXP_EvalContext* ctx, EXP_Node node)
+{
+    ctx->hasHalt = true;
+    EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
+    if (srcInfoTable)
+    {
+        assert(node.id < srcInfoTable->length);
+        ctx->ret.errCode = EXP_EvalErrCode_EvalSyntax;
+        ctx->ret.errSrcFile = NULL;// todo
+        ctx->ret.errSrcFileLine = srcInfoTable->data[node.id].line;
+        ctx->ret.errSrcFileColumn = srcInfoTable->data[node.id].column;
+    }
+}
+
+
+
+
 
 static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
     if (!EXP_evalCheckCall(space, node))
     {
-        ctx->hasHalt = true;
+        EXP_evalSyntaxErrorAtNode(ctx, node);
         return;
     }
     EXP_Node* defCall = EXP_seqElm(space, node);
@@ -164,7 +183,7 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     }
     else
     {
-        ctx->hasHalt = true;
+        EXP_evalSyntaxErrorAtNode(ctx, defCall[1]);
         return;
     }
     EXP_EvalDef def = { name, node };
@@ -256,7 +275,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
     EXP_Space* space = ctx->space;
     if (!EXP_evalCheckCall(space, call))
     {
-        ctx->hasHalt = true;
+        EXP_evalSyntaxErrorAtNode(ctx, call);
         return;
     }
     EXP_Node* elms = EXP_seqElm(space, call);
@@ -270,7 +289,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
         EXP_evalDefGetParms(ctx, body, &numParms, &parms);
         if (numParms != len - 1)
         {
-            ctx->hasHalt = true;
+            EXP_evalSyntaxErrorAtNode(ctx, call);
             return;
         }
         EXP_evalApply(ctx, body, numParms, parms, elms + 1);
@@ -283,7 +302,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx, EXP_Node call)
         handler(ctx, len - 1, elms + 1);
         return;
     }
-    ctx->hasHalt = true;
+    EXP_evalSyntaxErrorAtNode(ctx, call);
     return;
 }
 
@@ -334,6 +353,7 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalBlock(&ctx, len, seq);
+    ret = ctx.ret;
     EXP_evalContextFree(&ctx);
     return ret;
 }
@@ -372,8 +392,8 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
         if (srcInfoTable)
         {
 #ifdef _MSC_VER
-# pragma warning(disable : 6011)
 # pragma warning(push)
+# pragma warning(disable : 6011)
 #endif
             ret.errSrcFileLine = vec_last(srcInfoTable).line;
             ret.errSrcFileColumn = vec_last(srcInfoTable).column;
