@@ -191,31 +191,32 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalDefGetParms(EXP_EvalContext* ctx, EXP_Node node, u32* numParms, EXP_Node** pParms)
+static void EXP_evalDefGetParms(EXP_EvalContext* ctx, EXP_Node node, u32* pNumParms, EXP_Node** pParms)
 {
     EXP_Space* space = ctx->space;
     EXP_Node* defCall = EXP_seqElm(space, node);
     if (EXP_isTok(space, defCall[1]))
     {
-        *numParms = 0;
+        *pNumParms = 0;
         *pParms = NULL;
     }
     else
     {
         assert(EXP_evalCheckDefPat(space, defCall[1]));
         EXP_Node* pat = EXP_seqElm(space, defCall[1]);
-        *numParms = EXP_seqLen(space, defCall[1]) - 1;
+        *pNumParms = EXP_seqLen(space, defCall[1]) - 1;
         *pParms = pat;
     }
 }
 
 
-static EXP_Node* EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node)
+static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
-    assert(3 == EXP_seqLen(space, node));
+    assert(EXP_seqLen(space, node) >= 2);
+    *pLen = EXP_seqLen(space, node) - 2;
     EXP_Node* defCall = EXP_seqElm(space, node);
-    return defCall + 2;
+    *pSeq = defCall + 2;
 }
 
 
@@ -333,8 +334,10 @@ next:
             EXP_EvalDef def = { k, v };
             vec_push(&ctx->defStack, def);
         }
-        EXP_Node* body = EXP_evalDefGetBody(ctx, *val);
-        if (EXP_evalEnterBlock(ctx, 1, body))
+        u32 bodyLen = 0;
+        EXP_Node* body = NULL;
+        EXP_evalDefGetBody(ctx, *val, &bodyLen, &body);
+        if (EXP_evalEnterBlock(ctx, bodyLen, body))
         {
             goto next;
         }
