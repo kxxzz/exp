@@ -291,6 +291,8 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 
 
+
+
 static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
@@ -347,7 +349,13 @@ next:
         }
     }
     EXP_PrimFunType primType = EXP_getPrimFunType(space, funName);
-    if (EXP_PrimFunType_Block == primType)
+    switch (primType)
+    {
+    case EXP_PrimFunType_Def:
+    {
+        break;
+    }
+    case EXP_PrimFunType_Block:
     {
         EXP_evalPushScope(ctx);
         if (EXP_evalEnterBlock(ctx, len - 1, elms + 1))
@@ -358,15 +366,24 @@ next:
         {
             return;
         }
+        break;
     }
-    else if (primType != -1)
+    case EXP_PrimFunType_If:
     {
-        EXP_PrimFunHandler handler = EXP_PrimFunHandlerTable[primType];
-        handler(ctx, len - 1, elms + 1);
-        goto next;
+        break;
     }
-    EXP_evalSyntaxErrorAtNode(ctx, call);
-    return;
+    default:
+    {
+        if (primType != -1)
+        {
+            EXP_PrimFunHandler handler = EXP_PrimFunHandlerTable[primType];
+            handler(ctx, len - 1, elms + 1);
+            goto next;
+        }
+        EXP_evalSyntaxErrorAtNode(ctx, call);
+        break;
+    }
+    }
 }
 
 
@@ -400,15 +417,6 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     EXP_evalContextFree(&ctx);
     return ret;
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -490,29 +498,6 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 
 
-
-
-
-
-
-
-
-
-
-
-static void EXP_primFunHandle_Block(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-}
-
-static void EXP_primFunHandle_Def(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-}
-
-static void EXP_primFunHandle_If(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
-{
-}
-
-
 static void EXP_primFunHandle_Add(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
     printf("+\n");
@@ -538,9 +523,9 @@ static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numParms, EXP_Node* 
 
 static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
 {
-    EXP_primFunHandle_Block,
-    EXP_primFunHandle_Def,
-    EXP_primFunHandle_If,
+    NULL,
+    NULL,
+    NULL,
     EXP_primFunHandle_Add,
     EXP_primFunHandle_Sub,
     EXP_primFunHandle_Mul,
