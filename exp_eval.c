@@ -1,4 +1,4 @@
-#include "a.h"
+#include "exp_eval_a.h"
 
 
 
@@ -32,6 +32,7 @@ typedef enum EXP_PrimFunType
     EXP_PrimFunType_Block,
     EXP_PrimFunType_Def,
     EXP_PrimFunType_Write,
+    EXP_PrimFunType_WriteFmt,
     EXP_PrimFunType_For,
     EXP_PrimFunType_Match,
     EXP_PrimFunType_Add,
@@ -47,6 +48,7 @@ static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
     "block",
     "def",
     "write",
+    "write_fmt",
     "for",
     "match",
     "+",
@@ -58,6 +60,7 @@ static const bool EXP_PrimFunTypeSideEffectTable[EXP_NumPrimFunTypes] =
 {
     false,
     false,
+    true,
     true,
     false,
     false,
@@ -320,46 +323,46 @@ static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
 
 
 
-EXP_Node EXP_eval(EXP_Space* space, EXP_Node root)
+EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root)
 {
-    EXP_Node node = { EXP_NodeId_Invalid };
+    EXP_EvalRet ret = { 0 };
     if (!EXP_isSeq(space, root))
     {
-        return node;
+        return ret;
     }
     EXP_EvalContext ctx = { space };
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalBlock(&ctx, len, seq);
     EXP_evalContextFree(&ctx);
-    return node;
+    return ret;
 }
 
 
 
 
-EXP_Node EXP_evalFile(EXP_Space* space, const char* srcFile)
+EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile)
 {
-    EXP_Node node = { EXP_NodeId_Invalid };
+    EXP_EvalRet ret = { 0 };
     char* src = NULL;
-    u32 srcSize = fileu_readFile(srcFile, &src);
+    u32 srcSize = fileu_readFile(entrySrcFile, &src);
     if (-1 == srcSize)
     {
-        return node;
+        return ret;
     }
     if (0 == srcSize)
     {
-        return node;
+        return ret;
     }
 
     EXP_Node root = EXP_loadSrcAsList(space, src, NULL);
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
-        return node;
+        return ret;
     }
-    node = EXP_eval(space, root);
-    return node;
+    ret = EXP_eval(space, root);
+    return ret;
 }
 
 
@@ -403,6 +406,12 @@ static void EXP_primFunHandle_Write(EXP_EvalContext* ctx, u32 numParms, EXP_Node
 }
 
 
+static void EXP_primFunHandle_WriteFmt(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+{
+
+}
+
+
 static void EXP_primFunHandle_For(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
 {
 
@@ -440,6 +449,7 @@ static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
     EXP_primFunHandle_Block,
     EXP_primFunHandle_Def,
     EXP_primFunHandle_Write,
+    EXP_primFunHandle_WriteFmt,
     EXP_primFunHandle_For,
     EXP_primFunHandle_Match,
     EXP_primFunHandle_Add,

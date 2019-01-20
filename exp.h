@@ -123,10 +123,6 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 
 
-EXP_Node EXP_eval(EXP_Space* space, EXP_Node root);
-
-EXP_Node EXP_evalFile(EXP_Space* space, const char* srcFile);
-
 
 
 

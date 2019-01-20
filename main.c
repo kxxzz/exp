@@ -1,6 +1,6 @@
 #pragma warning(disable: 4101)
 
-#include "exp.h"
+#include "exp_eval.h"
 
 
 
@@ -51,8 +51,8 @@ void testLoadSave(void)
 void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
-    EXP_Node r = EXP_evalFile(space, "../1.exp");
-    //assert(r.id != EXP_NodeId_Invalid);
+    EXP_EvalRet r = EXP_evalFile(space, "../1.exp");
+    assert(EXP_EvalErrCode_NONE == r.errCode);
     EXP_spaceFree(space);
 }
 
