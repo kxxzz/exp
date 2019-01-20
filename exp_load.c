@@ -351,7 +351,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     {
         return node;
     }
-    EXP_NodeSrcInfo srcInfo = { true };
+    EXP_NodeSrcInfo srcInfo = { 0 };
     EXP_loadNodeSrcInfo(ctx, &tok, &srcInfo);
     switch (tok.type)
     {

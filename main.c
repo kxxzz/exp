@@ -51,7 +51,7 @@ void testLoadSave(void)
 void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
-    EXP_EvalRet r = EXP_evalFile(space, "../1.exp");
+    EXP_EvalRet r = EXP_evalFile(space, "../1.exp", true);
     assert(EXP_EvalErrCode_NONE == r.errCode);
     EXP_spaceFree(space);
 }

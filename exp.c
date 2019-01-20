@@ -272,10 +272,10 @@ u32 EXP_saveSL
         const char* str = space->toks.data + info->offset;
         u32 sreLen = info->length;
         u32 n;
-        bool isStrTok = false;
-        if (srcInfoTable && srcInfoTable->data[node.id].exist)
+        bool isQuotStr = false;
+        if (srcInfoTable && (node.id < srcInfoTable->length))
         {
-            isStrTok = srcInfoTable->data[node.id].isQuotStr;
+            isQuotStr = srcInfoTable->data[node.id].isQuotStr;
         }
         else
         {
@@ -283,12 +283,12 @@ u32 EXP_saveSL
             {
                 if (strchr("[]\"' \t\n\r\b\f", str[i]))
                 {
-                    isStrTok = true;
+                    isQuotStr = true;
                     break;
                 }
             }
         }
-        if (isStrTok)
+        if (isQuotStr)
         {
             u32 l = 2;
             for (u32 i = 0; i < sreLen; ++i)

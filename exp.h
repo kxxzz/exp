@@ -83,7 +83,6 @@ EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);
 
 typedef struct EXP_NodeSrcInfo
 {
-    bool exist;
     u32 offset;
     u32 line;
     u32 column;

@@ -323,7 +323,7 @@ static void EXP_evalBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
 
 
 
-EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root)
+EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcInfoTable)
 {
     EXP_EvalRet ret = { 0 };
     if (!EXP_isSeq(space, root))
@@ -341,13 +341,15 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root)
 
 
 
-EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile)
+EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 {
-    EXP_EvalRet ret = { 0 };
+    EXP_EvalRet ret = { EXP_EvalErrCode_NONE };
     char* src = NULL;
     u32 srcSize = fileu_readFile(entrySrcFile, &src);
     if (-1 == srcSize)
     {
+        ret.errCode = EXP_EvalErrCode_SrcFile;
+        ret.errSrcFile = entrySrcFile;
         return ret;
     }
     if (0 == srcSize)
@@ -355,13 +357,42 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile)
         return ret;
     }
 
-    EXP_Node root = EXP_loadSrcAsList(space, src, NULL);
+    EXP_NodeSrcInfoTable* srcInfoTable = NULL;
+    EXP_NodeSrcInfoTable _srcInfoTable = { 0 };
+    if (debug)
+    {
+        srcInfoTable = &_srcInfoTable;
+    }
+    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfoTable);
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
+        ret.errCode = EXP_EvalErrCode_ExpSyntax;
+        ret.errSrcFile = entrySrcFile;
+        if (srcInfoTable)
+        {
+#ifdef _MSC_VER
+# pragma warning(disable : 6011)
+# pragma warning(push)
+#endif
+            ret.errSrcFileLine = vec_last(srcInfoTable).line;
+            ret.errSrcFileColumn = vec_last(srcInfoTable).column;
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
+        }
+        else
+        {
+            ret.errSrcFileLine = -1;
+            ret.errSrcFileColumn = -1;
+        }
         return ret;
     }
-    ret = EXP_eval(space, root);
+    ret = EXP_eval(space, root, srcInfoTable);
+    if (srcInfoTable)
+    {
+        vec_free(srcInfoTable);
+    }
     return ret;
 }
 
