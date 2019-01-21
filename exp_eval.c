@@ -353,7 +353,7 @@ next:
     {
     case EXP_PrimFunType_Def:
     {
-        break;
+        goto next;
     }
     case EXP_PrimFunType_Block:
     {
@@ -370,7 +370,7 @@ next:
     }
     case EXP_PrimFunType_If:
     {
-        break;
+        goto next;
     }
     default:
     {
