@@ -71,7 +71,7 @@ typedef struct EXP_EvalRet
     const char* errSrcFile;
     u32 errSrcFileLine;
     u32 errSrcFileColumn;
-    EXP_EvalValue retVal;
+    EXP_EvalValue value;
 } EXP_EvalRet;
 
 

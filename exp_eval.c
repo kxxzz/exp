@@ -293,7 +293,9 @@ next:
             EXP_EvalAtomFun fun = curBlock->fun;
             u32 numArgs = curBlock->len;
             assert(numArgs <= ctx->dataStack.length);
-            EXP_EvalValue v = fun(numArgs, ctx->dataStack.data + ctx->dataStack.length - numArgs);
+            u32 argsOffset = ctx->dataStack.length - numArgs;
+            EXP_EvalValue v = fun(numArgs, ctx->dataStack.data + argsOffset);
+            vec_resize(&ctx->dataStack, argsOffset);
             vec_push(&ctx->dataStack, v);
         }
         if (EXP_evalLeaveBlock(ctx))
@@ -467,6 +469,11 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, NULL, NULL);
     EXP_evalCall(&ctx);
+    if (!ctx.hasHalt)
+    {
+        assert(1 == ctx.dataStack.length);
+        ctx.ret.value = ctx.dataStack.data[0];
+    }
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);
     return ret;
