@@ -4,6 +4,11 @@
 #include "exp.h"
 
 
+
+typedef void(*EXP_EvalAtomFun)(struct EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
+
+
+
 typedef enum EXP_EvalErrCode
 {
     EXP_EvalErrCode_NONE,
@@ -24,9 +29,12 @@ typedef struct EXP_EvalRet
     uintptr_t retVal;
 } EXP_EvalRet;
 
+
 EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcInfoTable);
 
 EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug);
+
+
 
 
 

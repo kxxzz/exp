@@ -2,12 +2,22 @@
 
 
 
+typedef union EXP_EvalValue
+{
+    void* ptr;
+    double num;
+    EXP_Node node;
+} EXP_EvalValue;
+
+typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
+
+
 typedef struct EXP_EvalDef
 {
     EXP_Node key;
     EXP_Node val;
     bool hasRtVal;
-    uintptr_t rtVal;
+    EXP_EvalValue rtVal;
 } EXP_EvalDef;
 
 typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
@@ -23,12 +33,9 @@ typedef struct EXP_EvalBlock
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
 
 
-typedef struct EXP_EvalContext EXP_EvalContext;
-
-typedef void(*EXP_EvalAtomFun)(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
-
 typedef struct EXP_EvalAtom
 {
+    EXP_EvalAtomFun fun;
     u32 numArgs;
 } EXP_EvalAtom;
 
@@ -42,12 +49,13 @@ typedef struct EXP_EvalContext
     EXP_EvalDefMap defStack;
     vec_u32 scopeStack;
     EXP_EvalBlockStack blockStack;
-    EXP_EvalBlock curBlock;
+    EXP_EvalDataStack dataStack;
 } EXP_EvalContext;
 
 
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    vec_free(&ctx->dataStack);
     vec_free(&ctx->blockStack);
     vec_free(&ctx->scopeStack);
     vec_free(&ctx->defStack);
@@ -281,16 +289,14 @@ static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
             return false;;
         }
     }
-    vec_push(&ctx->blockStack, ctx->curBlock);
     EXP_EvalBlock blk = { seq, len, 0 };
-    ctx->curBlock = blk;
+    vec_push(&ctx->blockStack, blk);
     return true;
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
     assert(ctx->blockStack.length > 0);
-    ctx->curBlock = vec_last(&ctx->blockStack);
     vec_pop(&ctx->blockStack);
     return ctx->blockStack.length > 0;
 }
@@ -302,8 +308,9 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalBlock* curBlock = &ctx->curBlock;
+    EXP_EvalBlock* curBlock;
 next:
+    curBlock = &vec_last(&ctx->blockStack);
     if (curBlock->p == curBlock->len)
     {
         if (EXP_evalLeaveBlock(ctx))
@@ -311,6 +318,7 @@ next:
             EXP_evalPopScope(ctx);
             goto next;
         }
+        assert(0 == ctx->scopeStack.length);
         return;
     }
     EXP_Node call = curBlock->seq[curBlock->p++];
