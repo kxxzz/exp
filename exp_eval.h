@@ -5,7 +5,41 @@
 
 
 
-typedef void(*EXP_EvalAtomFun)(u32 numParms, EXP_Node* args);
+typedef enum EXP_EvalPrimType
+{
+    EXP_EvalPrimType_Blk,
+    EXP_EvalPrimType_Def,
+    EXP_EvalPrimType_If,
+    EXP_EvalPrimType_Add,
+    EXP_EvalPrimType_Sub,
+    EXP_EvalPrimType_Mul,
+    EXP_EvalPrimType_Div,
+
+    EXP_NumEvalPrimTypes
+} EXP_EvalPrimType;
+
+static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
+{
+    "blk",
+    "def",
+    "if",
+    "+",
+    "-",
+    "*",
+    "/",
+};
+
+
+
+typedef union EXP_EvalValue
+{
+    void* ptr;
+    uintptr_t integer;
+    double real;
+    EXP_Node node;
+} EXP_EvalValue;
+
+typedef EXP_EvalValue(*EXP_EvalAtomFun)(u32 numParms, EXP_EvalValue* args);
 
 
 

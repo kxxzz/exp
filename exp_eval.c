@@ -2,14 +2,6 @@
 
 
 
-typedef union EXP_EvalValue
-{
-    void* ptr;
-    uintptr_t integer;
-    double real;
-    EXP_Node node;
-} EXP_EvalValue;
-
 typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
 
 
@@ -69,29 +61,6 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 
 
-typedef enum EXP_EvalPrimType
-{
-    EXP_EvalPrimType_Blk,
-    EXP_EvalPrimType_Def,
-    EXP_EvalPrimType_If,
-    EXP_EvalPrimType_Add,
-    EXP_EvalPrimType_Sub,
-    EXP_EvalPrimType_Mul,
-    EXP_EvalPrimType_Div,
-
-    EXP_NumEvalPrimTypes
-} EXP_EvalPrimType;
-
-static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
-{
-    "blk",
-    "def",
-    "if",
-    "+",
-    "-",
-    "*",
-    "/",
-};
 
 static EXP_EvalPrimType EXP_evalGetPrimFunType(EXP_Space* space, const char* funName)
 {
@@ -397,7 +366,8 @@ next:
         if (primType != -1)
         {
             EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
-            fun(len - 1, elms + 1);
+            assert(fun);
+            //fun(len - 1, elms + 1);
             goto next;
         }
         EXP_evalSyntaxErrorAtNode(ctx, call);
@@ -518,24 +488,33 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 
 
-static void EXP_primFunHandle_Add(u32 numParms, EXP_Node* args)
+static EXP_EvalValue EXP_primFunHandle_Add(u32 numParms, EXP_EvalValue* args)
 {
-    printf("+\n");
+    assert(2 == numParms);
+    EXP_EvalValue v;
+    v.real = args[0].real + args[1].real;
+    return v;
 }
-
-static void EXP_primFunHandle_Sub(u32 numParms, EXP_Node* args)
+static EXP_EvalValue EXP_primFunHandle_Sub(u32 numParms, EXP_EvalValue* args)
 {
-    printf("-\n");
+    assert(2 == numParms);
+    EXP_EvalValue v;
+    v.real = args[0].real - args[1].real;
+    return v;
 }
-
-static void EXP_primFunHandle_Mul(u32 numParms, EXP_Node* args)
+static EXP_EvalValue EXP_primFunHandle_Mul(u32 numParms, EXP_EvalValue* args)
 {
-    printf("*\n");
+    assert(2 == numParms);
+    EXP_EvalValue v;
+    v.real = args[0].real * args[1].real;
+    return v;
 }
-
-static void EXP_primFunHandle_Div(u32 numParms, EXP_Node* args)
+static EXP_EvalValue EXP_primFunHandle_Div(u32 numParms, EXP_EvalValue* args)
 {
-    printf("/\n");
+    assert(2 == numParms);
+    EXP_EvalValue v;
+    v.real = args[0].real / args[1].real;
+    return v;
 }
 
 
