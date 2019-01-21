@@ -18,6 +18,7 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
 
 typedef struct EXP_EvalBlock
 {
+    EXP_EvalAtomFun fun;
     EXP_Node* seq;
     u32 len;
     u32 p;
@@ -25,15 +26,6 @@ typedef struct EXP_EvalBlock
 
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
 
-
-typedef struct EXP_EvalAtom
-{
-    EXP_EvalAtomFun fun;
-    u32 numArgs;
-    u32 remain;
-} EXP_EvalAtom;
-
-typedef vec_t(EXP_EvalAtom) EXP_EvalAtomStack;
 
 
 typedef struct EXP_EvalContext
@@ -46,13 +38,11 @@ typedef struct EXP_EvalContext
     vec_u32 scopeStack;
     EXP_EvalBlockStack blockStack;
     EXP_EvalDataStack dataStack;
-    EXP_EvalAtomStack atomStack;
 } EXP_EvalContext;
 
 
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
-    vec_free(&ctx->atomStack);
     vec_free(&ctx->dataStack);
     vec_free(&ctx->blockStack);
     vec_free(&ctx->scopeStack);
@@ -218,7 +208,7 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_Node* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
+static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->defStack.length; ++i)
@@ -227,7 +217,7 @@ static EXP_Node* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
         const char* str = EXP_tokCstr(space, def->key);
         if (0 == strcmp(str, funName))
         {
-            return &def->val;
+            return def;
         }
     }
     return NULL;
@@ -254,24 +244,26 @@ static void EXP_evalPopScope(EXP_EvalContext* ctx)
 }
 
 
-static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq)
+static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_EvalAtomFun fun)
 {
-    for (u32 i = 0; i < len; ++i)
+    if (!fun)
     {
-        EXP_evalLoadDef(ctx, seq[i]);
-        if (ctx->hasHalt)
+        for (u32 i = 0; i < len; ++i)
         {
-            return false;;
+            EXP_evalLoadDef(ctx, seq[i]);
+            if (ctx->hasHalt)
+            {
+                return false;;
+            }
         }
     }
-    EXP_EvalBlock blk = { seq, len, 0 };
+    EXP_EvalBlock blk = { fun, seq, len, 0 };
     vec_push(&ctx->blockStack, blk);
     return true;
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
-    assert(ctx->blockStack.length > 0);
     vec_pop(&ctx->blockStack);
     return ctx->blockStack.length > 0;
 }
@@ -288,6 +280,14 @@ next:
     curBlock = &vec_last(&ctx->blockStack);
     if (curBlock->p == curBlock->len)
     {
+        if (curBlock->fun)
+        {
+            EXP_EvalAtomFun fun = curBlock->fun;
+            u32 numArgs = curBlock->len;
+            assert(numArgs <= ctx->dataStack.length);
+            EXP_EvalValue v = fun(numArgs, ctx->dataStack.data + ctx->dataStack.length - numArgs);
+            vec_push(&ctx->dataStack, v);
+        }
         if (EXP_evalLeaveBlock(ctx))
         {
             EXP_evalPopScope(ctx);
@@ -296,21 +296,61 @@ next:
         assert(0 == ctx->scopeStack.length);
         return;
     }
-    EXP_Node call = curBlock->seq[curBlock->p++];
-    if (!EXP_evalCheckCall(space, call))
+    EXP_Node node = curBlock->seq[curBlock->p++];
+    if (EXP_isTok(space, node))
     {
-        EXP_evalSyntaxErrorAtNode(ctx, call);
+        const char* funName = EXP_tokCstr(space, node);
+        EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
+        if (def)
+        {
+            u32 numParms = 0;;
+            EXP_Node* parms = NULL;
+            EXP_evalDefGetParms(ctx, def->val, &numParms, &parms);
+            if (numParms > 0)
+            {
+                EXP_evalSyntaxErrorAtNode(ctx, node);
+                return;
+            }
+            if (def->hasRtVal)
+            {
+                vec_push(&ctx->dataStack, def->rtVal);
+                goto next;
+            }
+            else
+            {
+                u32 bodyLen = 0;
+                EXP_Node* body = NULL;
+                EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
+                if (EXP_evalEnterBlock(ctx, bodyLen, body, NULL))
+                {
+                    goto next;
+                }
+                else
+                {
+                    return;
+                }
+            }
+        }
+        else
+        {
+
+        }
+    }
+    else if (!EXP_evalCheckCall(space, node))
+    {
+        EXP_evalSyntaxErrorAtNode(ctx, node);
         return;
     }
+    EXP_Node call = node;
     EXP_Node* elms = EXP_seqElm(space, call);
     u32 len = EXP_seqLen(space, call);
     const char* funName = EXP_tokCstr(space, elms[0]);
-    EXP_Node* val = EXP_evalGetMatched(ctx, funName);
-    if (val)
+    EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
+    if (def)
     {
         u32 numParms = 0;;
         EXP_Node* parms = NULL;
-        EXP_evalDefGetParms(ctx, *val, &numParms, &parms);
+        EXP_evalDefGetParms(ctx, def->val, &numParms, &parms);
         if (numParms != len - 1)
         {
             EXP_evalSyntaxErrorAtNode(ctx, call);
@@ -327,8 +367,8 @@ next:
         }
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
-        EXP_evalDefGetBody(ctx, *val, &bodyLen, &body);
-        if (EXP_evalEnterBlock(ctx, bodyLen, body))
+        EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
+        if (EXP_evalEnterBlock(ctx, bodyLen, body, NULL))
         {
             goto next;
         }
@@ -347,7 +387,7 @@ next:
     case EXP_EvalPrimType_Blk:
     {
         EXP_evalPushScope(ctx);
-        if (EXP_evalEnterBlock(ctx, len - 1, elms + 1))
+        if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, NULL))
         {
             goto next;
         }
@@ -367,8 +407,14 @@ next:
         {
             EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
             assert(fun);
-            //fun(len - 1, elms + 1);
-            goto next;
+            if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, fun))
+            {
+                goto next;
+            }
+            else
+            {
+                return;
+            }
         }
         EXP_evalSyntaxErrorAtNode(ctx, call);
         break;
@@ -401,7 +447,7 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     EXP_EvalContext ctx = { space };
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalEnterBlock(&ctx, len, seq);
+    EXP_evalEnterBlock(&ctx, len, seq, NULL);
     EXP_evalCall(&ctx);
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);
