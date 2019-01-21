@@ -356,6 +356,15 @@ next:
             EXP_evalSyntaxErrorAtNode(ctx, call);
             return;
         }
+        if (numParms > 0)
+        {
+            assert(!def->hasRtVal);
+        }
+        else if (def->hasRtVal)
+        {
+            vec_push(&ctx->dataStack, def->rtVal);
+            goto next;
+        }
 
         EXP_evalPushScope(ctx);
         for (u32 i = 0; i < numParms; ++i)
