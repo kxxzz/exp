@@ -29,6 +29,17 @@ static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
     "/",
 };
 
+static u32 EXP_EvalPrimFunTypeNumParmsTable[EXP_NumEvalPrimTypes] =
+{
+    -1,
+    -1,
+    -1,
+    2,
+    2,
+    2,
+    2,
+};
+
 
 
 typedef union EXP_EvalValue

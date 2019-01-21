@@ -407,7 +407,17 @@ next:
         {
             EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
             assert(fun);
-            if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, fun))
+            u32 numParms = EXP_EvalPrimFunTypeNumParmsTable[primType];
+            u32 numArgs = len - 1;
+            if (numParms != (u32)-1)
+            {
+                if (numParms != numArgs)
+                {
+                    EXP_evalSyntaxErrorAtNode(ctx, node);
+                    return;
+                }
+            }
+            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, fun))
             {
                 goto next;
             }
