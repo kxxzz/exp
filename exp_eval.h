@@ -5,6 +5,18 @@
 
 
 
+typedef union EXP_EvalValue
+{
+    void* ptr;
+    uintptr_t integer;
+    double real;
+    EXP_Node node;
+} EXP_EvalValue;
+
+typedef EXP_EvalValue(*EXP_EvalAtomFun)(u32 numParms, EXP_EvalValue* args);
+
+
+
 typedef enum EXP_EvalPrimType
 {
     EXP_EvalPrimType_Blk,
@@ -39,18 +51,6 @@ static u32 EXP_EvalPrimFunTypeNumParmsTable[EXP_NumEvalPrimTypes] =
     2,
     2,
 };
-
-
-
-typedef union EXP_EvalValue
-{
-    void* ptr;
-    uintptr_t integer;
-    double real;
-    EXP_Node node;
-} EXP_EvalValue;
-
-typedef EXP_EvalValue(*EXP_EvalAtomFun)(u32 numParms, EXP_EvalValue* args);
 
 
 
