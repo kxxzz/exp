@@ -23,6 +23,16 @@ typedef struct EXP_EvalBlock
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
 
 
+typedef struct EXP_EvalContext EXP_EvalContext;
+
+typedef void(*EXP_EvalAtomFun)(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
+
+typedef struct EXP_EvalAtom
+{
+    u32 numArgs;
+} EXP_EvalAtom;
+
+
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
@@ -45,22 +55,22 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 
 
-typedef enum EXP_PrimFunType
+typedef enum EXP_EvalPrimType
 {
-    EXP_PrimFunType_Block,
-    EXP_PrimFunType_Def,
-    EXP_PrimFunType_If,
-    EXP_PrimFunType_Add,
-    EXP_PrimFunType_Sub,
-    EXP_PrimFunType_Mul,
-    EXP_PrimFunType_Div,
+    EXP_EvalPrimType_Blk,
+    EXP_EvalPrimType_Def,
+    EXP_EvalPrimType_If,
+    EXP_EvalPrimType_Add,
+    EXP_EvalPrimType_Sub,
+    EXP_EvalPrimType_Mul,
+    EXP_EvalPrimType_Div,
 
-    EXP_NumPrimFunTypes
-} EXP_PrimFunType;
+    EXP_NumEvalPrimTypes
+} EXP_EvalPrimType;
 
-static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
+static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
 {
-    "block",
+    "blk",
     "def",
     "if",
     "+",
@@ -69,23 +79,19 @@ static const char* EXP_PrimFunTypeNameTable[EXP_NumPrimFunTypes] =
     "/",
 };
 
-
-
-typedef void(*EXP_PrimFunHandler)(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
-
-static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes];
-
-static EXP_PrimFunType EXP_getPrimFunType(EXP_Space* space, const char* funName)
+static EXP_EvalPrimType EXP_evalGetPrimFunType(EXP_Space* space, const char* funName)
 {
-    for (u32 i = 0; i < EXP_NumPrimFunTypes; ++i)
+    for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
-        if (0 == strcmp(funName, EXP_PrimFunTypeNameTable[i]))
+        if (0 == strcmp(funName, EXP_EvalPrimFunTypeNameTable[i]))
         {
             return i;
         }
     }
     return -1;
 }
+
+static EXP_EvalAtomFun EXP_EvalPrimAtomFunTable[EXP_NumEvalPrimTypes];
 
 
 
@@ -164,8 +170,8 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     }
     EXP_Node* defCall = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, defCall[0]);
-    EXP_PrimFunType primType = EXP_getPrimFunType(space, kDef);
-    if (primType != EXP_PrimFunType_Def)
+    EXP_EvalPrimType primType = EXP_evalGetPrimFunType(space, kDef);
+    if (primType != EXP_EvalPrimType_Def)
     {
         return;
     }
@@ -229,7 +235,7 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_Node* EXP_getMatched(EXP_EvalContext* ctx, const char* funName)
+static EXP_Node* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->defStack.length; ++i)
@@ -316,7 +322,7 @@ next:
     EXP_Node* elms = EXP_seqElm(space, call);
     u32 len = EXP_seqLen(space, call);
     const char* funName = EXP_tokCstr(space, elms[0]);
-    EXP_Node* val = EXP_getMatched(ctx, funName);
+    EXP_Node* val = EXP_evalGetMatched(ctx, funName);
     if (val)
     {
         u32 numParms = 0;;
@@ -348,14 +354,14 @@ next:
             return;
         }
     }
-    EXP_PrimFunType primType = EXP_getPrimFunType(space, funName);
+    EXP_EvalPrimType primType = EXP_evalGetPrimFunType(space, funName);
     switch (primType)
     {
-    case EXP_PrimFunType_Def:
+    case EXP_EvalPrimType_Def:
     {
         goto next;
     }
-    case EXP_PrimFunType_Block:
+    case EXP_EvalPrimType_Blk:
     {
         EXP_evalPushScope(ctx);
         if (EXP_evalEnterBlock(ctx, len - 1, elms + 1))
@@ -368,7 +374,7 @@ next:
         }
         break;
     }
-    case EXP_PrimFunType_If:
+    case EXP_EvalPrimType_If:
     {
         goto next;
     }
@@ -376,8 +382,8 @@ next:
     {
         if (primType != -1)
         {
-            EXP_PrimFunHandler handler = EXP_PrimFunHandlerTable[primType];
-            handler(ctx, len - 1, elms + 1);
+            EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
+            fun(ctx, len - 1, elms + 1);
             goto next;
         }
         EXP_evalSyntaxErrorAtNode(ctx, call);
@@ -521,7 +527,7 @@ static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numParms, EXP_Node* 
 
 
 
-static EXP_PrimFunHandler EXP_PrimFunHandlerTable[EXP_NumPrimFunTypes] =
+static EXP_EvalAtomFun EXP_EvalPrimAtomFunTable[EXP_NumEvalPrimTypes] =
 {
     NULL,
     NULL,
