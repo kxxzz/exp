@@ -5,7 +5,8 @@
 typedef union EXP_EvalValue
 {
     void* ptr;
-    double num;
+    uintptr_t integer;
+    double real;
     EXP_Node node;
 } EXP_EvalValue;
 
@@ -37,7 +38,10 @@ typedef struct EXP_EvalAtom
 {
     EXP_EvalAtomFun fun;
     u32 numArgs;
+    u32 remain;
 } EXP_EvalAtom;
+
+typedef vec_t(EXP_EvalAtom) EXP_EvalAtomStack;
 
 
 typedef struct EXP_EvalContext
@@ -50,11 +54,13 @@ typedef struct EXP_EvalContext
     vec_u32 scopeStack;
     EXP_EvalBlockStack blockStack;
     EXP_EvalDataStack dataStack;
+    EXP_EvalAtomStack atomStack;
 } EXP_EvalContext;
 
 
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    vec_free(&ctx->atomStack);
     vec_free(&ctx->dataStack);
     vec_free(&ctx->blockStack);
     vec_free(&ctx->scopeStack);
