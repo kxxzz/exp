@@ -13,12 +13,13 @@ typedef struct EXP_EvalDef
     EXP_EvalValue rtVal;
 } EXP_EvalDef;
 
-typedef vec_t(EXP_EvalDef) EXP_EvalDefMap;
+typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 
 typedef struct EXP_EvalBlock
 {
     EXP_EvalAtomFun fun;
+    u32 defStackP;
     EXP_Node* seq;
     u32 len;
     u32 p;
@@ -34,8 +35,7 @@ typedef struct EXP_EvalContext
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalRet ret;
     bool hasHalt;
-    EXP_EvalDefMap defStack;
-    vec_u32 scopeStack;
+    EXP_EvalDefStack defStack;
     EXP_EvalBlockStack blockStack;
     EXP_EvalDataStack dataStack;
 } EXP_EvalContext;
@@ -45,7 +45,6 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->dataStack);
     vec_free(&ctx->blockStack);
-    vec_free(&ctx->scopeStack);
     vec_free(&ctx->defStack);
 }
 
@@ -235,21 +234,24 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 
 
-static void EXP_evalPushScope(EXP_EvalContext* ctx)
-{
-    vec_push(&ctx->scopeStack, ctx->defStack.length);
-}
-
-static void EXP_evalPopScope(EXP_EvalContext* ctx)
-{
-    u32 defMapSize0 = vec_last(&ctx->scopeStack);
-    vec_pop(&ctx->scopeStack);
-    vec_resize(&ctx->defStack, defMapSize0);
-}
 
 
-static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_EvalAtomFun fun)
+
+static bool EXP_evalEnterBlock
+(
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq,
+    u32 numParms, EXP_Node* parms, EXP_Node* args,
+    EXP_EvalAtomFun fun
+)
 {
+    u32 defStackP = ctx->defStack.length;
+    for (u32 i = 0; i < numParms; ++i)
+    {
+        EXP_Node k = parms[i];
+        EXP_Node v = args[i];
+        EXP_EvalDef def = { k, v };
+        vec_push(&ctx->defStack, def);
+    }
     if (!fun)
     {
         for (u32 i = 0; i < len; ++i)
@@ -261,13 +263,15 @@ static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
             }
         }
     }
-    EXP_EvalBlock blk = { fun, seq, len, 0 };
+    EXP_EvalBlock blk = { fun, defStackP, seq, len, 0 };
     vec_push(&ctx->blockStack, blk);
     return true;
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
+    u32 defStackP = vec_last(&ctx->blockStack).defStackP;
+    vec_resize(&ctx->defStack, defStackP);
     vec_pop(&ctx->blockStack);
     return ctx->blockStack.length > 0;
 }
@@ -294,10 +298,8 @@ next:
         }
         if (EXP_evalLeaveBlock(ctx))
         {
-            EXP_evalPopScope(ctx);
             goto next;
         }
-        assert(0 == ctx->scopeStack.length);
         return;
     }
     EXP_Node node = curBlock->seq[curBlock->p++];
@@ -325,7 +327,7 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
-                if (EXP_evalEnterBlock(ctx, bodyLen, body, NULL))
+                if (EXP_evalEnterBlock(ctx, bodyLen, body, 0, NULL, NULL, NULL))
                 {
                     goto next;
                 }
@@ -337,6 +339,8 @@ next:
         }
         else
         {
+            EXP_EvalValue v = { 0 };
+            vec_push(&ctx->dataStack, v);
             goto next;
         }
     }
@@ -370,18 +374,10 @@ next:
             goto next;
         }
 
-        EXP_evalPushScope(ctx);
-        for (u32 i = 0; i < numParms; ++i)
-        {
-            EXP_Node k = parms[i];
-            EXP_Node v = elms[1 + i];
-            EXP_EvalDef def = { k, v };
-            vec_push(&ctx->defStack, def);
-        }
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
         EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
-        if (EXP_evalEnterBlock(ctx, bodyLen, body, NULL))
+        if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, elms + 1, NULL))
         {
             goto next;
         }
@@ -399,8 +395,7 @@ next:
     }
     case EXP_EvalPrimType_Blk:
     {
-        EXP_evalPushScope(ctx);
-        if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, NULL))
+        if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, 0, NULL, NULL, NULL))
         {
             goto next;
         }
@@ -430,7 +425,7 @@ next:
                     return;
                 }
             }
-            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, fun))
+            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, 0, NULL, NULL, fun))
             {
                 goto next;
             }
@@ -470,7 +465,7 @@ EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcI
     EXP_EvalContext ctx = { space };
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalEnterBlock(&ctx, len, seq, NULL);
+    EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, NULL, NULL);
     EXP_evalCall(&ctx);
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);
