@@ -136,6 +136,10 @@ static void EXP_evalSyntaxErrorAtNode(EXP_EvalContext* ctx, EXP_Node node)
 static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
+    if (EXP_isTok(space, node))
+    {
+        return;
+    }
     if (!EXP_evalCheckCall(space, node))
     {
         EXP_evalSyntaxErrorAtNode(ctx, node);
@@ -333,7 +337,7 @@ next:
         }
         else
         {
-
+            goto next;
         }
     }
     else if (!EXP_evalCheckCall(space, node))
