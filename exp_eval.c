@@ -397,7 +397,7 @@ next:
         if (primType != -1)
         {
             EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
-            fun(ctx, len - 1, elms + 1);
+            fun(len - 1, elms + 1);
             goto next;
         }
         EXP_evalSyntaxErrorAtNode(ctx, call);
@@ -518,22 +518,22 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 
 
-static void EXP_primFunHandle_Add(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+static void EXP_primFunHandle_Add(u32 numParms, EXP_Node* args)
 {
     printf("+\n");
 }
 
-static void EXP_primFunHandle_Sub(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+static void EXP_primFunHandle_Sub(u32 numParms, EXP_Node* args)
 {
     printf("-\n");
 }
 
-static void EXP_primFunHandle_Mul(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+static void EXP_primFunHandle_Mul(u32 numParms, EXP_Node* args)
 {
     printf("*\n");
 }
 
-static void EXP_primFunHandle_Div(EXP_EvalContext* ctx, u32 numParms, EXP_Node* args)
+static void EXP_primFunHandle_Div(u32 numParms, EXP_Node* args)
 {
     printf("/\n");
 }

@@ -5,7 +5,7 @@
 
 
 
-typedef void(*EXP_EvalAtomFun)(struct EXP_EvalContext* ctx, u32 numParms, EXP_Node* args);
+typedef void(*EXP_EvalAtomFun)(u32 numParms, EXP_Node* args);
 
 
 
