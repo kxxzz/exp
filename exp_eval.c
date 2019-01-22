@@ -19,11 +19,12 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 typedef struct EXP_EvalBlock
 {
+    EXP_Node srcNode;
     u32 defStackP;
+    u32 dataStackP;
     EXP_Node* seq;
     u32 seqLen;
     u32 p;
-    EXP_Node srcNode;
     u32 nativeFun;
 } EXP_EvalBlock;
 
@@ -280,6 +281,7 @@ static bool EXP_evalEnterBlock
 )
 {
     u32 defStackP = ctx->defStack.length;
+    u32 dataStackP = ctx->dataStack.length;
     if (-1 == nativeFun)
     {
         for (u32 i = 0; i < numParms; ++i)
@@ -302,7 +304,7 @@ static bool EXP_evalEnterBlock
     {
         assert(0 == numParms);
     }
-    EXP_EvalBlock blk = { defStackP, seq, len, 0, srcNode, nativeFun };
+    EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, nativeFun };
     vec_push(&ctx->blockStack, blk);
     return true;
 }
@@ -331,13 +333,20 @@ next:
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
             EXP_EvalNativeFunCall call = nativeFunInfo->call;
-            u32 numArgs = curBlock->seqLen;
-            assert(numArgs == nativeFunInfo->numParms);
-            assert(numArgs <= ctx->dataStack.length);
-            u32 argsOffset = ctx->dataStack.length - numArgs;
+            if (curBlock->dataStackP > ctx->dataStack.length)
+            {
+                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
+            u32 numArgs = ctx->dataStack.length - curBlock->dataStackP;
+            if (numArgs != nativeFunInfo->numParms)
+            {
+                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
             for (u32 i = 0; i < numArgs; ++i)
             {
-                EXP_EvalValue* v = ctx->dataStack.data + argsOffset + i;
+                EXP_EvalValue* v = ctx->dataStack.data + curBlock->dataStackP + i;
                 u32 vt = nativeFunInfo->parmType[i];
                 if (v->type != vt)
                 {
@@ -349,7 +358,7 @@ next:
                         EXP_EvalValueData data;
                         if (!fromStr(l, s, &data))
                         {
-                            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalValueType);
+                            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                             return;
                         }
                         v->type = vt;
@@ -357,13 +366,13 @@ next:
                     }
                     else
                     {
-                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalValueType);
+                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
                 }
             }
-            EXP_EvalValueData data = call(space, numArgs, ctx->dataStack.data + argsOffset);
-            vec_resize(&ctx->dataStack, argsOffset);
+            EXP_EvalValueData data = call(space, numArgs, ctx->dataStack.data + curBlock->dataStackP);
+            vec_resize(&ctx->dataStack, curBlock->dataStackP);
             EXP_EvalValue v = { nativeFunInfo->retType, data };
             vec_push(&ctx->dataStack, v);
         }

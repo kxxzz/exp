@@ -97,7 +97,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_SrcFile,
     EXP_EvalErrCode_ExpSyntax,
     EXP_EvalErrCode_EvalSyntax,
-    EXP_EvalErrCode_EvalValueType,
+    EXP_EvalErrCode_EvalArgs,
 
     EXP_NumEvalErrCodes
 } EXP_EvalErrCode;
