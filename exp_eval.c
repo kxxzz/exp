@@ -227,7 +227,7 @@ static void EXP_evalDefGetParms(EXP_EvalContext* ctx, EXP_Node node, u32* pNumPa
         assert(EXP_evalCheckDefPat(space, defCall[1]));
         EXP_Node* pat = EXP_seqElm(space, defCall[1]);
         *pNumParms = EXP_seqLen(space, defCall[1]) - 1;
-        *pParms = pat;
+        *pParms = pat + 1;
     }
 }
 
@@ -290,6 +290,7 @@ static bool EXP_evalEnterBlock
         for (u32 i = 0; i < numParms; ++i)
         {
             EXP_Node k = parms[i];
+            const char* ks = EXP_tokCstr(ctx->space, k);
             EXP_EvalValue v = ctx->dataStack->data[argsOffset + i];
             EXP_EvalDef def = { k, true, .val = v };
             vec_push(&ctx->defStack, def);
