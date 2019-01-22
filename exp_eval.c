@@ -614,7 +614,7 @@ EXP_EvalRet EXP_eval
 EXP_EvalRet EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    bool debug
+    bool traceSrcInfo
 )
 {
     EXP_EvalRet ret = { EXP_EvalErrCode_NONE };
@@ -633,7 +633,7 @@ EXP_EvalRet EXP_evalFile
 
     EXP_NodeSrcInfoTable* srcInfoTable = NULL;
     EXP_NodeSrcInfoTable _srcInfoTable = { 0 };
-    if (debug)
+    if (traceSrcInfo)
     {
         srcInfoTable = &_srcInfoTable;
     }

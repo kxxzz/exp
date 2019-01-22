@@ -123,7 +123,7 @@ EXP_EvalRet EXP_eval
 EXP_EvalRet EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    bool debug
+    bool traceSrcInfo
 );
 
 
