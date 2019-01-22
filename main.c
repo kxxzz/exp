@@ -54,6 +54,31 @@ void testEval(void)
     EXP_EvalDataStack dataStack = { 0 };
     EXP_EvalRet r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, true);
     assert(EXP_EvalErrCode_NONE == r.errCode);
+    for (u32 i = 0; i < dataStack.length; ++i)
+    {
+        EXP_EvalValue v = dataStack.data[i];
+        switch (v.type)
+        {
+        case EXP_EvalPrimValueType_Num:
+        {
+            printf("%f\n", v.data.num);
+            break;
+        }
+        case EXP_EvalPrimValueType_Tok:
+        {
+            const char* s = EXP_tokCstr(space, v.data.node);
+            printf("%s\n", s);
+            break;
+        }
+        case EXP_EvalPrimValueType_Seq:
+        default:
+        {
+            const char* s = EXP_EvalPrimValueTypeInfoTable[v.type].name;
+            printf("%s\n", s);
+            break;
+        }
+        }
+    }
     vec_free(&dataStack);
     EXP_spaceFree(space);
 }

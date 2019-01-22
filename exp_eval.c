@@ -291,7 +291,7 @@ static bool EXP_evalEnterBlock
         {
             EXP_Node k = parms[i];
             EXP_EvalValue v = ctx->dataStack->data[argsOffset + i];
-            EXP_EvalDef def = { k, true, .value = v };
+            EXP_EvalDef def = { k, true, .val = v };
             vec_push(&ctx->defStack, def);
         }
         for (u32 i = 0; i < len; ++i)
