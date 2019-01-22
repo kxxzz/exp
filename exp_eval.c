@@ -43,20 +43,21 @@ typedef struct EXP_EvalContext
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalRet ret;
-    bool hasHalt;
     EXP_EvalDefStack defStack;
     EXP_EvalBlockStack blockStack;
 } EXP_EvalContext;
 
 static EXP_EvalContext EXP_newEvalContext
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv
+    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv,
+    EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
     EXP_EvalContext _ctx = { 0 };
     EXP_EvalContext* ctx = &_ctx;
     ctx->space = space;
     ctx->dataStack = dataStack;
+    ctx->srcInfoTable = srcInfoTable;
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
         vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
@@ -156,12 +157,11 @@ static bool EXP_evalCheckDefPat(EXP_Space* space, EXP_Node node)
 
 static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
 {
-    ctx->hasHalt = true;
+    ctx->ret.errCode = errCode;
     EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
     if (srcInfoTable)
     {
         assert(node.id < srcInfoTable->length);
-        ctx->ret.errCode = errCode;
         ctx->ret.errSrcFile = NULL;// todo
         ctx->ret.errSrcFileLine = srcInfoTable->data[node.id].line;
         ctx->ret.errSrcFileColumn = srcInfoTable->data[node.id].column;
@@ -300,7 +300,7 @@ static bool EXP_evalEnterBlock
         for (u32 i = 0; i < len; ++i)
         {
             EXP_evalLoadDef(ctx, seq[i]);
-            if (ctx->hasHalt)
+            if (ctx->ret.errCode)
             {
                 return false;;
             }
@@ -372,7 +372,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_Space* space = ctx->space;
     EXP_EvalBlock* curBlock;
 next:
-    if (ctx->hasHalt)
+    if (ctx->ret.errCode)
     {
         return;
     }
@@ -591,7 +591,7 @@ EXP_EvalRet EXP_eval
     {
         return ret;
     }
-    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv);
+    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, 0, root, -1, NULL);
