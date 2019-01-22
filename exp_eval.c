@@ -21,7 +21,7 @@ typedef struct EXP_EvalBlock
 {
     u32 defStackP;
     EXP_Node* seq;
-    u32 len;
+    u32 seqLen;
     u32 p;
     EXP_Node srcNode;
     u32 nativeFun;
@@ -325,13 +325,13 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_EvalBlock* curBlock;
 next:
     curBlock = &vec_last(&ctx->blockStack);
-    if (curBlock->p == curBlock->len)
+    if (curBlock->p == curBlock->seqLen)
     {
         if (curBlock->nativeFun != -1)
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
             EXP_EvalNativeFunCall call = nativeFunInfo->call;
-            u32 numArgs = curBlock->len;
+            u32 numArgs = curBlock->seqLen;
             assert(numArgs == nativeFunInfo->numParms);
             assert(numArgs <= ctx->dataStack.length);
             u32 argsOffset = ctx->dataStack.length - numArgs;
