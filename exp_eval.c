@@ -294,6 +294,8 @@ static bool EXP_evalEnterBlock
             EXP_EvalDef def = { k, true, .val = v };
             vec_push(&ctx->defStack, def);
         }
+        vec_resize(ctx->dataStack, argsOffset);
+
         for (u32 i = 0; i < len; ++i)
         {
             EXP_evalLoadDef(ctx, seq[i]);
@@ -453,6 +455,7 @@ next:
             if (def->isVal)
             {
                 vec_push(ctx->dataStack, def->val);
+                goto next;
             }
             else
             {
@@ -500,6 +503,7 @@ next:
         if (def->isVal)
         {
             vec_push(ctx->dataStack, def->val);
+            goto next;
         }
         else
         {
