@@ -37,14 +37,14 @@ enum
 
 typedef EXP_EvalValueData(*EXP_EvalNativeFunCall)(EXP_Space* space, u32 numParms, EXP_EvalValue* args);
 
-typedef struct EXP_EvalNativeFunTypeInfo
+typedef struct EXP_EvalNativeFunInfo
 {
     const char* name;
     EXP_EvalNativeFunCall call;
     u32 retType;
     u32 numParms;
     u32 parmType[EXP_EvalNativeFunParms_MAX];
-} EXP_EvalNativeFunTypeInfo;
+} EXP_EvalNativeFunInfo;
 
 
 
@@ -62,22 +62,30 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 
 
-
-typedef enum EXP_EvalPrimFunType
+typedef enum EXP_EvalPrimFun
 {
-    EXP_EvalPrimFunType_Blk,
-    EXP_EvalPrimFunType_Def,
-    EXP_EvalPrimFunType_If,
-    EXP_EvalPrimFunType_Add,
-    EXP_EvalPrimFunType_Sub,
-    EXP_EvalPrimFunType_Mul,
-    EXP_EvalPrimFunType_Div,
+    EXP_EvalPrimFun_Blk,
+    EXP_EvalPrimFun_Def,
+    EXP_EvalPrimFun_If,
+    EXP_EvalPrimFun_Add,
+    EXP_EvalPrimFun_Sub,
+    EXP_EvalPrimFun_Mul,
+    EXP_EvalPrimFun_Div,
 
-    EXP_NumEvalPrimFunTypes
-} EXP_EvalPrimFunType;
+    EXP_NumEvalPrimFuns
+} EXP_EvalPrimFun;
 
-const EXP_EvalNativeFunTypeInfo EXP_EvalPrimFunTypeInfoTable[EXP_NumEvalPrimFunTypes];
+const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
 
+
+
+typedef struct EXP_EvalNativeEnv
+{
+    u32 numValueTypes;
+    EXP_EvalValueTypeInfo* valueTypes;
+    u32 numFuns;
+    EXP_EvalNativeFunInfo* funs;
+} EXP_EvalNativeEnv;
 
 
 
@@ -89,6 +97,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_SrcFile,
     EXP_EvalErrCode_ExpSyntax,
     EXP_EvalErrCode_EvalSyntax,
+    EXP_EvalErrCode_EvalValueType,
 
     EXP_NumEvalErrCodes
 } EXP_EvalErrCode;
@@ -103,9 +112,12 @@ typedef struct EXP_EvalRet
 } EXP_EvalRet;
 
 
-EXP_EvalRet EXP_eval(EXP_Space* space, EXP_Node root, EXP_NodeSrcInfoTable* srcInfoTable);
+EXP_EvalRet EXP_eval
+(
+    EXP_Space* space, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv, EXP_NodeSrcInfoTable* srcInfoTable
+);
 
-EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug);
+EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv, bool debug);
 
 
 
