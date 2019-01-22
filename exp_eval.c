@@ -1,19 +1,17 @@
 #include "exp_eval_a.h"
 
 
-typedef vec_t(EXP_EvalValueTypeInfo) EXP_EvalValueTypeInfoTable;
-typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
-
 
 typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
+
 
 
 typedef struct EXP_EvalDef
 {
     EXP_Node key;
-    EXP_Node val;
-    bool hasRtVal;
-    EXP_EvalValue rtVal;
+    EXP_Node src;
+    bool hasVal;
+    EXP_EvalValue val;
 } EXP_EvalDef;
 
 typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
@@ -32,12 +30,16 @@ typedef struct EXP_EvalBlock
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
 
 
+typedef vec_t(EXP_EvalValueTypeInfo) EXP_EvalValueTypeInfoTable;
+typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
+
+
 typedef struct EXP_EvalContext
 {
-    EXP_Space* space;
-    EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
+    EXP_Space* space;
+    EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalRet ret;
     bool hasHalt;
     EXP_EvalDefStack defStack;
@@ -47,8 +49,9 @@ typedef struct EXP_EvalContext
 
 static EXP_EvalContext EXP_newEvalContext(EXP_Space* space, const EXP_EvalNativeEnv* nativeEnv)
 {
-    EXP_EvalContext _ctx = { space };
+    EXP_EvalContext _ctx = { 0 };
     EXP_EvalContext* ctx = &_ctx;
+    ctx->space = space;
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
         vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
@@ -272,10 +275,8 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 static bool EXP_evalEnterBlock
 (
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq,
-    u32 numParms, EXP_Node* parms, EXP_Node* args,
-    EXP_Node srcNode,
-    u32 nativeFun
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, u32 numParms, EXP_Node* parms, EXP_Node* args,
+    EXP_Node srcNode, u32 nativeFun
 )
 {
     u32 defStackP = ctx->defStack.length;
@@ -381,22 +382,22 @@ next:
         {
             u32 numParms = 0;;
             EXP_Node* parms = NULL;
-            EXP_evalDefGetParms(ctx, def->val, &numParms, &parms);
+            EXP_evalDefGetParms(ctx, def->src, &numParms, &parms);
             if (numParms > 0)
             {
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
                 return;
             }
-            if (def->hasRtVal)
+            if (def->hasVal)
             {
-                vec_push(&ctx->dataStack, def->rtVal);
+                vec_push(&ctx->dataStack, def->val);
                 goto next;
             }
             else
             {
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
-                EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
+                EXP_evalDefGetBody(ctx, def->src, &bodyLen, &body);
                 if (EXP_evalEnterBlock(ctx, bodyLen, body, 0, NULL, NULL, node, -1))
                 {
                     goto next;
@@ -428,7 +429,7 @@ next:
     {
         u32 numParms = 0;;
         EXP_Node* parms = NULL;
-        EXP_evalDefGetParms(ctx, def->val, &numParms, &parms);
+        EXP_evalDefGetParms(ctx, def->src, &numParms, &parms);
         if (numParms != len - 1)
         {
             EXP_evalErrorAtNode(ctx, call, EXP_EvalErrCode_EvalSyntax);
@@ -436,17 +437,17 @@ next:
         }
         if (numParms > 0)
         {
-            assert(!def->hasRtVal);
+            assert(!def->hasVal);
         }
-        else if (def->hasRtVal)
+        else if (def->hasVal)
         {
-            vec_push(&ctx->dataStack, def->rtVal);
+            vec_push(&ctx->dataStack, def->val);
             goto next;
         }
 
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
-        EXP_evalDefGetBody(ctx, def->val, &bodyLen, &body);
+        EXP_evalDefGetBody(ctx, def->src, &bodyLen, &body);
         if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, elms + 1, node, -1))
         {
             goto next;
