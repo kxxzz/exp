@@ -319,6 +319,47 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 
 
+static void EXP_evalNativeCall
+(
+    EXP_EvalContext* ctx, EXP_EvalNativeFunInfo* nativeFunInfo, u32 argsOffset, EXP_Node srcNode
+)
+{
+    EXP_Space* space = ctx->space;
+    u32 numArgs = nativeFunInfo->numParms;
+    for (u32 i = 0; i < numArgs; ++i)
+    {
+        EXP_EvalValue* v = ctx->dataStack.data + argsOffset + i;
+        u32 vt = nativeFunInfo->parmType[i];
+        if (v->type != vt)
+        {
+            EXP_EvalValFromStr fromStr = ctx->valueTypeTable.data[vt].fromStr;
+            if (fromStr && (EXP_EvalPrimValueType_Tok == v->type))
+            {
+                u32 l = EXP_tokSize(space, v->data.node);
+                const char* s = EXP_tokCstr(space, v->data.node);
+                EXP_EvalValueData data;
+                if (!fromStr(l, s, &data))
+                {
+                    EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
+                v->type = vt;
+                v->data = data;
+            }
+            else
+            {
+                EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
+        }
+    }
+    EXP_EvalValueData data = nativeFunInfo->call(space, numArgs, ctx->dataStack.data + argsOffset);
+    vec_resize(&ctx->dataStack, argsOffset);
+    EXP_EvalValue v = { nativeFunInfo->retType, data };
+    vec_push(&ctx->dataStack, v);
+}
+
+
 
 
 static void EXP_evalCall(EXP_EvalContext* ctx)
@@ -326,13 +367,16 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_Space* space = ctx->space;
     EXP_EvalBlock* curBlock;
 next:
+    if (ctx->hasHalt)
+    {
+        return;
+    }
     curBlock = &vec_last(&ctx->blockStack);
     if (curBlock->p == curBlock->seqLen)
     {
         if (curBlock->nativeFun != -1)
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
-            EXP_EvalNativeFunCall call = nativeFunInfo->call;
             if (curBlock->dataStackP > ctx->dataStack.length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
@@ -344,37 +388,7 @@ next:
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            for (u32 i = 0; i < numArgs; ++i)
-            {
-                EXP_EvalValue* v = ctx->dataStack.data + curBlock->dataStackP + i;
-                u32 vt = nativeFunInfo->parmType[i];
-                if (v->type != vt)
-                {
-                    EXP_EvalValFromStr fromStr = ctx->valueTypeTable.data[vt].fromStr;
-                    if (fromStr && (EXP_EvalPrimValueType_Tok == v->type))
-                    {
-                        u32 l = EXP_tokSize(space, v->data.node);
-                        const char* s = EXP_tokCstr(space, v->data.node);
-                        EXP_EvalValueData data;
-                        if (!fromStr(l, s, &data))
-                        {
-                            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                            return;
-                        }
-                        v->type = vt;
-                        v->data = data;
-                    }
-                    else
-                    {
-                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                        return;
-                    }
-                }
-            }
-            EXP_EvalValueData data = call(space, numArgs, ctx->dataStack.data + curBlock->dataStackP);
-            vec_resize(&ctx->dataStack, curBlock->dataStackP);
-            EXP_EvalValue v = { nativeFunInfo->retType, data };
-            vec_push(&ctx->dataStack, v);
+            EXP_evalNativeCall(ctx, nativeFunInfo, curBlock->dataStackP, curBlock->srcNode);
         }
         if (EXP_evalLeaveBlock(ctx))
         {
@@ -386,6 +400,27 @@ next:
     if (EXP_isTok(space, node))
     {
         const char* funName = EXP_tokCstr(space, node);
+        u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
+        if (nativeFun != -1)
+        {
+            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
+            if (!nativeFunInfo->call)
+            {
+                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
+            if (nativeFunInfo->numParms > 0)
+            {
+                if (ctx->dataStack.length < nativeFunInfo->numParms)
+                {
+                    EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
+            }
+            u32 argsOffset = ctx->dataStack.length - nativeFunInfo->numParms;
+            EXP_evalNativeCall(ctx, nativeFunInfo, argsOffset, node);
+            goto next;
+        }
         EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
         if (def)
         {
@@ -394,8 +429,16 @@ next:
             EXP_evalDefGetParms(ctx, def->src, &numParms, &parms);
             if (numParms > 0)
             {
-                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-                return;
+                if (ctx->dataStack.length >= numParms)
+                {
+
+
+                }
+                else
+                {
+                    EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
             }
             if (def->hasVal)
             {
@@ -495,17 +538,7 @@ next:
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
             assert(nativeFunInfo->call);
-            u32 numParms = EXP_EvalPrimFunInfoTable[nativeFun].numParms;
-            u32 numArgs = len - 1;
-            if (numParms != (u32)-1)
-            {
-                if (numParms != numArgs)
-                {
-                    EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-                    return;
-                }
-            }
-            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, 0, NULL, NULL, node, nativeFun))
+            if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, 0, NULL, NULL, node, nativeFun))
             {
                 goto next;
             }
