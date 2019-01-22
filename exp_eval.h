@@ -108,16 +108,23 @@ typedef struct EXP_EvalRet
     const char* errSrcFile;
     u32 errSrcFileLine;
     u32 errSrcFileColumn;
-    EXP_EvalValue value;
 } EXP_EvalRet;
+
+
+typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
 
 
 EXP_EvalRet EXP_eval
 (
-    EXP_Space* space, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv, EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
+    EXP_NodeSrcInfoTable* srcInfoTable
 );
 
-EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv, bool debug);
+EXP_EvalRet EXP_evalFile
+(
+    EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
+    bool debug
+);
 
 
 

@@ -2,10 +2,6 @@
 
 
 
-typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
-
-
-
 typedef struct EXP_EvalDef
 {
     EXP_Node key;
@@ -37,22 +33,26 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 
 typedef struct EXP_EvalContext
 {
+    EXP_Space* space;
+    EXP_EvalDataStack* dataStack;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
-    EXP_Space* space;
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalRet ret;
     bool hasHalt;
     EXP_EvalDefStack defStack;
     EXP_EvalBlockStack blockStack;
-    EXP_EvalDataStack dataStack;
 } EXP_EvalContext;
 
-static EXP_EvalContext EXP_newEvalContext(EXP_Space* space, const EXP_EvalNativeEnv* nativeEnv)
+static EXP_EvalContext EXP_newEvalContext
+(
+    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv
+)
 {
     EXP_EvalContext _ctx = { 0 };
     EXP_EvalContext* ctx = &_ctx;
     ctx->space = space;
+    ctx->dataStack = dataStack;
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
         vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
@@ -76,7 +76,6 @@ static EXP_EvalContext EXP_newEvalContext(EXP_Space* space, const EXP_EvalNative
 }
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
-    vec_free(&ctx->dataStack);
     vec_free(&ctx->blockStack);
     vec_free(&ctx->defStack);
     vec_free(&ctx->nativeFunTable);
@@ -281,7 +280,7 @@ static bool EXP_evalEnterBlock
 )
 {
     u32 defStackP = ctx->defStack.length;
-    u32 dataStackP = ctx->dataStack.length;
+    u32 dataStackP = ctx->dataStack->length;
     if (-1 == nativeFun)
     {
         for (u32 i = 0; i < numParms; ++i)
@@ -328,7 +327,7 @@ static void EXP_evalNativeCall
     u32 numArgs = nativeFunInfo->numParms;
     for (u32 i = 0; i < numArgs; ++i)
     {
-        EXP_EvalValue* v = ctx->dataStack.data + argsOffset + i;
+        EXP_EvalValue* v = ctx->dataStack->data + argsOffset + i;
         u32 vt = nativeFunInfo->parmType[i];
         if (v->type != vt)
         {
@@ -353,10 +352,10 @@ static void EXP_evalNativeCall
             }
         }
     }
-    EXP_EvalValueData data = nativeFunInfo->call(space, numArgs, ctx->dataStack.data + argsOffset);
-    vec_resize(&ctx->dataStack, argsOffset);
+    EXP_EvalValueData data = nativeFunInfo->call(space, numArgs, ctx->dataStack->data + argsOffset);
+    vec_resize(ctx->dataStack, argsOffset);
     EXP_EvalValue v = { nativeFunInfo->retType, data };
-    vec_push(&ctx->dataStack, v);
+    vec_push(ctx->dataStack, v);
 }
 
 
@@ -377,12 +376,12 @@ next:
         if (curBlock->nativeFun != -1)
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
-            if (curBlock->dataStackP > ctx->dataStack.length)
+            if (curBlock->dataStackP > ctx->dataStack->length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 numArgs = ctx->dataStack.length - curBlock->dataStackP;
+            u32 numArgs = ctx->dataStack->length - curBlock->dataStackP;
             if (numArgs != nativeFunInfo->numParms)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
@@ -411,13 +410,13 @@ next:
             }
             if (nativeFunInfo->numParms > 0)
             {
-                if (ctx->dataStack.length < nativeFunInfo->numParms)
+                if (ctx->dataStack->length < nativeFunInfo->numParms)
                 {
                     EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
             }
-            u32 argsOffset = ctx->dataStack.length - nativeFunInfo->numParms;
+            u32 argsOffset = ctx->dataStack->length - nativeFunInfo->numParms;
             EXP_evalNativeCall(ctx, nativeFunInfo, argsOffset, node);
             goto next;
         }
@@ -429,7 +428,7 @@ next:
             EXP_evalDefGetParms(ctx, def->src, &numParms, &parms);
             if (numParms > 0)
             {
-                if (ctx->dataStack.length >= numParms)
+                if (ctx->dataStack->length >= numParms)
                 {
 
 
@@ -442,7 +441,7 @@ next:
             }
             if (def->hasVal)
             {
-                vec_push(&ctx->dataStack, def->val);
+                vec_push(ctx->dataStack, def->val);
                 goto next;
             }
             else
@@ -463,7 +462,7 @@ next:
         else
         {
             EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.node = node };
-            vec_push(&ctx->dataStack, v);
+            vec_push(ctx->dataStack, v);
             goto next;
         }
     }
@@ -493,7 +492,7 @@ next:
         }
         else if (def->hasVal)
         {
-            vec_push(&ctx->dataStack, def->val);
+            vec_push(ctx->dataStack, def->val);
             goto next;
         }
 
@@ -570,7 +569,8 @@ next:
 
 EXP_EvalRet EXP_eval
 (
-    EXP_Space* space, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv, EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
+    EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
     EXP_EvalRet ret = { 0 };
@@ -578,16 +578,11 @@ EXP_EvalRet EXP_eval
     {
         return ret;
     }
-    EXP_EvalContext ctx = EXP_newEvalContext(space, nativeEnv);
+    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, NULL, root, -1);
     EXP_evalCall(&ctx);
-    if (!ctx.hasHalt)
-    {
-        assert(1 == ctx.dataStack.length);
-        ctx.ret.value = ctx.dataStack.data[0];
-    }
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);
     return ret;
@@ -604,7 +599,11 @@ EXP_EvalRet EXP_eval
 
 
 
-EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv, bool debug)
+EXP_EvalRet EXP_evalFile
+(
+    EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
+    bool debug
+)
 {
     EXP_EvalRet ret = { EXP_EvalErrCode_NONE };
     char* src = NULL;
@@ -644,7 +643,7 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* srcFile, const EXP_EvalNa
         }
         return ret;
     }
-    ret = EXP_eval(space, root, nativeEnv, srcInfoTable);
+    ret = EXP_eval(space, dataStack, root, nativeEnv, srcInfoTable);
     if (srcInfoTable)
     {
         vec_free(srcInfoTable);

@@ -51,8 +51,10 @@ void testLoadSave(void)
 void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
-    EXP_EvalRet r = EXP_evalFile(space, "../1.exp", NULL, true);
+    EXP_EvalDataStack dataStack = { 0 };
+    EXP_EvalRet r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, true);
     assert(EXP_EvalErrCode_NONE == r.errCode);
+    vec_free(&dataStack);
     EXP_spaceFree(space);
 }
 
