@@ -340,8 +340,7 @@ static void EXP_evalNativeFunCall
 )
 {
     EXP_Space* space = ctx->space;
-    u32 numArgs = nativeFunInfo->numIns;
-    for (u32 i = 0; i < numArgs; ++i)
+    for (u32 i = 0; i < nativeFunInfo->numIns; ++i)
     {
         EXP_EvalValue* v = ctx->dataStack->data + argsOffset + i;
         u32 vt = nativeFunInfo->inType[i];
@@ -401,9 +400,9 @@ next:
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 numArgs = ctx->dataStack->length - curBlock->dataStackP;
+            u32 numIns = ctx->dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
-            if (numArgs != nativeFunInfo->numIns)
+            if (numIns != nativeFunInfo->numIns)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
