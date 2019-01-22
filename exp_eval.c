@@ -369,7 +369,7 @@ static void EXP_evalNativeFunCall
     }
     EXP_EvalValueData data = nativeFunInfo->call(space, numArgs, ctx->dataStack->data + argsOffset);
     vec_resize(ctx->dataStack, argsOffset);
-    EXP_EvalValue v = { nativeFunInfo->retType, data };
+    EXP_EvalValue v = { nativeFunInfo->outType, data };
     vec_push(ctx->dataStack, v);
 }
 

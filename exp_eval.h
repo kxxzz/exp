@@ -42,7 +42,7 @@ typedef struct EXP_EvalNativeFunInfo
 {
     const char* name;
     EXP_EvalNativeFunCall call;
-    u32 retType;
+    u32 outType;
     u32 numIns;
     u32 inType[EXP_EvalNativeFunIns_MAX];
 } EXP_EvalNativeFunInfo;
