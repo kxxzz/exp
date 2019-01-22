@@ -4,26 +4,62 @@
 #include "exp.h"
 
 
-typedef enum EXP_EvalPrimValueType
-{
-    EXP_EvalPrimValueType_Num,
-    EXP_EvalPrimValueType_Str,
 
-    EXP_NumEvalPrimValueTypes
-} EXP_EvalPrimValueType;
+typedef union EXP_EvalValueData
+{
+    double num;
+    EXP_Node node;
+    void* ptr;
+} EXP_EvalValueData;
 
 typedef struct EXP_EvalValue
 {
     u32 type;
-    union
-    {
-        double num;
-        EXP_Node str;
-        void* ptr;
-    };
+    EXP_EvalValueData data;
 } EXP_EvalValue;
 
-typedef EXP_EvalValue(*EXP_EvalNativeFunCall)(EXP_Space* space, u32 numParms, EXP_EvalValue* args);
+
+
+typedef bool(*EXP_EvalValFromStr)(u32 len, const char* str, EXP_EvalValueData* pData);
+
+typedef struct EXP_EvalValueTypeInfo
+{
+    const char* name;
+    EXP_EvalValFromStr fromStr;
+} EXP_EvalValueTypeInfo;
+
+
+
+enum
+{
+    EXP_EvalNativeFunParms_MAX = 16,
+};
+
+typedef EXP_EvalValueData(*EXP_EvalNativeFunCall)(EXP_Space* space, u32 numParms, EXP_EvalValue* args);
+
+typedef struct EXP_EvalNativeFunTypeInfo
+{
+    const char* name;
+    EXP_EvalNativeFunCall call;
+    u32 retType;
+    u32 numParms;
+    u32 parmType[EXP_EvalNativeFunParms_MAX];
+} EXP_EvalNativeFunTypeInfo;
+
+
+
+
+typedef enum EXP_EvalPrimValueType
+{
+    EXP_EvalPrimValueType_Num,
+    EXP_EvalPrimValueType_Tok,
+    EXP_EvalPrimValueType_Seq,
+
+    EXP_NumEvalPrimValueTypes
+} EXP_EvalPrimValueType;
+
+const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes];
+
 
 
 
@@ -40,27 +76,9 @@ typedef enum EXP_EvalPrimFunType
     EXP_NumEvalPrimFunTypes
 } EXP_EvalPrimFunType;
 
-static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimFunTypes] =
-{
-    "blk",
-    "def",
-    "if",
-    "+",
-    "-",
-    "*",
-    "/",
-};
+const EXP_EvalNativeFunTypeInfo EXP_EvalPrimFunTypeInfoTable[EXP_NumEvalPrimFunTypes];
 
-static u32 EXP_EvalPrimFunTypeNumParmsTable[EXP_NumEvalPrimFunTypes] =
-{
-    -1,
-    -1,
-    -1,
-    2,
-    2,
-    2,
-    2,
-};
+
 
 
 

@@ -18,7 +18,7 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 typedef struct EXP_EvalBlock
 {
-    EXP_EvalNativeFunCall call;
+    u32 nativeFun;
     u32 defStackP;
     EXP_Node* seq;
     u32 len;
@@ -55,7 +55,7 @@ static EXP_EvalPrimFunType EXP_evalGetPrimFunType(EXP_Space* space, const char* 
 {
     for (u32 i = 0; i < EXP_NumEvalPrimFunTypes; ++i)
     {
-        if (0 == strcmp(funName, EXP_EvalPrimFunTypeNameTable[i]))
+        if (0 == strcmp(funName, EXP_EvalPrimFunTypeInfoTable[i].name))
         {
             return i;
         }
@@ -63,7 +63,6 @@ static EXP_EvalPrimFunType EXP_evalGetPrimFunType(EXP_Space* space, const char* 
     return -1;
 }
 
-static EXP_EvalNativeFunCall EXP_EvalPrimNativeFunCallTable[EXP_NumEvalPrimFunTypes];
 
 
 
@@ -241,19 +240,19 @@ static bool EXP_evalEnterBlock
 (
     EXP_EvalContext* ctx, u32 len, EXP_Node* seq,
     u32 numParms, EXP_Node* parms, EXP_Node* args,
-    EXP_EvalNativeFunCall call
+    u32 nativeFun
 )
 {
     u32 defStackP = ctx->defStack.length;
-    for (u32 i = 0; i < numParms; ++i)
+    if (-1 == nativeFun)
     {
-        EXP_Node k = parms[i];
-        EXP_Node v = args[i];
-        EXP_EvalDef def = { k, v };
-        vec_push(&ctx->defStack, def);
-    }
-    if (!call)
-    {
+        for (u32 i = 0; i < numParms; ++i)
+        {
+            EXP_Node k = parms[i];
+            EXP_Node v = args[i];
+            EXP_EvalDef def = { k, v };
+            vec_push(&ctx->defStack, def);
+        }
         for (u32 i = 0; i < len; ++i)
         {
             EXP_evalLoadDef(ctx, seq[i]);
@@ -263,7 +262,11 @@ static bool EXP_evalEnterBlock
             }
         }
     }
-    EXP_EvalBlock blk = { call, defStackP, seq, len, 0 };
+    else
+    {
+        assert(0 == numParms);
+    }
+    EXP_EvalBlock blk = { nativeFun, defStackP, seq, len, 0 };
     vec_push(&ctx->blockStack, blk);
     return true;
 }
@@ -294,8 +297,9 @@ next:
             u32 numArgs = curBlock->len;
             assert(numArgs <= ctx->dataStack.length);
             u32 argsOffset = ctx->dataStack.length - numArgs;
-            EXP_EvalValue v = call(space, numArgs, ctx->dataStack.data + argsOffset);
+            EXP_EvalValueData d = call(space, numArgs, ctx->dataStack.data + argsOffset);
             vec_resize(&ctx->dataStack, argsOffset);
+            EXP_EvalValue v = { curBlock->callRetType, d };
             vec_push(&ctx->dataStack, v);
         }
         if (EXP_evalLeaveBlock(ctx))
@@ -341,7 +345,7 @@ next:
         }
         else
         {
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .str = node };
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.node = node };
             vec_push(&ctx->dataStack, v);
             goto next;
         }
@@ -417,7 +421,7 @@ next:
         {
             EXP_EvalNativeFunCall call = EXP_EvalPrimNativeFunCallTable[primType];
             assert(call);
-            u32 numParms = EXP_EvalPrimFunTypeNumParmsTable[primType];
+            u32 numParms = EXP_EvalPrimFunTypeInfoTable[primType].numParms;
             u32 numArgs = len - 1;
             if (numParms != (u32)-1)
             {
@@ -552,27 +556,23 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 
 
-static double EXP_evalRealFromValue(EXP_Space* space, const EXP_EvalValue v)
+static bool EXP_evalRealFromValue(u32 len, const char* str, EXP_EvalValueData* pData)
 {
-    if (EXP_EvalPrimValueType_Str == v.type)
+    double num;
+    u32 r = NSTR_str2num(&num, str, len, NULL);
+    if (len == r)
     {
-        double n;
-        u32 l = EXP_tokSize(space, v.str);
-        const char* s = EXP_tokCstr(space, v.str);
-        u32 r = NSTR_str2num(&n, s, l, NULL);
-        return n;
+        pData->num = num;
     }
-    else if (EXP_EvalPrimValueType_Num == v.type)
-    {
-        return v.num;
-    }
-    else
-    {
-        assert(false);
-        return NAN;
-    }
+    return len == r;
 }
 
+const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes] =
+{
+    { "num", EXP_evalRealFromValue },
+    { "tok" },
+    { "seq" },
+};
 
 
 
@@ -582,56 +582,75 @@ static double EXP_evalRealFromValue(EXP_Space* space, const EXP_EvalValue v)
 
 
 
-static EXP_EvalValue EXP_evalNativeFunCall_Add(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+
+
+
+
+static EXP_EvalValueData EXP_evalNativeFunCall_Add(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
-    EXP_EvalValue v;
-    double a = args[0].num;
-    double b = args[1].num;
+    EXP_EvalValueData v;
+    double a = args[0].data.num;
+    double b = args[1].data.num;
     v.num = a + b;
     return v;
 }
-static EXP_EvalValue EXP_evalNativeFunCall_Sub(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValueData EXP_evalNativeFunCall_Sub(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
-    EXP_EvalValue v;
-    double a = args[0].num;
-    double b = args[1].num;
+    EXP_EvalValueData v;
+    double a = args[0].data.num;
+    double b = args[1].data.num;
     v.num = a - b;
     return v;
 }
-static EXP_EvalValue EXP_evalNativeFunCall_Mul(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValueData EXP_evalNativeFunCall_Mul(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
-    EXP_EvalValue v;
-    double a = args[0].num;
-    double b = args[1].num;
+    EXP_EvalValueData v;
+    double a = args[0].data.num;
+    double b = args[1].data.num;
     v.num = a * b;
     return v;
 }
-static EXP_EvalValue EXP_evalNativeFunCall_Div(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValueData EXP_evalNativeFunCall_Div(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
-    EXP_EvalValue v;
-    double a = args[0].num;
-    double b = args[1].num;
+    EXP_EvalValueData v;
+    double a = args[0].data.num;
+    double b = args[1].data.num;
     v.num = a / b;
     return v;
 }
 
-
-
-
-static EXP_EvalNativeFunCall EXP_EvalPrimNativeFunCallTable[EXP_NumEvalPrimFunTypes] =
+const EXP_EvalNativeFunTypeInfo EXP_EvalPrimFunTypeInfoTable[EXP_NumEvalPrimFunTypes] =
 {
-    NULL,
-    NULL,
-    NULL,
-    EXP_evalNativeFunCall_Add,
-    EXP_evalNativeFunCall_Sub,
-    EXP_evalNativeFunCall_Mul,
-    EXP_evalNativeFunCall_Div,
+    { "blk" },
+    { "def" },
+    { "if" },
+    {
+        "+",
+        EXP_evalNativeFunCall_Add,
+        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+    },
+    {
+        "-",
+        EXP_evalNativeFunCall_Sub, EXP_EvalPrimValueType_Num,
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+    },
+    {
+        "*",
+        EXP_evalNativeFunCall_Mul,
+        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+    },
+    {
+        "/",
+        EXP_evalNativeFunCall_Div,
+        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+    },
 };
+
+
 
 
 
