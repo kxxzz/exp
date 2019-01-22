@@ -404,11 +404,15 @@ next:
                 return;
             }
             EXP_Node fun = *curBlock->fun;
-            EXP_Node call = curBlock->srcNode;
             u32 numParms = 0;;
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
             u32 argsOffset = ctx->dataStack->length - numParms;
+            if (curBlock->dataStackP > argsOffset)
+            {
+                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
             EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
@@ -416,7 +420,7 @@ next:
             {
                 return;
             }
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, argsOffset, call, -1, NULL))
+            if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, argsOffset, curBlock->srcNode, -1, NULL))
             {
                 goto next;
             }
