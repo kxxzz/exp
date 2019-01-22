@@ -53,6 +53,7 @@ typedef struct EXP_EvalContext
     EXP_EvalRet ret;
     EXP_EvalDefStack defStack;
     EXP_EvalBlockStack blockStack;
+    EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
 } EXP_EvalContext;
 
 static EXP_EvalContext EXP_newEvalContext
@@ -367,10 +368,15 @@ static void EXP_evalNativeFunCall
             }
         }
     }
-    EXP_EvalValueData data = nativeFunInfo->call(space, numArgs, ctx->dataStack->data + argsOffset);
+    nativeFunInfo->call(space, ctx->dataStack->data + argsOffset, ctx->nativeCallOutBuf);
     vec_resize(ctx->dataStack, argsOffset);
-    EXP_EvalValue v = { nativeFunInfo->outType, data };
-    vec_push(ctx->dataStack, v);
+    for (u32 i = 0; i < nativeFunInfo->numOuts; ++i)
+    {
+        u32 t = nativeFunInfo->outType[i];
+        EXP_EvalValueData d = ctx->nativeCallOutBuf[i];
+        EXP_EvalValue v = { t, d };
+        vec_push(ctx->dataStack, v);
+    }
 }
 
 
@@ -733,44 +739,32 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 
 
-static EXP_EvalValueData EXP_evalNativeFunCall_Add(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.num = a + b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].num = a + b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_Sub(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_Sub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.num = a - b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].num = a - b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_Mul(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_Mul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.num = a * b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].num = a * b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_Div(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.num = a / b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].num = a / b;
 }
 
 
@@ -778,54 +772,39 @@ static EXP_EvalValueData EXP_evalNativeFunCall_Div(EXP_Space* space, u32 numParm
 
 
 
-static EXP_EvalValueData EXP_evalNativeFunCall_EQ(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.b = a == b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a == b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_GT(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.b = a > b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a > b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_LT(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_LT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.b = a < b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a < b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_GE(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_GE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.b = a >= b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a >= b;
 }
 
-static EXP_EvalValueData EXP_evalNativeFunCall_LE(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
+static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
-    assert(2 == numParms);
-    EXP_EvalValueData v;
-    double a = args[0].data.num;
-    double b = args[1].data.num;
-    v.b = a <= b;
-    return v;
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a <= b;
 }
 
 
@@ -840,48 +819,57 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
     {
         "+",
         EXP_evalNativeFunCall_Add,
-        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Num },
     },
     {
         "-",
         EXP_evalNativeFunCall_Sub,
-        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Num },
     },
     {
         "*",
         EXP_evalNativeFunCall_Mul,
-        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Num },
     },
     {
         "/",
         EXP_evalNativeFunCall_Div,
-        EXP_EvalPrimValueType_Num, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Num },
     },
 
     {
         "=",
         EXP_evalNativeFunCall_EQ,
-        EXP_EvalPrimValueType_Bool, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
     },
     {
         ">",
         EXP_evalNativeFunCall_GT,
-        EXP_EvalPrimValueType_Bool, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
     },
     {
         "<",
         EXP_evalNativeFunCall_LT,
-        EXP_EvalPrimValueType_Bool, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
     },
     {
         ">=",
         EXP_evalNativeFunCall_GE,
-        EXP_EvalPrimValueType_Bool, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
     },
     {
         "<=",
         EXP_evalNativeFunCall_LE,
-        EXP_EvalPrimValueType_Bool, 2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
     },
 };
 
