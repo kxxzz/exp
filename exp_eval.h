@@ -33,7 +33,7 @@ typedef struct EXP_EvalValueTypeInfo
 
 enum
 {
-    EXP_EvalNativeFunParms_MAX = 16,
+    EXP_EvalNativeFunIns_MAX = 16,
 };
 
 typedef EXP_EvalValueData(*EXP_EvalNativeFunCall)(EXP_Space* space, u32 numParms, EXP_EvalValue* args);
@@ -43,8 +43,8 @@ typedef struct EXP_EvalNativeFunInfo
     const char* name;
     EXP_EvalNativeFunCall call;
     u32 retType;
-    u32 numParms;
-    u32 parmType[EXP_EvalNativeFunParms_MAX];
+    u32 numIns;
+    u32 inType[EXP_EvalNativeFunIns_MAX];
 } EXP_EvalNativeFunInfo;
 
 

@@ -339,11 +339,11 @@ static void EXP_evalNativeFunCall
 )
 {
     EXP_Space* space = ctx->space;
-    u32 numArgs = nativeFunInfo->numParms;
+    u32 numArgs = nativeFunInfo->numIns;
     for (u32 i = 0; i < numArgs; ++i)
     {
         EXP_EvalValue* v = ctx->dataStack->data + argsOffset + i;
-        u32 vt = nativeFunInfo->parmType[i];
+        u32 vt = nativeFunInfo->inType[i];
         if (v->type != vt)
         {
             EXP_EvalValFromStr fromStr = ctx->valueTypeTable.data[vt].fromStr;
@@ -397,7 +397,7 @@ next:
             }
             u32 numArgs = ctx->dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
-            if (numArgs != nativeFunInfo->numParms)
+            if (numArgs != nativeFunInfo->numIns)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
@@ -453,12 +453,12 @@ next:
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            if (ctx->dataStack->length < nativeFunInfo->numParms)
+            if (ctx->dataStack->length < nativeFunInfo->numIns)
             {
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 argsOffset = ctx->dataStack->length - nativeFunInfo->numParms;
+            u32 argsOffset = ctx->dataStack->length - nativeFunInfo->numIns;
             EXP_evalNativeFunCall(ctx, nativeFunInfo, argsOffset, node);
             goto next;
         }
