@@ -69,10 +69,17 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_Blk,
     EXP_EvalPrimFun_Def,
     EXP_EvalPrimFun_If,
+
     EXP_EvalPrimFun_Add,
     EXP_EvalPrimFun_Sub,
     EXP_EvalPrimFun_Mul,
     EXP_EvalPrimFun_Div,
+
+    EXP_EvalPrimFun_EQ,
+    EXP_EvalPrimFun_GT,
+    EXP_EvalPrimFun_LT,
+    EXP_EvalPrimFun_GE,
+    EXP_EvalPrimFun_LE,
 
     EXP_NumEvalPrimFuns
 } EXP_EvalPrimFun;
