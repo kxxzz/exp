@@ -70,7 +70,6 @@ void testEval(void)
             printf("%s\n", s);
             break;
         }
-        case EXP_EvalPrimValueType_Seq:
         default:
         {
             const char* s = EXP_EvalPrimValueTypeInfoTable[v.type].name;
