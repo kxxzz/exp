@@ -4,7 +4,7 @@
 
 
 
-
+#include <nstr.h>
 
 
 

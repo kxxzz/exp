@@ -4,33 +4,43 @@
 #include "exp.h"
 
 
-
-typedef union EXP_EvalValue
+typedef enum EXP_EvalPrimValueType
 {
-    void* ptr;
-    uintptr_t integer;
-    double real;
-    EXP_Node node;
+    EXP_EvalPrimValueType_Num,
+    EXP_EvalPrimValueType_Str,
+
+    EXP_NumEvalPrimValueTypes
+} EXP_EvalPrimValueType;
+
+typedef struct EXP_EvalValue
+{
+    u32 type;
+    union
+    {
+        double num;
+        EXP_Node str;
+        void* ptr;
+    };
 } EXP_EvalValue;
 
-typedef EXP_EvalValue(*EXP_EvalAtomFun)(u32 numParms, EXP_EvalValue* args);
+typedef EXP_EvalValue(*EXP_EvalNativeFunCall)(EXP_Space* space, u32 numParms, EXP_EvalValue* args);
 
 
 
-typedef enum EXP_EvalPrimType
+typedef enum EXP_EvalPrimFunType
 {
-    EXP_EvalPrimType_Blk,
-    EXP_EvalPrimType_Def,
-    EXP_EvalPrimType_If,
-    EXP_EvalPrimType_Add,
-    EXP_EvalPrimType_Sub,
-    EXP_EvalPrimType_Mul,
-    EXP_EvalPrimType_Div,
+    EXP_EvalPrimFunType_Blk,
+    EXP_EvalPrimFunType_Def,
+    EXP_EvalPrimFunType_If,
+    EXP_EvalPrimFunType_Add,
+    EXP_EvalPrimFunType_Sub,
+    EXP_EvalPrimFunType_Mul,
+    EXP_EvalPrimFunType_Div,
 
-    EXP_NumEvalPrimTypes
-} EXP_EvalPrimType;
+    EXP_NumEvalPrimFunTypes
+} EXP_EvalPrimFunType;
 
-static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
+static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimFunTypes] =
 {
     "blk",
     "def",
@@ -41,7 +51,7 @@ static const char* EXP_EvalPrimFunTypeNameTable[EXP_NumEvalPrimTypes] =
     "/",
 };
 
-static u32 EXP_EvalPrimFunTypeNumParmsTable[EXP_NumEvalPrimTypes] =
+static u32 EXP_EvalPrimFunTypeNumParmsTable[EXP_NumEvalPrimFunTypes] =
 {
     -1,
     -1,

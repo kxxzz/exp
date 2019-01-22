@@ -18,7 +18,7 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 typedef struct EXP_EvalBlock
 {
-    EXP_EvalAtomFun fun;
+    EXP_EvalNativeFunCall call;
     u32 defStackP;
     EXP_Node* seq;
     u32 len;
@@ -51,9 +51,9 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 
 
-static EXP_EvalPrimType EXP_evalGetPrimFunType(EXP_Space* space, const char* funName)
+static EXP_EvalPrimFunType EXP_evalGetPrimFunType(EXP_Space* space, const char* funName)
 {
-    for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
+    for (u32 i = 0; i < EXP_NumEvalPrimFunTypes; ++i)
     {
         if (0 == strcmp(funName, EXP_EvalPrimFunTypeNameTable[i]))
         {
@@ -63,7 +63,7 @@ static EXP_EvalPrimType EXP_evalGetPrimFunType(EXP_Space* space, const char* fun
     return -1;
 }
 
-static EXP_EvalAtomFun EXP_EvalPrimAtomFunTable[EXP_NumEvalPrimTypes];
+static EXP_EvalNativeFunCall EXP_EvalPrimNativeFunCallTable[EXP_NumEvalPrimFunTypes];
 
 
 
@@ -146,8 +146,8 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     }
     EXP_Node* defCall = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, defCall[0]);
-    EXP_EvalPrimType primType = EXP_evalGetPrimFunType(space, kDef);
-    if (primType != EXP_EvalPrimType_Def)
+    EXP_EvalPrimFunType primType = EXP_evalGetPrimFunType(space, kDef);
+    if (primType != EXP_EvalPrimFunType_Def)
     {
         return;
     }
@@ -241,7 +241,7 @@ static bool EXP_evalEnterBlock
 (
     EXP_EvalContext* ctx, u32 len, EXP_Node* seq,
     u32 numParms, EXP_Node* parms, EXP_Node* args,
-    EXP_EvalAtomFun fun
+    EXP_EvalNativeFunCall call
 )
 {
     u32 defStackP = ctx->defStack.length;
@@ -252,7 +252,7 @@ static bool EXP_evalEnterBlock
         EXP_EvalDef def = { k, v };
         vec_push(&ctx->defStack, def);
     }
-    if (!fun)
+    if (!call)
     {
         for (u32 i = 0; i < len; ++i)
         {
@@ -263,7 +263,7 @@ static bool EXP_evalEnterBlock
             }
         }
     }
-    EXP_EvalBlock blk = { fun, defStackP, seq, len, 0 };
+    EXP_EvalBlock blk = { call, defStackP, seq, len, 0 };
     vec_push(&ctx->blockStack, blk);
     return true;
 }
@@ -288,13 +288,13 @@ next:
     curBlock = &vec_last(&ctx->blockStack);
     if (curBlock->p == curBlock->len)
     {
-        if (curBlock->fun)
+        if (curBlock->call)
         {
-            EXP_EvalAtomFun fun = curBlock->fun;
+            EXP_EvalNativeFunCall call = curBlock->call;
             u32 numArgs = curBlock->len;
             assert(numArgs <= ctx->dataStack.length);
             u32 argsOffset = ctx->dataStack.length - numArgs;
-            EXP_EvalValue v = fun(numArgs, ctx->dataStack.data + argsOffset);
+            EXP_EvalValue v = call(space, numArgs, ctx->dataStack.data + argsOffset);
             vec_resize(&ctx->dataStack, argsOffset);
             vec_push(&ctx->dataStack, v);
         }
@@ -341,7 +341,7 @@ next:
         }
         else
         {
-            EXP_EvalValue v = { 0 };
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .str = node };
             vec_push(&ctx->dataStack, v);
             goto next;
         }
@@ -388,14 +388,14 @@ next:
             return;
         }
     }
-    EXP_EvalPrimType primType = EXP_evalGetPrimFunType(space, funName);
+    EXP_EvalPrimFunType primType = EXP_evalGetPrimFunType(space, funName);
     switch (primType)
     {
-    case EXP_EvalPrimType_Def:
+    case EXP_EvalPrimFunType_Def:
     {
         goto next;
     }
-    case EXP_EvalPrimType_Blk:
+    case EXP_EvalPrimFunType_Blk:
     {
         if (EXP_evalEnterBlock(ctx, len - 1, elms + 1, 0, NULL, NULL, NULL))
         {
@@ -407,7 +407,7 @@ next:
         }
         break;
     }
-    case EXP_EvalPrimType_If:
+    case EXP_EvalPrimFunType_If:
     {
         goto next;
     }
@@ -415,8 +415,8 @@ next:
     {
         if (primType != -1)
         {
-            EXP_EvalAtomFun fun = EXP_EvalPrimAtomFunTable[primType];
-            assert(fun);
+            EXP_EvalNativeFunCall call = EXP_EvalPrimNativeFunCallTable[primType];
+            assert(call);
             u32 numParms = EXP_EvalPrimFunTypeNumParmsTable[primType];
             u32 numArgs = len - 1;
             if (numParms != (u32)-1)
@@ -427,7 +427,7 @@ next:
                     return;
                 }
             }
-            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, 0, NULL, NULL, fun))
+            if (EXP_evalEnterBlock(ctx, numArgs, elms + 1, 0, NULL, NULL, call))
             {
                 goto next;
             }
@@ -494,7 +494,7 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 {
     EXP_EvalRet ret = { EXP_EvalErrCode_NONE };
     char* src = NULL;
-    u32 srcSize = fileu_readFile(entrySrcFile, &src);
+    u32 srcSize = FILEU_readFile(entrySrcFile, &src);
     if (-1 == srcSize)
     {
         ret.errCode = EXP_EvalErrCode_SrcFile;
@@ -520,15 +520,8 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
         ret.errSrcFile = entrySrcFile;
         if (srcInfoTable)
         {
-#ifdef _MSC_VER
-# pragma warning(push)
-# pragma warning(disable : 6011)
-#endif
             ret.errSrcFileLine = vec_last(srcInfoTable).line;
             ret.errSrcFileColumn = vec_last(srcInfoTable).column;
-#ifdef _MSC_VER
-# pragma warning(pop)
-#endif
         }
         else
         {
@@ -559,47 +552,85 @@ EXP_EvalRet EXP_evalFile(EXP_Space* space, const char* entrySrcFile, bool debug)
 
 
 
-static EXP_EvalValue EXP_primFunHandle_Add(u32 numParms, EXP_EvalValue* args)
+static double EXP_evalRealFromValue(EXP_Space* space, const EXP_EvalValue v)
+{
+    if (EXP_EvalPrimValueType_Str == v.type)
+    {
+        double n;
+        u32 l = EXP_tokSize(space, v.str);
+        const char* s = EXP_tokCstr(space, v.str);
+        u32 r = NSTR_str2num(&n, s, l, NULL);
+        return n;
+    }
+    else if (EXP_EvalPrimValueType_Num == v.type)
+    {
+        return v.num;
+    }
+    else
+    {
+        assert(false);
+        return NAN;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+static EXP_EvalValue EXP_evalNativeFunCall_Add(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
     EXP_EvalValue v;
-    v.real = args[0].real + args[1].real;
+    double a = args[0].num;
+    double b = args[1].num;
+    v.num = a + b;
     return v;
 }
-static EXP_EvalValue EXP_primFunHandle_Sub(u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValue EXP_evalNativeFunCall_Sub(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
     EXP_EvalValue v;
-    v.real = args[0].real - args[1].real;
+    double a = args[0].num;
+    double b = args[1].num;
+    v.num = a - b;
     return v;
 }
-static EXP_EvalValue EXP_primFunHandle_Mul(u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValue EXP_evalNativeFunCall_Mul(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
     EXP_EvalValue v;
-    v.real = args[0].real * args[1].real;
+    double a = args[0].num;
+    double b = args[1].num;
+    v.num = a * b;
     return v;
 }
-static EXP_EvalValue EXP_primFunHandle_Div(u32 numParms, EXP_EvalValue* args)
+static EXP_EvalValue EXP_evalNativeFunCall_Div(EXP_Space* space, u32 numParms, EXP_EvalValue* args)
 {
     assert(2 == numParms);
     EXP_EvalValue v;
-    v.real = args[0].real / args[1].real;
+    double a = args[0].num;
+    double b = args[1].num;
+    v.num = a / b;
     return v;
 }
 
 
 
 
-static EXP_EvalAtomFun EXP_EvalPrimAtomFunTable[EXP_NumEvalPrimTypes] =
+static EXP_EvalNativeFunCall EXP_EvalPrimNativeFunCallTable[EXP_NumEvalPrimFunTypes] =
 {
     NULL,
     NULL,
     NULL,
-    EXP_primFunHandle_Add,
-    EXP_primFunHandle_Sub,
-    EXP_primFunHandle_Mul,
-    EXP_primFunHandle_Div,
+    EXP_evalNativeFunCall_Add,
+    EXP_evalNativeFunCall_Sub,
+    EXP_evalNativeFunCall_Mul,
+    EXP_evalNativeFunCall_Div,
 };
 
 
