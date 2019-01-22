@@ -362,9 +362,9 @@ next:
                     }
                 }
             }
-            EXP_EvalValueData d = call(space, numArgs, ctx->dataStack.data + argsOffset);
+            EXP_EvalValueData data = call(space, numArgs, ctx->dataStack.data + argsOffset);
             vec_resize(&ctx->dataStack, argsOffset);
-            EXP_EvalValue v = { nativeFunInfo->retType, d };
+            EXP_EvalValue v = { nativeFunInfo->retType, data };
             vec_push(&ctx->dataStack, v);
         }
         if (EXP_evalLeaveBlock(ctx))
