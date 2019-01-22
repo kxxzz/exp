@@ -55,7 +55,6 @@ typedef enum EXP_EvalPrimValueType
     EXP_EvalPrimValueType_Bool,
     EXP_EvalPrimValueType_Num,
     EXP_EvalPrimValueType_Tok,
-    EXP_EvalPrimValueType_Seq,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;
