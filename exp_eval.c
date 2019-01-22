@@ -379,13 +379,13 @@ next:
         if (curBlock->nativeFun != -1)
         {
             assert(!curBlock->fun);
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
             if (curBlock->dataStackP > ctx->dataStack->length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
             u32 numArgs = ctx->dataStack->length - curBlock->dataStackP;
+            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + curBlock->nativeFun;
             if (numArgs != nativeFunInfo->numParms)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
@@ -395,16 +395,16 @@ next:
         }
         if (curBlock->fun)
         {
+            if (curBlock->dataStackP > ctx->dataStack->length)
+            {
+                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
             EXP_Node fun = *curBlock->fun;
             EXP_Node call = curBlock->srcNode;
             u32 numParms = 0;;
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
-            if (ctx->dataStack->length < numParms)
-            {
-                EXP_evalErrorAtNode(ctx, call, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
             u32 argsOffset = ctx->dataStack->length - numParms;
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
