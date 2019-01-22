@@ -345,14 +345,14 @@ next:
                     {
                         u32 l = EXP_tokSize(space, v->data.node);
                         const char* s = EXP_tokCstr(space, v->data.node);
-                        EXP_EvalValueData d;
-                        if (!fromStr(l, s, &d))
+                        EXP_EvalValueData data;
+                        if (!fromStr(l, s, &data))
                         {
                             EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalValueType);
                             return;
                         }
                         v->type = vt;
-                        v->data = d;
+                        v->data = data;
                     }
                     else
                     {
