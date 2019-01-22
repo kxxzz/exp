@@ -7,6 +7,7 @@
 
 typedef union EXP_EvalValueData
 {
+    bool b;
     double num;
     EXP_Node node;
     void* ptr;
@@ -51,6 +52,7 @@ typedef struct EXP_EvalNativeFunInfo
 
 typedef enum EXP_EvalPrimValueType
 {
+    EXP_EvalPrimValueType_Bool,
     EXP_EvalPrimValueType_Num,
     EXP_EvalPrimValueType_Tok,
     EXP_EvalPrimValueType_Seq,

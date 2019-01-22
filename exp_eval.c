@@ -675,9 +675,22 @@ EXP_EvalRet EXP_evalFile
 
 
 
+static bool EXP_evalBoolFromStr(u32 len, const char* str, EXP_EvalValueData* pData)
+{
+    if (0 == strncmp(str, "true", len))
+    {
+        pData->b = true;
+        return true;
+    }
+    if (0 == strncmp(str, "false", len))
+    {
+        pData->b = true;
+        return true;
+    }
+    return false;
+}
 
-
-static bool EXP_evalRealFromValue(u32 len, const char* str, EXP_EvalValueData* pData)
+static bool EXP_evalNumFromStr(u32 len, const char* str, EXP_EvalValueData* pData)
 {
     double num;
     u32 r = NSTR_str2num(&num, str, len, NULL);
@@ -690,7 +703,8 @@ static bool EXP_evalRealFromValue(u32 len, const char* str, EXP_EvalValueData* p
 
 const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes] =
 {
-    { "num", EXP_evalRealFromValue },
+    { "bool", EXP_evalBoolFromStr },
+    { "num", EXP_evalNumFromStr },
     { "tok" },
     { "seq" },
 };

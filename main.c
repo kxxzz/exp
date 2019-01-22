@@ -59,6 +59,11 @@ void testEval(void)
         EXP_EvalValue v = dataStack.data[i];
         switch (v.type)
         {
+        case EXP_EvalPrimValueType_Bool:
+        {
+            printf("%s\n", v.data.b ? "true" : "false");
+            break;
+        }
         case EXP_EvalPrimValueType_Num:
         {
             printf("%f\n", v.data.num);
