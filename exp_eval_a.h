@@ -16,6 +16,7 @@ typedef struct EXP_EvalFun
     u32 numOut;
 } EXP_EvalFun;
 
+
 typedef struct EXP_EvalDef
 {
     EXP_Node key;
@@ -30,6 +31,30 @@ typedef struct EXP_EvalDef
 typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 
+
+
+
+typedef enum EXP_EvalBlockCallbackType
+{
+    EXP_EvalBlockCallbackType_NONE,
+    EXP_EvalBlockCallbackType_NativeFun,
+    EXP_EvalBlockCallbackType_Fun,
+} EXP_EvalBlockCallbackType;
+
+typedef struct EXP_EvalBlockCallback
+{
+    EXP_EvalBlockCallbackType type;
+    union
+    {
+        u32 nativeFun;
+        EXP_Node* fun;
+    };
+} EXP_EvalBlockCallback;
+
+
+
+
+
 typedef struct EXP_EvalBlock
 {
     EXP_Node srcNode;
@@ -38,11 +63,14 @@ typedef struct EXP_EvalBlock
     EXP_Node* seq;
     u32 seqLen;
     u32 p;
-    u32 nativeFun;
-    EXP_Node* fun;
+    EXP_EvalBlockCallback cb;
 } EXP_EvalBlock;
 
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
+
+
+
+
 
 
 typedef vec_t(EXP_EvalValueTypeInfo) EXP_EvalValueTypeInfoTable;
