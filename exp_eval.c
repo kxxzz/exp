@@ -242,21 +242,22 @@ static bool EXP_evalEnterBlock
 )
 {
     static EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
+    EXP_EvalDataStack* dataStack = ctx->dataStack;
 
-    u32 argsOffset = ctx->dataStack->length - numParms;
+    u32 argsOffset = dataStack->length - numParms;
     u32 defStackP = ctx->defStack.length;
 
     for (u32 i = 0; i < numParms; ++i)
     {
         EXP_Node k = parms[i];
         const char* ks = EXP_tokCstr(ctx->space, k);
-        EXP_EvalValue v = ctx->dataStack->data[argsOffset + i];
+        EXP_EvalValue v = dataStack->data[argsOffset + i];
         EXP_EvalDef def = { k, true,.val = v };
         vec_push(&ctx->defStack, def);
     }
 
-    vec_resize(ctx->dataStack, argsOffset);
-    u32 dataStackP = ctx->dataStack->length;
+    vec_resize(dataStack, argsOffset);
+    u32 dataStackP = dataStack->length;
 
     for (u32 i = 0; i < len; ++i)
     {
@@ -331,23 +332,24 @@ static void EXP_evalNativeFunCall
 )
 {
     EXP_Space* space = ctx->space;
+    EXP_EvalDataStack* dataStack = ctx->dataStack;
     for (u32 i = 0; i < nativeFunInfo->numIns; ++i)
     {
-        EXP_EvalValue* v = ctx->dataStack->data + argsOffset + i;
+        EXP_EvalValue* v = dataStack->data + argsOffset + i;
         u32 vt = nativeFunInfo->inType[i];
         if (!EXP_evalValueTypeConvert(ctx, v, vt, srcNode))
         {
             return;
         }
     }
-    nativeFunInfo->call(space, ctx->dataStack->data + argsOffset, ctx->nativeCallOutBuf);
-    vec_resize(ctx->dataStack, argsOffset);
+    nativeFunInfo->call(space, dataStack->data + argsOffset, ctx->nativeCallOutBuf);
+    vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < nativeFunInfo->numOuts; ++i)
     {
         u32 t = nativeFunInfo->outType[i];
         EXP_EvalValueData d = ctx->nativeCallOutBuf[i];
         EXP_EvalValue v = { t, d };
-        vec_push(ctx->dataStack, v);
+        vec_push(dataStack, v);
     }
 }
 
@@ -357,6 +359,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalBlock* curBlock;
+    EXP_EvalDataStack* dataStack = ctx->dataStack;
 next:
     if (ctx->ret.errCode)
     {
@@ -374,12 +377,12 @@ next:
         }
         case EXP_EvalBlockCallbackType_NativeFun:
         {
-            if (curBlock->dataStackP > ctx->dataStack->length)
+            if (curBlock->dataStackP > dataStack->length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 numIns = ctx->dataStack->length - curBlock->dataStackP;
+            u32 numIns = dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
             if (numIns != nativeFunInfo->numIns)
             {
@@ -391,7 +394,7 @@ next:
         }
         case EXP_EvalBlockCallbackType_Fun:
         {
-            if (curBlock->dataStackP > ctx->dataStack->length)
+            if (curBlock->dataStackP > dataStack->length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
@@ -401,7 +404,7 @@ next:
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
             // todo
-            if (curBlock->dataStackP > (ctx->dataStack->length - numParms))
+            if (curBlock->dataStackP > (dataStack->length - numParms))
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
@@ -421,13 +424,13 @@ next:
         }
         case EXP_EvalBlockCallbackType_Branch:
         {
-            if (curBlock->dataStackP + 1 != ctx->dataStack->length)
+            if (curBlock->dataStackP + 1 != dataStack->length)
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            EXP_EvalValue v = ctx->dataStack->data[curBlock->dataStackP];
-            vec_pop(ctx->dataStack);
+            EXP_EvalValue v = dataStack->data[curBlock->dataStackP];
+            vec_pop(dataStack);
             if (!EXP_evalValueTypeConvert(ctx, &v, EXP_EvalPrimValueType_Bool, curBlock->srcNode))
             {
                 return;
@@ -475,12 +478,12 @@ next:
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            if (ctx->dataStack->length < nativeFunInfo->numIns)
+            if (dataStack->length < nativeFunInfo->numIns)
             {
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 argsOffset = ctx->dataStack->length - nativeFunInfo->numIns;
+            u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
             EXP_evalNativeFunCall(ctx, nativeFunInfo, argsOffset, node);
             goto next;
         }
@@ -489,7 +492,7 @@ next:
         {
             if (def->isVal)
             {
-                vec_push(ctx->dataStack, def->val);
+                vec_push(dataStack, def->val);
                 goto next;
             }
             else
@@ -497,7 +500,7 @@ next:
                 u32 numParms = 0;;
                 EXP_Node* parms = NULL;
                 EXP_evalDefGetParms(ctx, def->fun, &numParms, &parms);
-                if (ctx->dataStack->length < numParms)
+                if (dataStack->length < numParms)
                 {
                     EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
@@ -518,7 +521,7 @@ next:
         else
         {
             EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.node = node };
-            vec_push(ctx->dataStack, v);
+            vec_push(dataStack, v);
             goto next;
         }
     }
@@ -536,7 +539,7 @@ next:
     {
         if (def->isVal)
         {
-            vec_push(ctx->dataStack, def->val);
+            vec_push(dataStack, def->val);
             goto next;
         }
         else
@@ -560,11 +563,6 @@ next:
     {
     case EXP_EvalPrimFun_Def:
     {
-        goto next;
-    }
-    case EXP_EvalPrimFun_Blk:
-    {
-        // todo
         goto next;
     }
     case EXP_EvalPrimFun_If:
@@ -592,6 +590,21 @@ next:
         {
             return;
         }
+    }
+    case EXP_EvalPrimFun_Drop:
+    {
+        if (!dataStack->length)
+        {
+            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_Stack);
+            return;
+        }
+        vec_pop(dataStack);
+        goto next;
+    }
+    case EXP_EvalPrimFun_Blk:
+    {
+        // todo
+        goto next;
     }
     default:
     {
@@ -872,9 +885,10 @@ static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_E
 
 const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
-    { "blk" },
     { "def" },
     { "if" },
+    { "drop" },
+    { "blk" },
 
     {
         "!",
