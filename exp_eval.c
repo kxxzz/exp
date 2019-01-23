@@ -2,59 +2,7 @@
 
 
 
-typedef struct EXP_EvalFun
-{
-    EXP_Node src;
-    u32 numParms;
-    u32 numIn;
-    u32 numOut;
-} EXP_EvalFun;
 
-typedef struct EXP_EvalDef
-{
-    EXP_Node key;
-    bool isVal;
-    union
-    {
-        EXP_Node fun;
-        EXP_EvalValue val;
-    };
-} EXP_EvalDef;
-
-typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
-
-
-typedef struct EXP_EvalBlock
-{
-    EXP_Node srcNode;
-    u32 defStackP;
-    u32 dataStackP;
-    EXP_Node* seq;
-    u32 seqLen;
-    u32 p;
-    u32 nativeFun;
-    EXP_Node* fun;
-} EXP_EvalBlock;
-
-typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
-
-
-typedef vec_t(EXP_EvalValueTypeInfo) EXP_EvalValueTypeInfoTable;
-typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
-
-
-typedef struct EXP_EvalContext
-{
-    EXP_Space* space;
-    EXP_EvalDataStack* dataStack;
-    EXP_EvalValueTypeInfoTable valueTypeTable;
-    EXP_EvalNativeFunInfoTable nativeFunTable;
-    EXP_NodeSrcInfoTable* srcInfoTable;
-    EXP_EvalRet ret;
-    EXP_EvalDefStack defStack;
-    EXP_EvalBlockStack blockStack;
-    EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
-} EXP_EvalContext;
 
 static EXP_EvalContext EXP_newEvalContext
 (
