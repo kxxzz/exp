@@ -778,6 +778,14 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 
 
+static void EXP_evalNativeFunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+{
+    bool a = ins[0].data.b;
+    outs[0].b = !a;
+}
+
+
+
 static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
 {
     double a = ins[0].data.num;
@@ -808,6 +816,12 @@ static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
+static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+{
+    double a = ins[0].data.num;
+    outs[0].num = -a;
+}
+
 
 
 
@@ -816,6 +830,13 @@ static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_E
     double a = ins[0].data.num;
     double b = ins[1].data.num;
     outs[0].b = a == b;
+}
+
+static void EXP_evalNativeFunCall_INEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+{
+    double a = ins[0].data.num;
+    double b = ins[1].data.num;
+    outs[0].b = a != b;
 }
 
 static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
@@ -856,6 +877,13 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
     { "if" },
 
     {
+        "!",
+        EXP_evalNativeFunCall_Not,
+        1, { EXP_EvalPrimValueType_Bool },
+        1, { EXP_EvalPrimValueType_Bool },
+    },
+
+    {
         "+",
         EXP_evalNativeFunCall_Add,
         2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
@@ -881,11 +909,25 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
     },
 
     {
+        "neg",
+        EXP_evalNativeFunCall_Neg,
+        1, { EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Num },
+    },
+
+    {
         "=",
         EXP_evalNativeFunCall_EQ,
         2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
         1, { EXP_EvalPrimValueType_Bool },
     },
+    {
+        "!=",
+        EXP_evalNativeFunCall_INEQ,
+        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_Bool },
+    },
+
     {
         ">",
         EXP_evalNativeFunCall_GT,
