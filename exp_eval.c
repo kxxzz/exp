@@ -472,6 +472,16 @@ next:
         u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
         if (nativeFun != -1)
         {
+            if (EXP_EvalPrimFun_Drop == nativeFun)
+            {
+                if (!dataStack->length)
+                {
+                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_Stack);
+                    return;
+                }
+                vec_pop(dataStack);
+                goto next;
+            }
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
             if (!nativeFunInfo->call)
             {
