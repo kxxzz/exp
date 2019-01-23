@@ -696,8 +696,15 @@ EXP_EvalRet EXP_evalFile
         ret.errSrcFile = srcFile;
         if (srcInfoTable)
         {
+#ifdef _MSC_VER
+# pragma warning(push)
+# pragma warning(disable : 6011)
+#endif
             ret.errSrcFileLine = vec_last(srcInfoTable).line;
             ret.errSrcFileColumn = vec_last(srcInfoTable).column;
+#ifdef _MSC_VER
+# pragma warning(pop)
+#endif
         }
         else
         {
