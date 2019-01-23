@@ -47,7 +47,7 @@ typedef struct EXP_EvalBlockCallback
     union
     {
         u32 nativeFun;
-        EXP_Node* fun;
+        EXP_Node fun;
     };
 } EXP_EvalBlockCallback;
 

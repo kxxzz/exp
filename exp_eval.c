@@ -372,7 +372,7 @@ next:
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            EXP_Node fun = *cb->fun;
+            EXP_Node fun = cb->fun;
             u32 numParms = 0;
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
@@ -487,7 +487,7 @@ next:
             u32 numParms = 0;;
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, def->fun, &numParms, &parms);
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = &def->fun };
+            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = def->fun };
             if (EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, 0, NULL, 0, node, cb))
             {
                 goto next;
