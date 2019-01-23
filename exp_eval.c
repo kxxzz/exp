@@ -238,12 +238,13 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 static bool EXP_evalEnterBlock
 (
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, u32 numParms, EXP_Node* parms, u32 argsOffset, EXP_Node srcNode
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, u32 numParms, EXP_Node* parms, EXP_Node srcNode
 )
 {
     static EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
+
+    u32 argsOffset = ctx->dataStack->length - numParms;
     u32 defStackP = ctx->defStack.length;
-    u32 dataStackP = ctx->dataStack->length;
 
     for (u32 i = 0; i < numParms; ++i)
     {
@@ -253,7 +254,9 @@ static bool EXP_evalEnterBlock
         EXP_EvalDef def = { k, true,.val = v };
         vec_push(&ctx->defStack, def);
     }
+
     vec_resize(ctx->dataStack, argsOffset);
+    u32 dataStackP = ctx->dataStack->length;
 
     for (u32 i = 0; i < len; ++i)
     {
@@ -397,8 +400,8 @@ next:
             u32 numParms = 0;
             EXP_Node* parms = NULL;
             EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
-            u32 argsOffset = ctx->dataStack->length - numParms;
-            if (curBlock->dataStackP > argsOffset)
+            // todo
+            if (curBlock->dataStackP > (ctx->dataStack->length - numParms))
             {
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
@@ -410,7 +413,7 @@ next:
             {
                 return;
             }
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, argsOffset, curBlock->srcNode))
+            if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, curBlock->srcNode))
             {
                 goto next;
             }
@@ -435,12 +438,19 @@ next:
             }
             if (v.data.b)
             {
-
+                if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], 0, NULL, curBlock->srcNode))
+                {
+                    goto next;
+                }
             }
-            else
+            else if (cb->branch[1])
             {
-
+                if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], 0, NULL, curBlock->srcNode))
+                {
+                    goto next;
+                }
             }
+            goto next;
         }
         default:
             assert(false);
@@ -492,11 +502,10 @@ next:
                     EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                u32 argsOffset = ctx->dataStack->length - numParms;
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalDefGetBody(ctx, def->fun, &bodyLen, &body);
-                if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, argsOffset, node))
+                if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, node))
                 {
                     goto next;
                 }
@@ -566,14 +575,14 @@ next:
             return;
         }
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Branch };
-        cb.branch[0] = elms[2];
+        cb.branch[0] = elms + 2;
         if (3 == len)
         {
-            cb.branch[1].id = EXP_NodeId_Invalid;
+            cb.branch[1] = NULL;
         }
         else if (4 == len)
         {
-            cb.branch[1] = elms[3];
+            cb.branch[1] = elms + 3;
         }
         if (EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb))
         {
@@ -635,7 +644,7 @@ EXP_EvalRet EXP_eval
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, 0, root);
+    EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, root);
     EXP_evalCall(&ctx);
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);

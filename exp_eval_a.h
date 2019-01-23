@@ -49,7 +49,7 @@ typedef struct EXP_EvalBlockCallback
     {
         u32 nativeFun;
         EXP_Node fun;
-        EXP_Node branch[2];
+        EXP_Node* branch[2];
     };
 } EXP_EvalBlockCallback;
 
