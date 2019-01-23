@@ -199,6 +199,11 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
         {
             break;
         }
+        else if (strchr("{},", src[ctx->cur]))
+        {
+            ++ctx->cur;
+            break;
+        }
         else if (strchr("[]\"' \t\n\r\b\f", src[ctx->cur]))
         {
             break;
