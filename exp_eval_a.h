@@ -8,12 +8,15 @@
 
 
 
-typedef struct EXP_EvalFun
+typedef struct EXP_EvalModInfo
 {
-    EXP_Node code;
-    u32 numIn;
-    u32 numOut;
-} EXP_EvalFun;
+    EXP_Node url;
+    EXP_Node root;
+} EXP_EvalModInfo;
+
+typedef vec_t(EXP_EvalModInfo) EXP_EvalModInfoTable;
+
+
 
 
 typedef struct EXP_EvalDef
