@@ -17,15 +17,15 @@ contexts:
     - include: brackets
 
   brackets:
-    - match: '\['
+    - match: '\('
       scope: punctuation.definition.group.begin.exp
       push:
         - meta_scope: meta.group.exp
-        - match: '\]'
+        - match: '\)'
           scope: punctuation.definition.group.end.exp
           pop: true
         - include: main
-    - match: '\]'
+    - match: '\)'
       scope: invalid.illegal.stray-bracket-end.exp
 
   numbers:
@@ -33,7 +33,7 @@ contexts:
       scope: constant.numeric.exp
 
   symbols:
-    - match: (?<=[\s\[\]\"\']|)([^\s\[\]\"\']+)(?=[\s\[\]\"\'])
+    - match: (?<=[\s\(\)\"\']|)([^\s\(\)\"\']+)(?=[\s\(\)\"\'])
       scope: symbol.other.global.exp
       captures:
         1: punctuation.definition.symbol.begin.exp
