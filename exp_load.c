@@ -199,7 +199,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
         {
             break;
         }
-        else if (strchr("(){},;", src[ctx->cur]))
+        else if (strchr("[]{},;", src[ctx->cur]))
         {
             if (0 == (ctx->cur - tok.begin))
             {
@@ -211,7 +211,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
                 break;
             }
         }
-        else if (strchr("[]\"' \t\n\r\b\f", src[ctx->cur]))
+        else if (strchr("()\"' \t\n\r\b\f", src[ctx->cur]))
         {
             break;
         }
@@ -241,14 +241,14 @@ static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
         return false;
     }
     bool ok = false;
-    if ('[' == src[ctx->cur])
+    if ('(' == src[ctx->cur])
     {
         EXP_Token tok = { EXP_TokenType_SeqBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
-    else if (']' == src[ctx->cur])
+    else if (')' == src[ctx->cur])
     {
         EXP_Token tok = { EXP_TokenType_SeqEnd, ctx->cur, 1 };
         *out = tok;

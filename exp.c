@@ -281,7 +281,7 @@ u32 EXP_saveSL
         {
             for (u32 i = 0; i < sreLen; ++i)
             {
-                if (strchr("[]\"' \t\n\r\b\f", str[i]))
+                if (strchr("()\"' \t\n\r\b\f", str[i]))
                 {
                     isQuotStr = true;
                     break;
@@ -297,7 +297,7 @@ u32 EXP_saveSL
                 {
                     ++l;
                 }
-                else if (strchr("[]\"'", str[i]))
+                else if (strchr("()\"'", str[i]))
                 {
                     ++l;
                 }
@@ -313,7 +313,7 @@ u32 EXP_saveSL
                     {
                         buf[n++] = '\\';
                     }
-                    else if (strchr("[]\"'", str[i]))
+                    else if (strchr("()\"'", str[i]))
                     {
                         buf[n++] = '\\';
                     }
@@ -342,7 +342,7 @@ u32 EXP_saveSL
 
         if (1 < bufRemain)
         {
-            *bufPtr = '[';
+            *bufPtr = '(';
             bufRemain -= 1;
             bufPtr += 1;
         }
@@ -368,7 +368,7 @@ u32 EXP_saveSL
 
         if (1 < bufRemain)
         {
-            *bufPtr = ']';
+            *bufPtr = ')';
             *(bufPtr + 1) = 0;
             bufRemain -= 1;
             bufPtr += 1;
@@ -516,14 +516,14 @@ static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
 
         EXP_saveMlBack(ctx, a);
 
-        EXP_saveMlAdd(ctx, "[\n");
+        EXP_saveMlAdd(ctx, "(\n");
 
         ++ctx->depth;
         EXP_saveMlAddSeq(ctx, info);
         --ctx->depth;
 
         EXP_saveMlAddIdent(ctx);
-        EXP_saveMlAdd(ctx, "]");
+        EXP_saveMlAdd(ctx, ")");
     }
 }
 
