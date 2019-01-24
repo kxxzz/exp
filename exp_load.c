@@ -199,7 +199,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
         {
             break;
         }
-        else if (strchr("(){},", src[ctx->cur]))
+        else if (strchr("(){},;", src[ctx->cur]))
         {
             ++ctx->cur;
             break;

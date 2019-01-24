@@ -11,7 +11,6 @@
 typedef struct EXP_EvalFun
 {
     EXP_Node src;
-    u32 numParms;
     u32 numIn;
     u32 numOut;
 } EXP_EvalFun;

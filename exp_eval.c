@@ -90,26 +90,6 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
     return true;
 }
 
-static bool EXP_evalCheckDefPat(EXP_Space* space, EXP_Node node)
-{
-    if (!EXP_isSeq(space, node))
-    {
-        return false;
-    }
-    u32 len = EXP_seqLen(space, node);
-    if (!len)
-    {
-        return false;
-    }
-    EXP_Node* elms = EXP_seqElm(space, node);
-    if (!EXP_isTok(space, elms[0]))
-    {
-        return false;
-    }
-    return true;
-}
-
-
 
 
 static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
@@ -153,11 +133,6 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     {
         name = defCall[1];
     }
-    else if (EXP_evalCheckDefPat(space, defCall[1]))
-    {
-        EXP_Node* pat = EXP_seqElm(space, defCall[1]);
-        name = pat[0];
-    }
     else
     {
         EXP_evalErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
@@ -168,25 +143,6 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 }
 
 
-
-
-static void EXP_evalDefGetParms(EXP_EvalContext* ctx, EXP_Node node, u32* pNumParms, EXP_Node** pParms)
-{
-    EXP_Space* space = ctx->space;
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    if (EXP_isTok(space, defCall[1]))
-    {
-        *pNumParms = 0;
-        *pParms = NULL;
-    }
-    else
-    {
-        assert(EXP_evalCheckDefPat(space, defCall[1]));
-        EXP_Node* pat = EXP_seqElm(space, defCall[1]);
-        *pNumParms = EXP_seqLen(space, defCall[1]) - 1;
-        *pParms = pat + 1;
-    }
-}
 
 
 static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
@@ -238,26 +194,11 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 static bool EXP_evalEnterBlock
 (
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, u32 numParms, EXP_Node* parms, EXP_Node srcNode
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode
 )
 {
-    static EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalDataStack* dataStack = ctx->dataStack;
-
-    u32 argsOffset = dataStack->length - numParms;
     u32 defStackP = ctx->defStack.length;
-
-    for (u32 i = 0; i < numParms; ++i)
-    {
-        EXP_Node k = parms[i];
-        const char* ks = EXP_tokCstr(ctx->space, k);
-        EXP_EvalValue v = dataStack->data[argsOffset + i];
-        EXP_EvalDef def = { k, true,.val = v };
-        vec_push(&ctx->defStack, def);
-    }
-
-    vec_resize(dataStack, argsOffset);
-    u32 dataStackP = dataStack->length;
+    u32 dataStackP = ctx->dataStack->length;
 
     for (u32 i = 0; i < len; ++i)
     {
@@ -267,6 +208,7 @@ static bool EXP_evalEnterBlock
             return false;;
         }
     }
+    EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
     vec_push(&ctx->blockStack, blk);
     return true;
@@ -400,15 +342,12 @@ next:
                 return;
             }
             EXP_Node fun = cb->fun;
-            u32 numParms = 0;
-            EXP_Node* parms = NULL;
-            EXP_evalDefGetParms(ctx, fun, &numParms, &parms);
             // todo
-            if (curBlock->dataStackP > (dataStack->length - numParms))
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
+            //if (curBlock->dataStackP > (dataStack->length - numIns))
+            //{
+            //    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+            //    return;
+            //}
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
             EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
@@ -416,7 +355,7 @@ next:
             {
                 return;
             }
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, curBlock->srcNode))
+            if (EXP_evalEnterBlock(ctx, bodyLen, body, curBlock->srcNode))
             {
                 goto next;
             }
@@ -441,14 +380,14 @@ next:
             }
             if (v.data.b)
             {
-                if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], 0, NULL, curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
                 {
                     goto next;
                 }
             }
             else if (cb->branch[1])
             {
-                if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], 0, NULL, curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode))
                 {
                     goto next;
                 }
@@ -472,7 +411,13 @@ next:
         u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
         if (nativeFun != -1)
         {
-            if (EXP_EvalPrimFun_Drop == nativeFun)
+            switch (nativeFun)
+            {
+            case EXP_EvalPrimFun_PopDef:
+            {
+                return;
+            }
+            case EXP_EvalPrimFun_Drop:
             {
                 if (!dataStack->length)
                 {
@@ -481,6 +426,9 @@ next:
                 }
                 vec_pop(dataStack);
                 goto next;
+            }
+            default:
+                break;
             }
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
             if (!nativeFunInfo->call)
@@ -507,18 +455,16 @@ next:
             }
             else
             {
-                u32 numParms = 0;;
-                EXP_Node* parms = NULL;
-                EXP_evalDefGetParms(ctx, def->fun, &numParms, &parms);
-                if (dataStack->length < numParms)
-                {
-                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                    return;
-                }
+                // todo
+                //if (dataStack->length < numIns)
+                //{
+                //    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                //    return;
+                //}
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalDefGetBody(ctx, def->fun, &bodyLen, &body);
-                if (EXP_evalEnterBlock(ctx, bodyLen, body, numParms, parms, node))
+                if (EXP_evalEnterBlock(ctx, bodyLen, body, node))
                 {
                     goto next;
                 }
@@ -554,9 +500,6 @@ next:
         }
         else
         {
-            u32 numParms = 0;;
-            EXP_Node* parms = NULL;
-            EXP_evalDefGetParms(ctx, def->fun, &numParms, &parms);
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = def->fun };
             if (EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb))
             {
@@ -667,7 +610,7 @@ EXP_EvalRet EXP_eval
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalEnterBlock(&ctx, len, seq, 0, NULL, root);
+    EXP_evalEnterBlock(&ctx, len, seq, root);
     EXP_evalCall(&ctx);
     ret = ctx.ret;
     EXP_evalContextFree(&ctx);
@@ -896,6 +839,7 @@ static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_E
 const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
     { "def" },
+    { "->" },
     { "if" },
     { "drop" },
     { "blk" },
