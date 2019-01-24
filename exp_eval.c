@@ -413,15 +413,43 @@ next:
         {
             switch (nativeFun)
             {
-            case EXP_EvalPrimFun_PopDef:
+            case EXP_EvalPrimFun_PopDefBegin:
             {
-                return;
+                for (;;)
+                {
+                    EXP_Node key = curBlock->seq[curBlock->p++];
+                    const char* skey = EXP_tokCstr(space, key);
+                    if (!EXP_isTok(space, key))
+                    {
+                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                    u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
+                    if (nativeFun != -1)
+                    {
+                        if (EXP_EvalPrimFun_PopDefEnd == nativeFun)
+                        {
+                            goto next;
+                        }
+                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                    if (!dataStack->length)
+                    {
+                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
+                        return;
+                    }
+                    EXP_EvalValue val = vec_last(dataStack);
+                    EXP_EvalDef def = { key, true, .val = val };
+                    vec_push(&ctx->defStack, def);
+                    vec_pop(dataStack);
+                }
             }
             case EXP_EvalPrimFun_Drop:
             {
                 if (!dataStack->length)
                 {
-                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_Stack);
+                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
                     return;
                 }
                 vec_pop(dataStack);
@@ -548,7 +576,7 @@ next:
     {
         if (!dataStack->length)
         {
-            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_Stack);
+            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
             return;
         }
         vec_pop(dataStack);
@@ -840,6 +868,7 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
     { "def" },
     { "->" },
+    { ";" },
     { "if" },
     { "drop" },
     { "blk" },

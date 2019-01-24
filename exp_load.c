@@ -201,8 +201,15 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
         }
         else if (strchr("(){},;", src[ctx->cur]))
         {
-            ++ctx->cur;
-            break;
+            if (0 == (ctx->cur - tok.begin))
+            {
+                ++ctx->cur;
+                break;
+            }
+            else
+            {
+                break;
+            }
         }
         else if (strchr("[]\"' \t\n\r\b\f", src[ctx->cur]))
         {

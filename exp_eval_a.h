@@ -60,6 +60,7 @@ typedef struct EXP_EvalBlock
 {
     EXP_Node srcNode;
     u32 defStackP;
+    // todo remove
     u32 dataStackP;
     EXP_Node* seq;
     u32 seqLen;
