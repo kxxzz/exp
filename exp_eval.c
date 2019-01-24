@@ -863,7 +863,7 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
     { "def" },
     { "->" },
-    { ";" },
+    { ":" },
     { "if" },
     { "drop" },
     { "blk" },
