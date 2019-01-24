@@ -10,7 +10,7 @@
 
 typedef struct EXP_EvalFun
 {
-    EXP_Node src;
+    EXP_Node code;
     u32 numIn;
     u32 numOut;
 } EXP_EvalFun;
