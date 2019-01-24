@@ -21,7 +21,7 @@
 void testLoadSave(void)
 {
     char* text = NULL;
-    u32 textSize = FILEU_readFile("../1.exp", &text);
+    u32 textSize = FILEU_readFile("../0.exp", &text);
     assert(textSize != -1);
 
 

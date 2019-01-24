@@ -1,6 +1,8 @@
 #include "exp_a.h"
 
 
+typedef vec_t(EXP_Node) EXP_NodeVec;
+
 
 typedef struct EXP_NodeInfo
 {
@@ -12,7 +14,13 @@ typedef struct EXP_NodeInfo
 typedef vec_t(EXP_NodeInfo) EXP_NodeInfoVec;
 
 
-typedef vec_t(EXP_Node) EXP_NodeVec;
+typedef struct EXP_SeqDefFrame
+{
+    EXP_NodeType seqType;
+    u32 p;
+} EXP_SeqDefFrame;
+
+typedef vec_t(EXP_SeqDefFrame) EXP_SeqDefFrameVec;
 
 
 typedef struct EXP_Space
@@ -21,7 +29,7 @@ typedef struct EXP_Space
     vec_char toks;
     EXP_NodeVec seqs;
     EXP_NodeVec seqDefStack;
-    vec_u32 seqDefStackFrames;
+    EXP_SeqDefFrameVec seqDefFrameStack;
 } EXP_Space;
 
 
@@ -37,7 +45,7 @@ EXP_Space* EXP_newSpace(void)
 
 void EXP_spaceFree(EXP_Space* space)
 {
-    vec_free(&space->seqDefStackFrames);
+    vec_free(&space->seqDefFrameStack);
     vec_free(&space->seqDefStack);
     vec_free(&space->seqs);
     vec_free(&space->toks);
@@ -89,9 +97,11 @@ EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str)
 
 
 
-void EXP_addSeqEnter(EXP_Space* space)
+void EXP_addSeqEnter(EXP_Space* space, EXP_NodeType type)
 {
-    vec_push(&space->seqDefStackFrames, space->seqDefStack.length);
+    assert(type > EXP_NodeType_Tok);
+    EXP_SeqDefFrame f = { type, space->seqDefStack.length };
+    vec_push(&space->seqDefFrameStack, f);
 }
 
 void EXP_addSeqPush(EXP_Space* space, EXP_Node x)
@@ -101,22 +111,22 @@ void EXP_addSeqPush(EXP_Space* space, EXP_Node x)
 
 void EXP_addSeqCancel(EXP_Space* space)
 {
-    assert(space->seqDefStackFrames.length > 0);
-    u32 frameP = vec_last(&space->seqDefStackFrames);
-    vec_pop(&space->seqDefStackFrames);
-    vec_resize(&space->seqDefStack, frameP);
+    assert(space->seqDefFrameStack.length > 0);
+    EXP_SeqDefFrame f = vec_last(&space->seqDefFrameStack);
+    vec_pop(&space->seqDefFrameStack);
+    vec_resize(&space->seqDefStack, f.p);
 }
 
 EXP_Node EXP_addSeqDone(EXP_Space* space)
 {
-    assert(space->seqDefStackFrames.length > 0);
-    u32 frameP = vec_last(&space->seqDefStackFrames);
-    vec_pop(&space->seqDefStackFrames);
-    u32 lenSeq = space->seqDefStack.length - frameP;
-    EXP_Node* seq = space->seqDefStack.data + frameP;
-    EXP_NodeInfo seqInfo = { EXP_NodeType_Seq, space->seqs.length, lenSeq };
+    assert(space->seqDefFrameStack.length > 0);
+    EXP_SeqDefFrame f = vec_last(&space->seqDefFrameStack);
+    vec_pop(&space->seqDefFrameStack);
+    u32 lenSeq = space->seqDefStack.length - f.p;
+    EXP_Node* seq = space->seqDefStack.data + f.p;
+    EXP_NodeInfo seqInfo = { f.seqType, space->seqs.length, lenSeq };
     vec_pusharr(&space->seqs, seq, lenSeq);
-    vec_resize(&space->seqDefStack, frameP);
+    vec_resize(&space->seqDefStack, f.p);
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, seqInfo);
     return node;
@@ -138,15 +148,12 @@ void EXP_undoAdd1(EXP_Space* space)
         assert(space->toks.length == info->offset);
         break;
     }
-    case EXP_NodeType_Seq:
+    default:
     {
         vec_resize(&space->seqs, space->seqs.length - info->length);
         assert(space->seqs.length == info->offset);
         break;
     }
-    default:
-        assert(false);
-        break;
     }
     vec_pop(&space->nodes);
 }
@@ -185,14 +192,14 @@ const char* EXP_tokCstr(EXP_Space* space, EXP_Node node)
 u32 EXP_seqLen(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Seq == info->type);
+    assert(EXP_NodeType_Tok < info->type);
     return info->length;
 }
 
 EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
-    assert(EXP_NodeType_Seq == info->type);
+    assert(EXP_NodeType_Tok < info->type);
     return space->seqs.data + info->offset;
 }
 
@@ -201,6 +208,37 @@ EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node)
 
 
 
+
+
+
+
+
+
+
+
+static void EXP_seqBracketChs(EXP_NodeType type, char ch[2])
+{
+    switch (type)
+    {
+    case EXP_NodeType_SeqNaked:
+        break;
+    case EXP_NodeType_SeqRound:
+        ch[0] = '(';
+        ch[1] = ')';
+        break;
+    case EXP_NodeType_SeqSquare:
+        ch[0] = '[';
+        ch[1] = ']';
+        break;
+    case EXP_NodeType_SeqCurly:
+        ch[0] = '{';
+        ch[1] = '}';
+        break;
+    default:
+        assert(false);
+        break;
+    }
+}
 
 
 
@@ -281,7 +319,7 @@ u32 EXP_saveSL
         {
             for (u32 i = 0; i < sreLen; ++i)
             {
-                if (strchr("()\"' \t\n\r\b\f", str[i]))
+                if (strchr("()[]{}\"' \t\n\r\b\f", str[i]))
                 {
                     isQuotStr = true;
                     break;
@@ -297,7 +335,7 @@ u32 EXP_saveSL
                 {
                     ++l;
                 }
-                else if (strchr("()\"'", str[i]))
+                else if (strchr("()[]{}\"'", str[i]))
                 {
                     ++l;
                 }
@@ -313,7 +351,7 @@ u32 EXP_saveSL
                     {
                         buf[n++] = '\\';
                     }
-                    else if (strchr("()\"'", str[i]))
+                    else if (strchr("()[]{}\"'", str[i]))
                     {
                         buf[n++] = '\\';
                     }
@@ -333,25 +371,30 @@ u32 EXP_saveSL
         }
         return n;
     }
-    case EXP_NodeType_Seq:
+    default:
     {
+        char ch[2] = { 0 };
+        EXP_seqBracketChs(info->type, ch);
         u32 n = 0;
 
         u32 bufRemain = bufSize;
         char* bufPtr = buf;
 
-        if (1 < bufRemain)
+        if (ch[0])
         {
-            *bufPtr = '(';
-            bufRemain -= 1;
-            bufPtr += 1;
+            if (1 < bufRemain)
+            {
+                *bufPtr = ch[0];
+                bufRemain -= 1;
+                bufPtr += 1;
+            }
+            else
+            {
+                bufRemain = 0;
+                bufPtr = NULL;
+            }
+            n += 1;
         }
-        else
-        {
-            bufRemain = 0;
-            bufPtr = NULL;
-        }
-        n += 1;
 
         u32 n1 = EXP_saveSeqSL(space, info, bufPtr, bufRemain, srcInfoTable);
         if (n1 < bufRemain)
@@ -366,24 +409,25 @@ u32 EXP_saveSL
         }
         n += n1;
 
-        if (1 < bufRemain)
+        if (ch[0])
         {
-            *bufPtr = ')';
-            *(bufPtr + 1) = 0;
-            bufRemain -= 1;
-            bufPtr += 1;
+            assert(ch[1]);
+            if (1 < bufRemain)
+            {
+                *bufPtr = ch[1];
+                *(bufPtr + 1) = 0;
+                bufRemain -= 1;
+                bufPtr += 1;
+            }
+            else
+            {
+                bufRemain = 0;
+                bufPtr = NULL;
+            }
+            n += 1;
         }
-        else
-        {
-            bufRemain = 0;
-            bufPtr = NULL;
-        }
-        n += 1;
         return n;
     }
-    default:
-        assert(false);
-        return 0;
     }
 }
 
@@ -431,6 +475,31 @@ static void EXP_saveMlBack(EXP_SaveMLctx* ctx, u32 a)
 }
 
 
+static void EXP_saveMlAddCh(EXP_SaveMLctx* ctx, char c)
+{
+    assert(c);
+    u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
+    if (bufRemain > 0)
+    {
+        assert(ctx->buf);
+        u32 wn = min(bufRemain - 1, 1);
+        if (wn > 0)
+        {
+            char* bufPtr = ctx->buf + ctx->n;
+            bufPtr[0] = c;
+            bufPtr[1] = 0;
+        }
+    }
+    ctx->n += 1;
+    if (c != '\n')
+    {
+        ctx->column += 1;
+    }
+    else
+    {
+        ctx->column = 0;
+    }
+}
 
 
 static void EXP_saveMlAdd(EXP_SaveMLctx* ctx, const char* s)
@@ -487,26 +556,53 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node);
 
 static void EXP_saveMlAddSeq(EXP_SaveMLctx* ctx, const EXP_NodeInfo* seqInfo)
 {
+    assert(seqInfo->type > EXP_NodeType_Tok);
     const EXP_Space* space = ctx->space;
-    EXP_saveMlAdd(ctx, "(");
-    ++ctx->depth;
+    char ch[2] = { 0 };
+    EXP_seqBracketChs(seqInfo->type, ch);
+    if (seqInfo->type != EXP_NodeType_SeqNaked)
+    {
+        assert(ch[0]);
+        assert(ch[1]);
+        EXP_saveMlAddCh(ctx, ch[0]);
+        if (seqInfo->type != EXP_NodeType_SeqRound)
+        {
+            EXP_saveMlAddCh(ctx, '\n');
+        }
+        ++ctx->depth;
+    }
     for (u32 i = 0; i < seqInfo->length; ++i)
     {
-        if (i > 0)
+        if ((i > 0) || (seqInfo->type != EXP_NodeType_SeqRound))
         {
             EXP_saveMlAddIdent(ctx);
         }
         EXP_saveMlAddNode(ctx, space->seqs.data[seqInfo->offset + i]);
         if (i < seqInfo->length - 1)
         {
-            EXP_saveMlAdd(ctx, "\n");
+            EXP_saveMlAddCh(ctx, '\n');
         }
         else
         {
-            EXP_saveMlAdd(ctx, ")");
+            if (EXP_NodeType_SeqRound == seqInfo->type)
+            {
+                EXP_saveMlAddCh(ctx, ch[1]);
+            }
+            else
+            {
+                EXP_saveMlAddCh(ctx, '\n');
+            }
         }
     }
-    --ctx->depth;
+    if (seqInfo->type != EXP_NodeType_SeqNaked)
+    {
+        --ctx->depth;
+        if (seqInfo->type != EXP_NodeType_SeqRound)
+        {
+            EXP_saveMlAddIdent(ctx);
+            EXP_saveMlAddCh(ctx, ch[1]);
+        }
+    }
 }
 
 
@@ -545,14 +641,11 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
         EXP_saveMlForward(ctx, a);
         return;
     }
-    case EXP_NodeType_Seq:
+    default:
     {
         EXP_saveMlAddNodeSeq(ctx, node);
         return;
     }
-    default:
-        assert(false);
-        return;
     }
 }
 
@@ -583,7 +676,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
     {
         return EXP_saveSL(space, node, buf, bufSize, opt->srcInfoTable);
     }
-    case EXP_NodeType_Seq:
+    default:
     {
         EXP_SaveMLctx ctx =
         {
@@ -592,9 +685,6 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
         EXP_saveMlAddNodeSeq(&ctx, node);
         return ctx.n;
     }
-    default:
-        assert(false);
-        return 0;
     }
 }
 

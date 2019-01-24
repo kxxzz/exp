@@ -7,8 +7,13 @@ typedef enum EXP_TokenType
     EXP_TokenType_Text,
     EXP_TokenType_String,
 
-    EXP_TokenType_SeqBegin,
-    EXP_TokenType_SeqEnd,
+    EXP_TokenType_SeqParenBegin,
+    EXP_TokenType_SeqSquareBegin,
+    EXP_TokenType_SeqBraceBegin,
+
+    EXP_TokenType_SeqParenEnd,
+    EXP_TokenType_SeqSquareEnd,
+    EXP_TokenType_SeqBraceEnd,
 
     EXP_NumTokenTypes
 } EXP_TokenType;
@@ -199,7 +204,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
         {
             break;
         }
-        else if (strchr("[]{},;", src[ctx->cur]))
+        else if (strchr(",;", src[ctx->cur]))
         {
             if (0 == (ctx->cur - tok.begin))
             {
@@ -211,7 +216,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
                 break;
             }
         }
-        else if (strchr("()\"' \t\n\r\b\f", src[ctx->cur]))
+        else if (strchr("()[]{}\"' \t\n\r\b\f", src[ctx->cur]))
         {
             break;
         }
@@ -243,14 +248,42 @@ static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
     bool ok = false;
     if ('(' == src[ctx->cur])
     {
-        EXP_Token tok = { EXP_TokenType_SeqBegin, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_SeqParenBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (')' == src[ctx->cur])
     {
-        EXP_Token tok = { EXP_TokenType_SeqEnd, ctx->cur, 1 };
+        EXP_Token tok = { EXP_TokenType_SeqParenEnd, ctx->cur, 1 };
+        *out = tok;
+        ++ctx->cur;
+        ok = true;
+    }
+    else if ('[' == src[ctx->cur])
+    {
+        EXP_Token tok = { EXP_TokenType_SeqSquareBegin, ctx->cur, 1 };
+        *out = tok;
+        ++ctx->cur;
+        ok = true;
+    }
+    else if (']' == src[ctx->cur])
+    {
+        EXP_Token tok = { EXP_TokenType_SeqSquareEnd, ctx->cur, 1 };
+        *out = tok;
+        ++ctx->cur;
+        ok = true;
+    }
+    else if ('{' == src[ctx->cur])
+    {
+        EXP_Token tok = { EXP_TokenType_SeqBraceBegin, ctx->cur, 1 };
+        *out = tok;
+        ++ctx->cur;
+        ok = true;
+    }
+    else if ('}' == src[ctx->cur])
+    {
+        EXP_Token tok = { EXP_TokenType_SeqBraceEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
@@ -286,7 +319,7 @@ static bool EXP_loadEnd(EXP_LoadContext* ctx)
     return false;
 }
 
-static bool EXP_loadSeqEnd(EXP_LoadContext* ctx)
+static bool EXP_loadSeqEnd(EXP_LoadContext* ctx, EXP_TokenType endTokType)
 {
     if (EXP_loadEnd(ctx))
     {
@@ -299,25 +332,40 @@ static bool EXP_loadSeqEnd(EXP_LoadContext* ctx)
     {
         return true;
     }
-    switch (tok.type)
-    {
-    case EXP_TokenType_SeqEnd:
+    if (tok.type == endTokType)
     {
         return true;
-    }
-    default:
-        break;
     }
     ctx->cur = cur0;
     ctx->curLine = curLine0;
     return false;
 }
 
-static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx)
+static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
 {
+    EXP_NodeType type;
+    EXP_TokenType endTokType;
+    switch (beginTokType)
+    {
+    case EXP_TokenType_SeqParenBegin:
+        type = EXP_NodeType_SeqRound;
+        endTokType = EXP_TokenType_SeqParenEnd;
+        break;
+    case EXP_TokenType_SeqSquareBegin:
+        type = EXP_NodeType_SeqSquare;
+        endTokType = EXP_TokenType_SeqSquareEnd;
+        break;
+    case EXP_TokenType_SeqBraceBegin:
+        type = EXP_NodeType_SeqCurly;
+        endTokType = EXP_TokenType_SeqBraceEnd;
+        break;
+    default:
+        assert(false);
+        break;
+    }
     EXP_Space* space = ctx->space;
-    EXP_addSeqEnter(space);
-    while (!EXP_loadSeqEnd(ctx))
+    EXP_addSeqEnter(space, type);
+    while (!EXP_loadSeqEnd(ctx, endTokType))
     {
         EXP_Node e = EXP_loadNode(ctx);
         if (EXP_NodeId_Invalid == e.id)
@@ -404,9 +452,11 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
         node = EXP_addTokL(space, len, ctx->tmpStrBuf.data);
         break;
     }
-    case EXP_TokenType_SeqBegin:
+    case EXP_TokenType_SeqParenBegin:
+    case EXP_TokenType_SeqSquareBegin:
+    case EXP_TokenType_SeqBraceBegin:
     {
-        node = EXP_loadSeq(ctx);
+        node = EXP_loadSeq(ctx, tok.type);
         if (EXP_NodeId_Invalid == node.id)
         {
             return node;
@@ -453,7 +503,7 @@ EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
 EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
 {
     EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
-    EXP_addSeqEnter(space);
+    EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     for (;;)
     {
         EXP_Node e = EXP_loadNode(&ctx);

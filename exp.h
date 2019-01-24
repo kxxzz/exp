@@ -25,7 +25,10 @@ typedef double f64;
 typedef enum EXP_NodeType
 {
     EXP_NodeType_Tok,
-    EXP_NodeType_Seq,
+    EXP_NodeType_SeqNaked,
+    EXP_NodeType_SeqRound,
+    EXP_NodeType_SeqSquare,
+    EXP_NodeType_SeqCurly,
 
     EXP_NumNodeTypes
 } EXP_NodeType;
@@ -33,7 +36,10 @@ typedef enum EXP_NodeType
 static const char* EXP_NodeTypeNameTable[EXP_NumNodeTypes] =
 {
     "Tok",
-    "Seq",
+    "SeqNaked",
+    "SeqRound",
+    "SeqSquare",
+    "SeqCurly",
 };
 
 
@@ -56,7 +62,7 @@ static bool EXP_isTok(EXP_Space* space, EXP_Node node)
 }
 static bool EXP_isSeq(EXP_Space* space, EXP_Node node)
 {
-    return EXP_NodeType_Seq == EXP_nodeType(space, node);
+    return EXP_nodeType(space, node) > EXP_NodeType_Tok;
 }
 
 
@@ -64,7 +70,7 @@ static bool EXP_isSeq(EXP_Space* space, EXP_Node node)
 EXP_Node EXP_addTok(EXP_Space* space, const char* str);
 EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str);
 
-void EXP_addSeqEnter(EXP_Space* space);
+void EXP_addSeqEnter(EXP_Space* space, EXP_NodeType type);
 void EXP_addSeqPush(EXP_Space* space, EXP_Node c);
 void EXP_addSeqCancel(EXP_Space* space);
 EXP_Node EXP_addSeqDone(EXP_Space* space);
