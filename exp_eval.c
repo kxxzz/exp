@@ -319,11 +319,6 @@ next:
         }
         case EXP_EvalBlockCallbackType_NativeFun:
         {
-            if (curBlock->dataStackP > dataStack->length)
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
             u32 numIns = dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
             if (numIns != nativeFunInfo->numIns)
