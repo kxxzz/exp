@@ -488,14 +488,25 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node);
 static void EXP_saveMlAddSeq(EXP_SaveMLctx* ctx, const EXP_NodeInfo* seqInfo)
 {
     const EXP_Space* space = ctx->space;
+    EXP_saveMlAdd(ctx, "(");
+    ++ctx->depth;
     for (u32 i = 0; i < seqInfo->length; ++i)
     {
-        EXP_saveMlAddIdent(ctx);
-
+        if (i > 0)
+        {
+            EXP_saveMlAddIdent(ctx);
+        }
         EXP_saveMlAddNode(ctx, space->seqs.data[seqInfo->offset + i]);
-
-        EXP_saveMlAdd(ctx, "\n");
+        if (i < seqInfo->length - 1)
+        {
+            EXP_saveMlAdd(ctx, "\n");
+        }
+        else
+        {
+            EXP_saveMlAdd(ctx, ")");
+        }
     }
+    --ctx->depth;
 }
 
 
@@ -512,18 +523,9 @@ static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
 
     if (!ok)
     {
-        EXP_NodeInfo* info = space->nodes.data + node.id;
-
         EXP_saveMlBack(ctx, a);
-
-        EXP_saveMlAdd(ctx, "(\n");
-
-        ++ctx->depth;
+        EXP_NodeInfo* info = space->nodes.data + node.id;
         EXP_saveMlAddSeq(ctx, info);
-        --ctx->depth;
-
-        EXP_saveMlAddIdent(ctx);
-        EXP_saveMlAdd(ctx, ")");
     }
 }
 
