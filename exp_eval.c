@@ -73,7 +73,7 @@ static u32 EXP_evalGetNativeFun(EXP_EvalContext* ctx, const char* funName)
 
 static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 {
-    if (!EXP_isSeq(space, node))
+    if (!EXP_isSeqRound(space, node))
     {
         return false;
     }

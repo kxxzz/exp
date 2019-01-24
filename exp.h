@@ -64,6 +64,22 @@ static bool EXP_isSeq(EXP_Space* space, EXP_Node node)
 {
     return EXP_nodeType(space, node) > EXP_NodeType_Tok;
 }
+static bool EXP_isSeqNaked(EXP_Space* space, EXP_Node node)
+{
+    return EXP_NodeType_SeqNaked == EXP_nodeType(space, node);
+}
+static bool EXP_isSeqRound(EXP_Space* space, EXP_Node node)
+{
+    return EXP_NodeType_SeqRound == EXP_nodeType(space, node);
+}
+static bool EXP_isSeqSquare(EXP_Space* space, EXP_Node node)
+{
+    return EXP_NodeType_SeqSquare == EXP_nodeType(space, node);
+}
+static bool EXP_isSeqCurly(EXP_Space* space, EXP_Node node)
+{
+    return EXP_NodeType_SeqCurly == EXP_nodeType(space, node);
+}
 
 
 
