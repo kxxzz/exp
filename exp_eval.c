@@ -225,8 +225,8 @@ static bool EXP_evalValueTypeConvert(EXP_EvalContext* ctx, EXP_EvalValue* v, u32
         EXP_EvalValFromStr fromStr = ctx->valueTypeTable.data[vt].fromStr;
         if (fromStr && (EXP_EvalPrimValueType_Tok == v->type))
         {
-            u32 l = EXP_tokSize(space, v->data.node);
-            const char* s = EXP_tokCstr(space, v->data.node);
+            u32 l = EXP_tokSize(space, v->data.lit);
+            const char* s = EXP_tokCstr(space, v->data.lit);
             EXP_EvalValueData data;
             if (!fromStr(l, s, &data))
             {
@@ -479,7 +479,7 @@ next:
         }
         else
         {
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.node = node };
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.lit = node };
             vec_push(dataStack, v);
             goto next;
         }
