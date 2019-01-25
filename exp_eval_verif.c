@@ -8,40 +8,6 @@
 //} EXP_EvalValueTypeDef;
 
 
-typedef enum EXP_EvalBlockInfoState
-{
-    EXP_EvalBlockInfoState_Uninited = 0,
-    EXP_EvalBlockInfoState_Initing,
-    EXP_EvalBlockInfoState_Inited,
-} EXP_EvalBlockInfoState;
-
-typedef struct EXP_EvalBlockInfo
-{
-    EXP_EvalBlockInfoState state;
-    u32 numIns;
-    u32 numOuts;
-    u32* inType;
-    u32* outType;
-    u32 parent;
-} EXP_EvalBlockInfo;
-
-typedef vec_t(EXP_EvalBlockInfo) EXP_EvalBlockInfoTable;
-
-
-
-typedef struct EXP_EvalVerifBlock
-{
-    EXP_Node srcNode;
-    u32 dataStackP;
-    EXP_Node* seq;
-    u32 seqLen;
-    u32 p;
-    EXP_EvalBlockCallback cb;
-} EXP_EvalVerifBlock;
-
-typedef vec_t(EXP_EvalVerifBlock) EXP_EvalVerifBlockStack;
-
-
 
 typedef struct EXP_EvalVerifValue
 {
@@ -53,6 +19,64 @@ typedef vec_t(EXP_EvalVerifValue) EXP_EvalVerifDataStack;
 
 
 
+typedef struct EXP_EvalVerifDef
+{
+    EXP_Node key;
+    bool isVal;
+    union
+    {
+        EXP_Node fun;
+        EXP_EvalVerifValue val;
+    };
+} EXP_EvalVerifDef;
+
+typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
+
+
+
+typedef enum EXP_EvalBlockInfoState
+{
+    EXP_EvalBlockInfoState_Uninited = 0,
+    EXP_EvalBlockInfoState_Analyzing,
+    EXP_EvalBlockInfoState_Inited,
+} EXP_EvalBlockInfoState;
+
+typedef struct EXP_EvalBlockInfo
+{
+    EXP_EvalBlockInfoState state;
+    EXP_EvalVerifDefTable defs;
+    u32 numIns;
+    u32 numOuts;
+    vec_u32 typeInOut;
+    u32 parent;
+} EXP_EvalBlockInfo;
+
+typedef vec_t(EXP_EvalBlockInfo) EXP_EvalBlockInfoTable;
+
+static void EXP_evalBlockInfoFree(EXP_EvalBlockInfo* info)
+{
+    vec_free(&info->typeInOut);
+    vec_free(&info->defs);
+}
+
+
+
+
+typedef struct EXP_EvalVerifFrame
+{
+    EXP_Node srcNode;
+    u32 dataStackP;
+    EXP_Node* seq;
+    u32 seqLen;
+    u32 p;
+    EXP_EvalBlockCallback cb;
+} EXP_EvalVerifFrame;
+
+typedef vec_t(EXP_EvalVerifFrame) EXP_EvalVerifCallStack;
+
+
+
+
 typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
@@ -61,7 +85,7 @@ typedef struct EXP_EvalVerifContext
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalBlockInfoTable blockTable;
     EXP_EvalVerifDataStack dataStack;
-    EXP_EvalVerifBlockStack blockStack;
+    EXP_EvalVerifCallStack callStack;
     EXP_EvalError error;
 } EXP_EvalVerifContext;
 
@@ -83,9 +107,15 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->srcInfoTable = srcInfoTable;
     return *ctx;
 }
+
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
     vec_free(&ctx->dataStack);
+    for (u32 i = 0; i < ctx->blockTable.length; ++i)
+    {
+        EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + i;
+        EXP_evalBlockInfoFree(blkInfo);
+    }
     vec_free(&ctx->blockTable);
 }
 
@@ -112,17 +142,6 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
-
-typedef struct EXP_EvalVerifDef
-{
-    EXP_Node key;
-    bool isVal;
-    union
-    {
-        EXP_Node fun;
-        EXP_EvalVerifValue val;
-    };
-} EXP_EvalVerifDef;
 
 
 
@@ -153,9 +172,12 @@ static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funN
 
 
 
-static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static void EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
-    return true;
+    u32 dataStackP = ctx->dataStack.length;
+    EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
+    EXP_EvalVerifFrame blk = { srcNode, dataStackP, seq, len, 0, nocb };
+    vec_push(&ctx->callStack, blk);
 }
 
 static void EXP_evalVerifEnterBlockWithCB
@@ -163,13 +185,16 @@ static void EXP_evalVerifEnterBlockWithCB
     EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
 {
-
+    u32 dataStackP = ctx->dataStack.length;
+    assert(cb.type != EXP_EvalBlockCallbackType_NONE);
+    EXP_EvalVerifFrame blk = { srcNode, dataStackP, seq, len, 0, cb };
+    vec_push(&ctx->callStack, blk);
 }
 
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
-    vec_pop(&ctx->blockStack);
-    return ctx->blockStack.length > 0;
+    vec_pop(&ctx->callStack);
+    return ctx->callStack.length > 0;
 }
 
 
@@ -242,10 +267,11 @@ static void EXP_evalVerifFunCall
     EXP_Space* space = ctx->space;
     EXP_EvalVerifDataStack* dataStack = &ctx->dataStack;
     u32 argsOffset = dataStack->length - blkInfo->numIns;
+    assert((blkInfo->numIns + blkInfo->numOuts) == blkInfo->typeInOut.length);
     for (u32 i = 0; i < blkInfo->numIns; ++i)
     {
         EXP_EvalVerifValue* v = dataStack->data + argsOffset + i;
-        u32 vt = blkInfo->inType[i];
+        u32 vt = blkInfo->typeInOut.data[i];
         if (!EXP_evalVerifValueTypeConvert(ctx, v, vt, srcNode))
         {
             return;
@@ -254,7 +280,7 @@ static void EXP_evalVerifFunCall
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < blkInfo->numOuts; ++i)
     {
-        EXP_EvalVerifValue v = { blkInfo->outType[i] };
+        EXP_EvalVerifValue v = { blkInfo->typeInOut.data[blkInfo->numIns + i] };
         vec_push(dataStack, v);
     }
 }
@@ -265,14 +291,15 @@ static void EXP_evalVerifFunCall
 static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalVerifBlock* curBlock;
+    EXP_EvalVerifFrame* curBlock;
+    EXP_EvalBlockInfoTable* blockTable = &ctx->blockTable;
     EXP_EvalVerifDataStack* dataStack = &ctx->dataStack;
 next:
     if (ctx->error.code)
     {
         return;
     }
-    curBlock = &vec_last(&ctx->blockStack);
+    curBlock = &vec_last(&ctx->callStack);
     if (curBlock->p == curBlock->seqLen)
     {
         EXP_EvalBlockCallback* cb = &curBlock->cb;
@@ -302,7 +329,7 @@ next:
                 return;
             }
             EXP_Node fun = cb->fun;
-            EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + fun.id;
+            EXP_EvalBlockInfo* blkInfo = blockTable->data + fun.id;
             assert(blkInfo->state > EXP_EvalBlockInfoState_Uninited);
             if (EXP_EvalBlockInfoState_Inited == blkInfo->state)
             {
@@ -318,7 +345,7 @@ next:
                 EXP_evalVerifFunCall(ctx, blkInfo, curBlock->srcNode);
                 goto next;
             }
-            else if (EXP_EvalBlockInfoState_Initing == blkInfo->state)
+            else if (EXP_EvalBlockInfoState_Analyzing == blkInfo->state)
             {
                 // todo
                 assert(false);
@@ -342,24 +369,10 @@ next:
             {
                 return;
             }
-            if (EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
-            {
-                goto next;
-            }
-            if (cb->branch[1])
-            {
-                if (EXP_evalVerifEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode))
-                {
-                    goto next;
-                }
-                return;
-            }
-            else
-            {
-                // todo
-                assert(false);
-                return;
-            }
+            // todo
+            EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode);
+            EXP_evalVerifEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode);
+            goto next;
         }
         default:
             assert(false);
@@ -382,6 +395,11 @@ next:
             {
             case EXP_EvalPrimFun_PopDefBegin:
             {
+                if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
                 for (;;)
                 {
                     EXP_Node key = curBlock->seq[curBlock->p++];
@@ -406,10 +424,10 @@ next:
                         EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
                         return;
                     }
-                    // todo
-                    //EXP_EvalValue val = vec_last(dataStack);
-                    //EXP_EvalDef def = { key, true,.val = val };
-                    //vec_push(&ctx->defStack, def);
+                    EXP_EvalBlockInfo* blkInfo = blockTable->data + curBlock->srcNode.id;
+                    EXP_EvalVerifValue val = vec_last(dataStack);
+                    EXP_EvalVerifDef def = { key, true, .val = val };
+                    vec_push(&blkInfo->defs, def);
                     vec_pop(dataStack);
                 }
             }
@@ -452,7 +470,7 @@ next:
             else
             {
                 EXP_Node fun = def.fun;
-                EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + fun.id;
+                EXP_EvalBlockInfo* blkInfo = blockTable->data + fun.id;
                 assert(blkInfo->state > EXP_EvalBlockInfoState_Uninited);
                 if (EXP_EvalBlockInfoState_Inited == blkInfo->state)
                 {

@@ -173,7 +173,7 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 
 
-
+// todo remove dataStackP
 static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     u32 defStackP = ctx->defStack.length;
@@ -391,6 +391,11 @@ next:
             {
             case EXP_EvalPrimFun_PopDefBegin:
             {
+                if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+                {
+                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
                 for (;;)
                 {
                     EXP_Node key = curBlock->seq[curBlock->p++];
@@ -513,6 +518,11 @@ next:
     {
     case EXP_EvalPrimFun_Def:
     {
+        if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+        {
+            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+            return;
+        }
         goto next;
     }
     case EXP_EvalPrimFun_If:
