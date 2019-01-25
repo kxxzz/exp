@@ -94,14 +94,14 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 
 static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
 {
-    ctx->ret.errCode = errCode;
+    ctx->error.code = errCode;
     EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
     if (srcInfoTable)
     {
         assert(node.id < srcInfoTable->length);
-        ctx->ret.errSrcFile = NULL;// todo
-        ctx->ret.errSrcFileLine = srcInfoTable->data[node.id].line;
-        ctx->ret.errSrcFileColumn = srcInfoTable->data[node.id].column;
+        ctx->error.file = NULL;// todo
+        ctx->error.line = srcInfoTable->data[node.id].line;
+        ctx->error.column = srcInfoTable->data[node.id].column;
     }
 }
 
@@ -203,7 +203,7 @@ static bool EXP_evalEnterBlock
     for (u32 i = 0; i < len; ++i)
     {
         EXP_evalLoadDef(ctx, seq[i]);
-        if (ctx->ret.errCode)
+        if (ctx->error.code)
         {
             return false;;
         }
@@ -303,7 +303,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_EvalBlock* curBlock;
     EXP_EvalDataStack* dataStack = ctx->dataStack;
 next:
-    if (ctx->ret.errCode)
+    if (ctx->error.code)
     {
         return;
     }
@@ -619,25 +619,25 @@ next:
 
 
 
-EXP_EvalRet EXP_eval
+EXP_EvalError EXP_eval
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
     EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
-    EXP_EvalRet ret = { 0 };
+    EXP_EvalError error = { 0 };
     if (!EXP_isSeq(space, root))
     {
-        return ret;
+        return error;
     }
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(&ctx, len, seq, root);
     EXP_evalCall(&ctx);
-    ret = ctx.ret;
+    error = ctx.error;
     EXP_evalContextFree(&ctx);
-    return ret;
+    return error;
 }
 
 
@@ -651,24 +651,24 @@ EXP_EvalRet EXP_eval
 
 
 
-EXP_EvalRet EXP_evalFile
+EXP_EvalError EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
     bool traceSrcInfo
 )
 {
-    EXP_EvalRet ret = { EXP_EvalErrCode_NONE };
+    EXP_EvalError error = { EXP_EvalErrCode_NONE };
     char* src = NULL;
     u32 srcSize = FILEU_readFile(srcFile, &src);
     if (-1 == srcSize)
     {
-        ret.errCode = EXP_EvalErrCode_SrcFile;
-        ret.errSrcFile = srcFile;
-        return ret;
+        error.code = EXP_EvalErrCode_SrcFile;
+        error.file = srcFile;
+        return error;
     }
     if (0 == srcSize)
     {
-        return ret;
+        return error;
     }
 
     EXP_NodeSrcInfoTable* srcInfoTable = NULL;
@@ -681,33 +681,33 @@ EXP_EvalRet EXP_evalFile
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
-        ret.errCode = EXP_EvalErrCode_ExpSyntax;
-        ret.errSrcFile = srcFile;
+        error.code = EXP_EvalErrCode_ExpSyntax;
+        error.file = srcFile;
         if (srcInfoTable)
         {
 #ifdef _MSC_VER
 # pragma warning(push)
 # pragma warning(disable : 6011)
 #endif
-            ret.errSrcFileLine = vec_last(srcInfoTable).line;
-            ret.errSrcFileColumn = vec_last(srcInfoTable).column;
+            error.line = vec_last(srcInfoTable).line;
+            error.column = vec_last(srcInfoTable).column;
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
         }
         else
         {
-            ret.errSrcFileLine = -1;
-            ret.errSrcFileColumn = -1;
+            error.line = -1;
+            error.column = -1;
         }
-        return ret;
+        return error;
     }
-    ret = EXP_eval(space, dataStack, root, nativeEnv, srcInfoTable);
+    error = EXP_eval(space, dataStack, root, nativeEnv, srcInfoTable);
     if (srcInfoTable)
     {
         vec_free(srcInfoTable);
     }
-    return ret;
+    return error;
 }
 
 

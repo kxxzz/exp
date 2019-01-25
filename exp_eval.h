@@ -119,28 +119,28 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_EvalArgs,
     EXP_EvalErrCode_EvalStack,
 
-    EXP_NumEvalErrCodes
+    EXP_NumEvalErrorCodes
 } EXP_EvalErrCode;
 
-typedef struct EXP_EvalRet
+typedef struct EXP_EvalError
 {
-    EXP_EvalErrCode errCode;
-    const char* errSrcFile;
-    u32 errSrcFileLine;
-    u32 errSrcFileColumn;
-} EXP_EvalRet;
+    EXP_EvalErrCode code;
+    const char* file;
+    u32 line;
+    u32 column;
+} EXP_EvalError;
 
 
 typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
 
 
-EXP_EvalRet EXP_eval
+EXP_EvalError EXP_eval
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
     EXP_NodeSrcInfoTable* srcInfoTable
 );
 
-EXP_EvalRet EXP_evalFile
+EXP_EvalError EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
     bool traceSrcInfo

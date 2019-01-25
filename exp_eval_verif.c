@@ -31,6 +31,7 @@ typedef struct EXP_EvalVerifContext
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalFunInfoTable funTable;
     vec_u32 dataStack;
+    EXP_EvalError error;
 } EXP_EvalVerifContext;
 
 
@@ -72,7 +73,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalCallVerif(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerif(EXP_EvalVerifContext* ctx)
 {
 
 

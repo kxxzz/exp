@@ -52,8 +52,8 @@ void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
     EXP_EvalDataStack dataStack = { 0 };
-    EXP_EvalRet r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, true);
-    assert(EXP_EvalErrCode_NONE == r.errCode);
+    EXP_EvalError r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, true);
+    assert(EXP_EvalErrCode_NONE == r.code);
     for (u32 i = 0; i < dataStack.length; ++i)
     {
         EXP_EvalValue v = dataStack.data[i];
