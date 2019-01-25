@@ -89,10 +89,10 @@ typedef struct EXP_EvalContext
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
-    EXP_EvalError error;
     EXP_EvalDefStack defStack;
     EXP_EvalBlockStack blockStack;
     EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
+    EXP_EvalError error;
 } EXP_EvalContext;
 
 
