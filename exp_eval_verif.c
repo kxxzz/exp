@@ -62,7 +62,7 @@ static void EXP_evalBlockInfoFree(EXP_EvalBlockInfo* info)
 
 
 
-typedef struct EXP_EvalVerifFrame
+typedef struct EXP_EvalVerifCall
 {
     EXP_Node srcNode;
     u32 dataStackP;
@@ -70,9 +70,9 @@ typedef struct EXP_EvalVerifFrame
     u32 seqLen;
     u32 p;
     EXP_EvalBlockCallback cb;
-} EXP_EvalVerifFrame;
+} EXP_EvalVerifCall;
 
-typedef vec_t(EXP_EvalVerifFrame) EXP_EvalVerifCallStack;
+typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallStack;
 
 
 
@@ -145,6 +145,11 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
+
+
+
+
+
 static bool EXP_evalVerifGetMatched(EXP_EvalVerifContext* ctx, const char* funName, EXP_EvalVerifDef* def)
 {
     return false;
@@ -172,11 +177,66 @@ static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funN
 
 
 
+
+
+
+
+static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node)
+{
+    EXP_Space* space = ctx->space;
+    EXP_EvalBlockInfoTable* blockTable = &ctx->blockTable;
+    if (EXP_isTok(space, node))
+    {
+        return;
+    }
+    if (!EXP_evalCheckCall(space, node))
+    {
+        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        return;
+    }
+    EXP_Node* defCall = EXP_seqElm(space, node);
+    const char* kDef = EXP_tokCstr(space, defCall[0]);
+    u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, kDef);
+    if (nativeFun != EXP_EvalPrimFun_Def)
+    {
+        return;
+    }
+    EXP_Node name;
+    if (EXP_isTok(space, defCall[1]))
+    {
+        name = defCall[1];
+    }
+    else
+    {
+        EXP_evalVerifErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
+        return;
+    }
+    EXP_EvalBlockInfo* blkInfo = blockTable->data + node.id;
+    EXP_EvalVerifDef def = { name, false, .fun = node };
+    vec_push(&blkInfo->defs, def);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     u32 dataStackP = ctx->dataStack.length;
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalVerifFrame blk = { srcNode, dataStackP, seq, len, 0, nocb };
+    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, nocb };
     vec_push(&ctx->callStack, blk);
 }
 
@@ -187,7 +247,7 @@ static void EXP_evalVerifEnterBlockWithCB
 {
     u32 dataStackP = ctx->dataStack.length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalVerifFrame blk = { srcNode, dataStackP, seq, len, 0, cb };
+    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, cb };
     vec_push(&ctx->callStack, blk);
 }
 
@@ -291,7 +351,7 @@ static void EXP_evalVerifFunCall
 static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalVerifFrame* curBlock;
+    EXP_EvalVerifCall* curBlock;
     EXP_EvalBlockInfoTable* blockTable = &ctx->blockTable;
     EXP_EvalVerifDataStack* dataStack = &ctx->dataStack;
 next:
@@ -592,7 +652,7 @@ EXP_EvalError EXP_evalVerif
 )
 {
     EXP_EvalError error = { 0 };
-    return error;
+    //return error;
     if (!EXP_isSeq(space, root))
     {
         return error;
