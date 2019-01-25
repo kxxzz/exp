@@ -71,24 +71,6 @@ static u32 EXP_evalGetNativeFun(EXP_EvalContext* ctx, const char* funName)
 
 
 
-static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
-{
-    if (!EXP_isSeqRound(space, node))
-    {
-        return false;
-    }
-    u32 len = EXP_seqLen(space, node);
-    if (!len)
-    {
-        return false;
-    }
-    EXP_Node* elms = EXP_seqElm(space, node);
-    if (!EXP_isTok(space, elms[0]))
-    {
-        return false;
-    }
-    return true;
-}
 
 
 
