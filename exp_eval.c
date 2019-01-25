@@ -249,11 +249,12 @@ static bool EXP_evalValueTypeConvert(EXP_EvalContext* ctx, EXP_EvalValue* v, u32
 
 static void EXP_evalNativeFunCall
 (
-    EXP_EvalContext* ctx, EXP_EvalNativeFunInfo* nativeFunInfo, u32 argsOffset, EXP_Node srcNode
+    EXP_EvalContext* ctx, EXP_EvalNativeFunInfo* nativeFunInfo, EXP_Node srcNode
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalDataStack* dataStack = ctx->dataStack;
+    u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
     for (u32 i = 0; i < nativeFunInfo->numIns; ++i)
     {
         EXP_EvalValue* v = dataStack->data + argsOffset + i;
@@ -305,7 +306,7 @@ next:
                 EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            EXP_evalNativeFunCall(ctx, nativeFunInfo, curBlock->dataStackP, curBlock->srcNode);
+            EXP_evalNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Fun:
@@ -443,8 +444,7 @@ next:
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
-            EXP_evalNativeFunCall(ctx, nativeFunInfo, argsOffset, node);
+            EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
         }
         EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
