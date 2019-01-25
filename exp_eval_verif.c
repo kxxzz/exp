@@ -153,10 +153,9 @@ static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funN
 
 
 
-static void EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
-
-
+    return true;
 }
 
 static void EXP_evalVerifEnterBlockWithCB
@@ -335,26 +334,32 @@ next:
             }
             EXP_EvalVerifValue v = dataStack->data[curBlock->dataStackP];
             vec_pop(dataStack);
-            //if (!EXP_evalValueTypeConvert(ctx, &v, EXP_EvalPrimValueType_Bool, curBlock->srcNode))
-            //{
-            //    return;
-            //}
+            if (!EXP_evalValueTypeConvert(ctx, &v, EXP_EvalPrimValueType_Bool, curBlock->srcNode))
+            {
+                return;
+            }
             if (!EXP_evalVerifLeaveBlock(ctx))
             {
                 return;
             }
-            //if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
-            //{
-            //    goto next;
-            //}
-            //if (cb->branch[1])
-            //{
-            //    if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode))
-            //    {
-            //        goto next;
-            //    }
-            //}
-            goto next;
+            if (EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
+            {
+                goto next;
+            }
+            if (cb->branch[1])
+            {
+                if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode))
+                {
+                    goto next;
+                }
+                return;
+            }
+            else
+            {
+                // todo
+                assert(false);
+                return;
+            }
         }
         default:
             assert(false);

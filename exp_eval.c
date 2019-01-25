@@ -359,6 +359,7 @@ next:
                 {
                     goto next;
                 }
+                return;
             }
             else if (cb->branch[1])
             {
@@ -366,8 +367,8 @@ next:
                 {
                     goto next;
                 }
+                return;
             }
-            goto next;
         }
         default:
             assert(false);
