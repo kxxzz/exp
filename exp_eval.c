@@ -592,6 +592,12 @@ EXP_EvalError EXP_eval
         return error;
     }
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
+    error = EXP_evalVerif(space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, srcInfoTable);
+    if (error.code)
+    {
+        EXP_evalContextFree(&ctx);
+        return error;
+    }
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     if (!EXP_evalEnterBlock(&ctx, len, seq, root))

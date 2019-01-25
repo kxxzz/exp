@@ -128,7 +128,12 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 
 
 
-
+EXP_EvalError EXP_evalVerif
+(
+    EXP_Space* space, EXP_Node root,
+    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_NodeSrcInfoTable* srcInfoTable
+);
 
 
 

@@ -329,7 +329,7 @@ next:
 
 
 
-static EXP_EvalError EXP_evalVerif
+EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
