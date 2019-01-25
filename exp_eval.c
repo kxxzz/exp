@@ -192,13 +192,14 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 
 
-static bool EXP_evalEnterBlock
-(
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode
-)
+static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     u32 defStackP = ctx->defStack.length;
     u32 dataStackP = ctx->dataStack->length;
+
+    EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
+    EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
+    vec_push(&ctx->blockStack, blk);
 
     for (u32 i = 0; i < len; ++i)
     {
@@ -208,13 +209,10 @@ static bool EXP_evalEnterBlock
             return false;;
         }
     }
-    EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
-    vec_push(&ctx->blockStack, blk);
     return true;
 }
 
-static bool EXP_evalEnterBlockWithCB
+static void EXP_evalEnterBlockWithCB
 (
     EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
@@ -224,7 +222,6 @@ static bool EXP_evalEnterBlockWithCB
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
     EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, cb };
     vec_push(&ctx->blockStack, blk);
-    return true;
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
@@ -524,14 +521,8 @@ next:
         else
         {
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = def->fun };
-            if (EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb))
-            {
-                goto next;
-            }
-            else
-            {
-                return;
-            }
+            EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+            goto next;
         }
     }
     u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
@@ -558,14 +549,8 @@ next:
         {
             cb.branch[1] = elms + 3;
         }
-        if (EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb))
-        {
-            goto next;
-        }
-        else
-        {
-            return;
-        }
+        EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
+        goto next;
     }
     case EXP_EvalPrimFun_Drop:
     {
@@ -589,14 +574,8 @@ next:
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
             assert(nativeFunInfo->call);
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeFun, .nativeFun = nativeFun };
-            if (EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb))
-            {
-                goto next;
-            }
-            else
-            {
-                return;
-            }
+            EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+            goto next;
         }
         EXP_evalErrorAtNode(ctx, call, EXP_EvalErrCode_EvalSyntax);
         break;
@@ -633,7 +612,12 @@ EXP_EvalError EXP_eval
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalEnterBlock(&ctx, len, seq, root);
+    if (!EXP_evalEnterBlock(&ctx, len, seq, root))
+    {
+        error = ctx.error;
+        EXP_evalContextFree(&ctx);
+        return error;
+    }
     EXP_evalCall(&ctx);
     error = ctx.error;
     EXP_evalContextFree(&ctx);
