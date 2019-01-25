@@ -58,6 +58,17 @@ void EXP_spaceFree(EXP_Space* space)
 
 
 
+u32 EXP_spaceNodesTotal(EXP_Space* space)
+{
+    return space->nodes.length;
+}
+
+
+
+
+
+
+
 
 EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node)
 {
