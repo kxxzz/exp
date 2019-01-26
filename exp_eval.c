@@ -180,7 +180,7 @@ static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
     u32 dataStackP = ctx->dataStack->length;
 
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
+    EXP_EvalCall blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
     vec_push(&ctx->blockStack, blk);
 
     for (u32 i = 0; i < len; ++i)
@@ -202,7 +202,7 @@ static void EXP_evalEnterBlockWithCB
     u32 defStackP = ctx->defStack.length;
     u32 dataStackP = ctx->dataStack->length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalBlock blk = { srcNode, defStackP, dataStackP, seq, len, 0, cb };
+    EXP_EvalCall blk = { srcNode, defStackP, dataStackP, seq, len, 0, cb };
     vec_push(&ctx->blockStack, blk);
 }
 
@@ -280,7 +280,7 @@ static void EXP_evalNativeFunCall
 static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalBlock* curBlock;
+    EXP_EvalCall* curBlock;
     EXP_EvalDataStack* dataStack = ctx->dataStack;
 next:
     if (ctx->error.code)

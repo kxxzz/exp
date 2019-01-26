@@ -59,7 +59,7 @@ typedef struct EXP_EvalBlockCallback
 
 
 
-typedef struct EXP_EvalBlock
+typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
     u32 defStackP;
@@ -69,9 +69,9 @@ typedef struct EXP_EvalBlock
     u32 seqLen;
     u32 p;
     EXP_EvalBlockCallback cb;
-} EXP_EvalBlock;
+} EXP_EvalCall;
 
-typedef vec_t(EXP_EvalBlock) EXP_EvalBlockStack;
+typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
@@ -90,7 +90,7 @@ typedef struct EXP_EvalContext
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalDefStack defStack;
-    EXP_EvalBlockStack blockStack;
+    EXP_EvalCallStack blockStack;
     EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
     EXP_EvalError error;
 } EXP_EvalContext;
