@@ -77,6 +77,7 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallStack;
 
 
 
+
 typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
@@ -105,6 +106,8 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->valueTypeTable = valueTypeTable;
     ctx->nativeFunTable = nativeFunTable;
     ctx->srcInfoTable = srcInfoTable;
+    vec_resize(&ctx->blockTable, EXP_spaceNodesTotal(space));
+    memset(ctx->blockTable.data, 0, sizeof(EXP_EvalBlockInfo)*ctx->blockTable.length);
     return *ctx;
 }
 
@@ -181,7 +184,7 @@ static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funN
 
 
 
-static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node)
+static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalBlockInfo* blkInfo)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalBlockInfoTable* blockTable = &ctx->blockTable;
@@ -211,7 +214,6 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node)
         EXP_evalVerifErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
         return;
     }
-    EXP_EvalBlockInfo* blkInfo = blockTable->data + node.id;
     EXP_EvalVerifDef def = { name, false, .fun = node };
     vec_push(&blkInfo->defs, def);
 }
@@ -232,12 +234,23 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     u32 dataStackP = ctx->dataStack.length;
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, nocb };
     vec_push(&ctx->callStack, blk);
+
+    EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
+    for (u32 i = 0; i < len; ++i)
+    {
+        EXP_evalVerifLoadDef(ctx, seq[i], blkInfo);
+        if (ctx->error.code)
+        {
+            return false;
+        }
+    }
+    return true;
 }
 
 static void EXP_evalVerifEnterBlockWithCB
@@ -430,8 +443,8 @@ next:
                 return;
             }
             // todo
-            EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode);
-            EXP_evalVerifEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode);
+            //EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode);
+            //EXP_evalVerifEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode);
             goto next;
         }
         default:
@@ -660,7 +673,12 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalVerifEnterBlock(&ctx, len, seq, root);
+    if (!EXP_evalVerifEnterBlock(&ctx, len, seq, root))
+    {
+        error = ctx.error;
+        EXP_evalVerifContextFree(&ctx);
+        return error;
+    }
     EXP_evalVerifCall(&ctx);
     error = ctx.error;
     EXP_evalVerifContextFree(&ctx);
