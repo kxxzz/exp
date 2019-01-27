@@ -249,6 +249,17 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 
 
 
+static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
+{
+    EXP_Space* space = ctx->space;
+    assert(EXP_seqLen(space, node) >= 2);
+    *pLen = EXP_seqLen(space, node) - 2;
+    EXP_Node* defCall = EXP_seqElm(space, node);
+    *pSeq = defCall + 2;
+}
+
+
+
 
 
 
@@ -592,8 +603,17 @@ next:
                 }
                 else if (EXP_EvalBlockInfoState_Uninited == blkInfo->state)
                 {
-                    assert(false);
-                    return;
+                    u32 bodyLen = 0;
+                    EXP_Node* body = NULL;
+                    EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
+                    if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, node, curBlock->srcNode))
+                    {
+                        goto next;
+                    }
+                    else
+                    {
+                        return;
+                    }
                 }
                 else
                 {
