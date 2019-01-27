@@ -333,12 +333,13 @@ static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
                 return false;
             }
         }
-        else if (curBlock->dataStackP < ctx->dataStack.length)
+        assert(curBlock->dataStackP >= blkInfo->numIns);
+        if (curBlock->dataStackP - blkInfo->numIns < ctx->dataStack.length)
         {
-            blkInfo->numOuts = ctx->dataStack.length - curBlock->dataStackP;
+            blkInfo->numOuts = ctx->dataStack.length - (curBlock->dataStackP - blkInfo->numIns);
             for (u32 i = 0; i < blkInfo->numOuts; ++i)
             {
-                EXP_EvalVerifValue v = ctx->dataStack.data[curBlock->dataStackP + i];
+                EXP_EvalVerifValue v = ctx->dataStack.data[ctx->dataStack.length - blkInfo->numOuts + i];
                 vec_push(&blkInfo->typeInOut, v.type);
             }
         }
@@ -505,6 +506,16 @@ next:
             }
             else if (EXP_EvalBlockInfoState_Uninited == blkInfo->state)
             {
+                if (curBlock->dataStackP > dataStack->length)
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
+                blkInfo->numIns = dataStack->length - curBlock->dataStackP;
+                for (u32 i = 0; i < blkInfo->numIns; ++i)
+                {
+                    vec_push(&blkInfo->typeInOut, dataStack->data[curBlock->dataStackP + i].type);
+                }
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
@@ -658,7 +669,7 @@ next:
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
                     EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                    if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, node, curBlock->srcNode))
+                    if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, fun, curBlock->srcNode))
                     {
                         goto next;
                     }
