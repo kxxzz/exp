@@ -391,7 +391,7 @@ next:
             {
             case EXP_EvalPrimFun_PopDefBegin:
             {
-                if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+                if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
                     EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;

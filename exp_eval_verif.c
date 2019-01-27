@@ -44,11 +44,11 @@ typedef enum EXP_EvalBlockInfoState
 typedef struct EXP_EvalBlockInfo
 {
     EXP_EvalBlockInfoState state;
+    EXP_Node parent;
     EXP_EvalVerifDefTable defs;
     u32 numIns;
     u32 numOuts;
     vec_u32 typeInOut;
-    u32 parent;
 } EXP_EvalBlockInfo;
 
 typedef vec_t(EXP_EvalBlockInfo) EXP_EvalBlockInfoTable;
@@ -153,10 +153,33 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
-static bool EXP_evalVerifGetMatched(EXP_EvalVerifContext* ctx, const char* funName, EXP_EvalVerifDef* outDef)
+static bool EXP_evalVerifGetMatched
+(
+    EXP_EvalVerifContext* ctx, const char* funName, EXP_Node srcNode, EXP_EvalVerifDef* outDef
+)
 {
+    EXP_Space* space = ctx->space;
+    EXP_Node blk = srcNode;
+    while (blk.id != EXP_NodeId_Invalid)
+    {
+        EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + blk.id;
+        for (u32 i = 0; i < blkInfo->defs.length; ++i)
+        {
+            EXP_EvalVerifDef* def = blkInfo->defs.data + blkInfo->defs.length - 1 - i;
+            const char* str = EXP_tokCstr(space, def->key);
+            if (0 == strcmp(str, funName))
+            {
+                *outDef = *def;
+                return true;
+            }
+        }
+        blk = blkInfo->parent;
+    }
     return false;
 }
+
+
+
 
 static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funName)
 {
@@ -234,7 +257,10 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 
 
 
-static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static bool EXP_evalVerifEnterBlock
+(
+    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_Node parent
+)
 {
     u32 dataStackP = ctx->dataStack.length;
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
@@ -242,6 +268,10 @@ static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node
     vec_push(&ctx->callStack, blk);
 
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
+    assert(EXP_EvalBlockInfoState_Uninited == blkInfo->state);
+    blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
+
+    blkInfo->parent = parent;
     for (u32 i = 0; i < len; ++i)
     {
         EXP_evalVerifLoadDef(ctx, seq[i], blkInfo);
@@ -255,13 +285,19 @@ static bool EXP_evalVerifEnterBlock(EXP_EvalVerifContext* ctx, u32 len, EXP_Node
 
 static void EXP_evalVerifEnterBlockWithCB
 (
-    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
+    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_Node parent, EXP_EvalBlockCallback cb
 )
 {
     u32 dataStackP = ctx->dataStack.length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
     EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, cb };
     vec_push(&ctx->callStack, blk);
+
+    EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
+    assert(EXP_EvalBlockInfoState_Uninited == blkInfo->state);
+    blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
+
+    blkInfo->parent = parent;
 }
 
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
@@ -468,7 +504,7 @@ next:
             {
             case EXP_EvalPrimFun_PopDefBegin:
             {
-                if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+                if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
@@ -533,7 +569,7 @@ next:
         }
 
         EXP_EvalVerifDef def = { 0 };
-        if (EXP_evalVerifGetMatched(ctx, funName, &def))
+        if (EXP_evalVerifGetMatched(ctx, funName, curBlock->srcNode, &def))
         {
             if (def.isVal)
             {
@@ -544,7 +580,6 @@ next:
             {
                 EXP_Node fun = def.fun;
                 EXP_EvalBlockInfo* blkInfo = blockTable->data + fun.id;
-                assert(blkInfo->state > EXP_EvalBlockInfoState_Uninited);
                 if (EXP_EvalBlockInfoState_Inited == blkInfo->state)
                 {
                     if (dataStack->length < blkInfo->numIns)
@@ -554,6 +589,11 @@ next:
                     }
                     EXP_evalVerifFunCall(ctx, blkInfo, node);
                     goto next;
+                }
+                else if (EXP_EvalBlockInfoState_Uninited == blkInfo->state)
+                {
+                    assert(false);
+                    return;
                 }
                 else
                 {
@@ -579,7 +619,7 @@ next:
     u32 len = EXP_seqLen(space, call);
     const char* funName = EXP_tokCstr(space, elms[0]);
     EXP_EvalVerifDef def = { 0 };
-    if (EXP_evalVerifGetMatched(ctx, funName, &def))
+    if (EXP_evalVerifGetMatched(ctx, funName, curBlock->srcNode, &def))
     {
         if (def.isVal)
         {
@@ -589,7 +629,7 @@ next:
         else
         {
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = def.fun };
-            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb);
             goto next;
         }
     }
@@ -617,7 +657,7 @@ next:
         {
             cb.branch[1] = elms + 3;
         }
-        EXP_evalVerifEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
+        EXP_evalVerifEnterBlockWithCB(ctx, 1, elms + 1, node, curBlock->srcNode, cb);
         goto next;
     }
     case EXP_EvalPrimFun_Drop:
@@ -642,7 +682,7 @@ next:
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
             assert(nativeFunInfo->call);
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeFun, .nativeFun = nativeFun };
-            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb);
             goto next;
         }
         EXP_evalVerifErrorAtNode(ctx, call, EXP_EvalErrCode_EvalSyntax);
@@ -673,7 +713,7 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    if (!EXP_evalVerifEnterBlock(&ctx, len, seq, root))
+    if (!EXP_evalVerifEnterBlock(&ctx, len, seq, root, EXP_Node_Invalid))
     {
         error = ctx.error;
         EXP_evalVerifContextFree(&ctx);
