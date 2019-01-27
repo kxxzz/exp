@@ -71,7 +71,7 @@ void testEval(void)
         }
         case EXP_EvalPrimValueType_Tok:
         {
-            const char* s = EXP_tokCstr(space, v.data.lit);
+            const char* s = EXP_tokCstr(space, v.data.tok);
             printf("%s\n", s);
             break;
         }

@@ -217,35 +217,6 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 
 
-static bool EXP_evalValueTypeConvert(EXP_EvalContext* ctx, EXP_EvalValue* v, u32 vt, EXP_Node srcNode)
-{
-    EXP_Space* space = ctx->space;
-    if (v->type != vt)
-    {
-        EXP_EvalValFromStr fromStr = ctx->valueTypeTable.data[vt].fromStr;
-        if (fromStr && (EXP_EvalPrimValueType_Tok == v->type))
-        {
-            u32 l = EXP_tokSize(space, v->data.lit);
-            const char* s = EXP_tokCstr(space, v->data.lit);
-            EXP_EvalValueData data;
-            if (!fromStr(l, s, &data))
-            {
-                EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-                return false;
-            }
-            v->type = vt;
-            v->data = data;
-        }
-        else
-        {
-            EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-            return false;
-        }
-    }
-    return true;
-}
-
-
 
 static void EXP_evalNativeFunCall
 (
@@ -259,8 +230,9 @@ static void EXP_evalNativeFunCall
     {
         EXP_EvalValue* v = dataStack->data + argsOffset + i;
         u32 vt = nativeFunInfo->inType[i];
-        if (!EXP_evalValueTypeConvert(ctx, v, vt, srcNode))
+        if (v->type != vt)
         {
+            EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
     }
@@ -345,8 +317,9 @@ next:
             }
             EXP_EvalValue v = dataStack->data[curBlock->dataStackP];
             vec_pop(dataStack);
-            if (!EXP_evalValueTypeConvert(ctx, &v, EXP_EvalPrimValueType_Bool, curBlock->srcNode))
+            if (v.type != EXP_EvalPrimValueType_Bool)
             {
+                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
             if (!EXP_evalLeaveBlock(ctx))
@@ -484,7 +457,27 @@ next:
         }
         else
         {
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.lit = node };
+            bool isStr = EXP_tokQuoted(space, node);
+            if (!isStr)
+            {
+                for (u32 i = 0; i < ctx->valueTypeTable.length; ++i)
+                {
+                    u32 j = ctx->valueTypeTable.length - 1 - i;
+                    if (ctx->valueTypeTable.data[j].fromStr)
+                    {
+                        u32 l = EXP_tokSize(space, node);
+                        const char* s = EXP_tokCstr(space, node);
+                        EXP_EvalValueData d = { 0 };
+                        if (ctx->valueTypeTable.data[j].fromStr(l, s, &d))
+                        {
+                            EXP_EvalValue v = { j, .data = d };
+                            vec_push(dataStack, v);
+                            goto next;
+                        }
+                    }
+                }
+            }
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.tok = node };
             vec_push(dataStack, v);
             goto next;
         }

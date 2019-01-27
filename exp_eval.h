@@ -9,7 +9,7 @@ typedef union EXP_EvalValueData
 {
     bool b;
     double num;
-    EXP_Node lit;
+    EXP_Node tok;
     void* ptr;
 } EXP_EvalValueData;
 
