@@ -305,46 +305,10 @@ static void EXP_evalVerifEnterBlockWithCB
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
-
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + curBlock->srcNode.id;
     assert(EXP_EvalBlockInfoState_Analyzing == blkInfo->state);
     blkInfo->state = EXP_EvalBlockInfoState_Inited;
     vec_pop(&ctx->callStack);
-
-    if (EXP_EvalBlockCallbackType_NativeCall == curBlock->cb.type)
-    {
-    }
-    else if (EXP_EvalBlockCallbackType_NONE == curBlock->cb.type)
-    {
-        if (curBlock->dataStackP > ctx->dataStack.length)
-        {
-            if (curBlock->dataStackP - ctx->dataStack.length > blkInfo->numIns)
-            {
-                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return false;
-            }
-        }
-        assert(curBlock->dataStackP >= blkInfo->numIns);
-        if (curBlock->dataStackP - blkInfo->numIns < ctx->dataStack.length)
-        {
-            blkInfo->numOuts = ctx->dataStack.length - (curBlock->dataStackP - blkInfo->numIns);
-            for (u32 i = 0; i < blkInfo->numOuts; ++i)
-            {
-                u32 vt = ctx->dataStack.data[ctx->dataStack.length - blkInfo->numOuts + i];
-                vec_push(&blkInfo->typeInOut, vt);
-            }
-        }
-        assert(blkInfo->typeInOut.length == blkInfo->numIns + blkInfo->numOuts);
-    }
-    else if (EXP_EvalBlockCallbackType_Call == curBlock->cb.type)
-    {
-        if (ctx->dataStack.length < curBlock->dataStackP)
-        {
-            EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-            return false;
-        }
-    }
-
     return ctx->callStack.length > 0;
 }
 
@@ -771,7 +735,7 @@ EXP_EvalError EXP_evalVerif
 )
 {
     EXP_EvalError error = { 0 };
-    return error;
+    //return error;
     if (!EXP_isSeq(space, root))
     {
         return error;
