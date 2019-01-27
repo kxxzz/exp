@@ -153,7 +153,7 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
-static bool EXP_evalVerifGetMatched(EXP_EvalVerifContext* ctx, const char* funName, EXP_EvalVerifDef* def)
+static bool EXP_evalVerifGetMatched(EXP_EvalVerifContext* ctx, const char* funName, EXP_EvalVerifDef* outDef)
 {
     return false;
 }
