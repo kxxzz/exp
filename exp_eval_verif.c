@@ -789,7 +789,7 @@ EXP_EvalError EXP_evalVerif
 )
 {
     EXP_EvalError error = { 0 };
-    //return error;
+    return error;
     if (!EXP_isSeq(space, root))
     {
         return error;
