@@ -39,9 +39,9 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 typedef enum EXP_EvalBlockCallbackType
 {
     EXP_EvalBlockCallbackType_NONE,
-    EXP_EvalBlockCallbackType_NativeFun,
-    EXP_EvalBlockCallbackType_Fun,
-    EXP_EvalBlockCallbackType_Branch,
+    EXP_EvalBlockCallbackType_NativeCall,
+    EXP_EvalBlockCallbackType_Call,
+    EXP_EvalBlockCallbackType_Cond,
 } EXP_EvalBlockCallbackType;
 
 typedef struct EXP_EvalBlockCallback

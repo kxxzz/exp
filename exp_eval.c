@@ -297,7 +297,7 @@ next:
         {
             break;
         }
-        case EXP_EvalBlockCallbackType_NativeFun:
+        case EXP_EvalBlockCallbackType_NativeCall:
         {
             u32 numIns = dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
@@ -309,7 +309,7 @@ next:
             EXP_evalNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             break;
         }
-        case EXP_EvalBlockCallbackType_Fun:
+        case EXP_EvalBlockCallbackType_Call:
         {
             if (curBlock->dataStackP > dataStack->length)
             {
@@ -330,13 +330,13 @@ next:
             {
                 return;
             }
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, curBlock->srcNode))
+            if (EXP_evalEnterBlock(ctx, bodyLen, body, fun))
             {
                 goto next;
             }
             return;
         }
-        case EXP_EvalBlockCallbackType_Branch:
+        case EXP_EvalBlockCallbackType_Cond:
         {
             if (curBlock->dataStackP + 1 != dataStack->length)
             {
@@ -472,7 +472,7 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalDefGetBody(ctx, def->fun, &bodyLen, &body);
-                if (EXP_evalEnterBlock(ctx, bodyLen, body, node))
+                if (EXP_evalEnterBlock(ctx, bodyLen, body, def->fun))
                 {
                     goto next;
                 }
@@ -508,7 +508,7 @@ next:
         }
         else
         {
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Fun, .fun = def->fun };
+            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = def->fun };
             EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
             goto next;
         }
@@ -532,7 +532,7 @@ next:
             EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Branch };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
         cb.branch[0] = elms + 2;
         if (3 == len)
         {
@@ -566,7 +566,7 @@ next:
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
             assert(nativeFunInfo->call);
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeFun, .nativeFun = nativeFun };
+            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
             EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
             goto next;
         }
