@@ -17,7 +17,7 @@ typedef struct EXP_EvalVerifDef
     union
     {
         EXP_Node fun;
-        u32 vt;
+        u32 valType;
     };
 } EXP_EvalVerifDef;
 
@@ -345,19 +345,16 @@ static void EXP_evalVerifNativeFunCall
 
 
 
-static void EXP_evalVerifFunCall
-(
-    EXP_EvalVerifContext* ctx, EXP_EvalBlockInfo* blkInfo, EXP_Node srcNode
-)
+static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockInfo* funInfo, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
-    u32 argsOffset = dataStack->length - blkInfo->numIns;
-    assert((blkInfo->numIns + blkInfo->numOuts) == blkInfo->typeInOut.length);
-    for (u32 i = 0; i < blkInfo->numIns; ++i)
+    u32 argsOffset = dataStack->length - funInfo->numIns;
+    assert((funInfo->numIns + funInfo->numOuts) == funInfo->typeInOut.length);
+    for (u32 i = 0; i < funInfo->numIns; ++i)
     {
         u32 vt1 = dataStack->data[argsOffset + i];
-        u32 vt = blkInfo->typeInOut.data[i];
+        u32 vt = funInfo->typeInOut.data[i];
         if (vt1 != vt)
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
@@ -365,9 +362,9 @@ static void EXP_evalVerifFunCall
         }
     }
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < blkInfo->numOuts; ++i)
+    for (u32 i = 0; i < funInfo->numOuts; ++i)
     {
-        u32 vt = blkInfo->typeInOut.data[blkInfo->numIns + i];
+        u32 vt = funInfo->typeInOut.data[funInfo->numIns + i];
         vec_push(dataStack, vt);
     }
 }
@@ -380,6 +377,7 @@ static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
     EXP_Space* space = ctx->space;
     EXP_EvalVerifCall* curBlock;
     EXP_EvalBlockInfoTable* blockTable = &ctx->blockTable;
+    EXP_EvalBlockInfo* curBlockInfo = NULL;
     vec_u32* dataStack = &ctx->dataStack;
 next:
     if (ctx->error.code)
@@ -387,6 +385,7 @@ next:
         return;
     }
     curBlock = &vec_last(&ctx->callStack);
+    curBlockInfo = blockTable->data + curBlock->srcNode.id;
     if (curBlock->p == curBlock->seqLen)
     {
         EXP_EvalBlockCallback* cb = &curBlock->cb;
@@ -410,16 +409,11 @@ next:
         }
         case EXP_EvalBlockCallbackType_Call:
         {
-            if (curBlock->dataStackP > dataStack->length)
-            {
-                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
             EXP_Node fun = cb->fun;
-            EXP_EvalBlockInfo* blkInfo = blockTable->data + fun.id;
-            if (EXP_EvalBlockInfoState_Inited == blkInfo->state)
+            EXP_EvalBlockInfo* funInfo = blockTable->data + fun.id;
+            if (EXP_EvalBlockInfoState_Inited == funInfo->state)
             {
-                if (curBlock->dataStackP != (dataStack->length - blkInfo->numIns))
+                if (curBlock->dataStackP != (dataStack->length - funInfo->numIns))
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
@@ -428,20 +422,15 @@ next:
                 {
                     return;
                 }
-                EXP_evalVerifFunCall(ctx, blkInfo, curBlock->srcNode);
+                EXP_evalVerifFunCall(ctx, funInfo, curBlock->srcNode);
                 goto next;
             }
-            else if (EXP_EvalBlockInfoState_Uninited == blkInfo->state)
+            else if (EXP_EvalBlockInfoState_Uninited == funInfo->state)
             {
                 if (curBlock->dataStackP > dataStack->length)
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
-                }
-                blkInfo->numIns = dataStack->length - curBlock->dataStackP;
-                for (u32 i = 0; i < blkInfo->numIns; ++i)
-                {
-                    vec_push(&blkInfo->typeInOut, dataStack->data[curBlock->dataStackP + i]);
                 }
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
@@ -537,7 +526,7 @@ next:
                     }
                     EXP_EvalBlockInfo* blkInfo = blockTable->data + curBlock->srcNode.id;
                     u32 vt = vec_last(dataStack);
-                    EXP_EvalVerifDef def = { key, true, .vt = vt };
+                    EXP_EvalVerifDef def = { key, true, .valType = vt };
                     vec_push(&blkInfo->defs, def);
                     vec_pop(dataStack);
                 }
@@ -575,24 +564,24 @@ next:
         {
             if (def.isVal)
             {
-                vec_push(dataStack, def.vt);
+                vec_push(dataStack, def.valType);
                 goto next;
             }
             else
             {
                 EXP_Node fun = def.fun;
-                EXP_EvalBlockInfo* blkInfo = blockTable->data + fun.id;
-                if (EXP_EvalBlockInfoState_Inited == blkInfo->state)
+                EXP_EvalBlockInfo* funInfo = blockTable->data + fun.id;
+                if (EXP_EvalBlockInfoState_Inited == funInfo->state)
                 {
-                    if (dataStack->length < blkInfo->numIns)
+                    if (dataStack->length < funInfo->numIns)
                     {
                         EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
-                    EXP_evalVerifFunCall(ctx, blkInfo, node);
+                    EXP_evalVerifFunCall(ctx, funInfo, node);
                     goto next;
                 }
-                else if (EXP_EvalBlockInfoState_Uninited == blkInfo->state)
+                else if (EXP_EvalBlockInfoState_Uninited == funInfo->state)
                 {
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
@@ -601,10 +590,7 @@ next:
                     {
                         goto next;
                     }
-                    else
-                    {
-                        return;
-                    }
+                    return;
                 }
                 else
                 {
@@ -653,7 +639,7 @@ next:
     {
         if (def.isVal)
         {
-            vec_push(dataStack, def.vt);
+            vec_push(dataStack, def.valType);
             goto next;
         }
         else
