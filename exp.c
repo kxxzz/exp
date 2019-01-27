@@ -84,21 +84,23 @@ EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node)
 
 
 
-EXP_Node EXP_addTok(EXP_Space* space, const char* str)
+EXP_Node EXP_addTok(EXP_Space* space, const char* str, bool quoted)
 {
     u32 len = (u32)strlen(str);
     EXP_NodeInfo info = { EXP_NodeType_Tok, space->toks.length, len };
     vec_pusharr(&space->toks, str, len + 1);
+    vec_push(&space->toks, quoted);
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
     return node;
 }
 
-EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str)
+EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str, bool quoted)
 {
     EXP_NodeInfo info = { EXP_NodeType_Tok, space->toks.length, len };
     vec_pusharr(&space->toks, str, len);
     vec_push(&space->toks, 0);
+    vec_push(&space->toks, quoted);
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
     return node;
@@ -195,6 +197,13 @@ const char* EXP_tokCstr(EXP_Space* space, EXP_Node node)
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
     return space->toks.data + info->offset;
+}
+
+bool EXP_tokQuoted(EXP_Space* space, EXP_Node node)
+{
+    EXP_NodeInfo* info = space->nodes.data + node.id;
+    assert(EXP_NodeType_Tok == info->type);
+    return space->toks.data + info->offset + info->length;
 }
 
 

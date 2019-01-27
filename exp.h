@@ -87,8 +87,8 @@ static bool EXP_isSeqCurly(EXP_Space* space, EXP_Node node)
 
 
 
-EXP_Node EXP_addTok(EXP_Space* space, const char* str);
-EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str);
+EXP_Node EXP_addTok(EXP_Space* space, const char* str, bool quoted);
+EXP_Node EXP_addTokL(EXP_Space* space, u32 len, const char* str, bool quoted);
 
 void EXP_addSeqEnter(EXP_Space* space, EXP_NodeType type);
 void EXP_addSeqPush(EXP_Space* space, EXP_Node c);
@@ -101,6 +101,7 @@ void EXP_undoAdd(EXP_Space* space, u32 n);
 
 u32 EXP_tokSize(EXP_Space* space, EXP_Node node);
 const char* EXP_tokCstr(EXP_Space* space, EXP_Node node);
+bool EXP_tokQuoted(EXP_Space* space, EXP_Node node);
 
 u32 EXP_seqLen(EXP_Space* space, EXP_Node node);
 EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);

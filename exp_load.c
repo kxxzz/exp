@@ -418,7 +418,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     case EXP_TokenType_Text:
     {
         const char* str = ctx->src + tok.begin;
-        node = EXP_addTokL(space, tok.len, str);
+        node = EXP_addTokL(space, tok.len, str, srcInfo.isQuotStr);
         break;
     }
     case EXP_TokenType_String:
@@ -449,7 +449,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
         }
         ctx->tmpStrBuf.data[len] = 0;
         assert(si == len);
-        node = EXP_addTokL(space, len, ctx->tmpStrBuf.data);
+        node = EXP_addTokL(space, len, ctx->tmpStrBuf.data, srcInfo.isQuotStr);
         break;
     }
     case EXP_TokenType_SeqParenBegin:
