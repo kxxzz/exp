@@ -42,6 +42,8 @@ typedef enum EXP_EvalBlockCallbackType
     EXP_EvalBlockCallbackType_NativeCall,
     EXP_EvalBlockCallbackType_Call,
     EXP_EvalBlockCallbackType_Cond,
+    EXP_EvalBlockCallbackType_Branch,
+    EXP_EvalBlockCallbackType_BranchCheck,
 } EXP_EvalBlockCallbackType;
 
 typedef struct EXP_EvalBlockCallback
@@ -52,9 +54,11 @@ typedef struct EXP_EvalBlockCallback
         u32 nativeFun;
         EXP_Node fun;
         EXP_Node* branch[2];
+        EXP_Node lastBranch;
     };
 } EXP_EvalBlockCallback;
 
+static EXP_EvalBlockCallback EXP_EvalBlockCallback_NONE = { EXP_EvalBlockCallbackType_NONE };
 
 
 

@@ -262,45 +262,31 @@ static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u3
 
 static bool EXP_evalVerifEnterBlock
 (
-    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_Node parent
+    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_Node parent, EXP_EvalBlockCallback cb,
+    bool isDefScope
 )
 {
     u32 dataStackP = ctx->dataStack.length;
-    EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, nocb };
-    vec_push(&ctx->callStack, blk);
-
-    EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
-    assert(EXP_EvalBlockInfoState_Uninited == blkInfo->state);
-    blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
-
-    blkInfo->parent = parent;
-    for (u32 i = 0; i < len; ++i)
-    {
-        EXP_evalVerifLoadDef(ctx, seq[i], blkInfo);
-        if (ctx->error.code)
-        {
-            return false;
-        }
-    }
-    return true;
-}
-
-static void EXP_evalVerifEnterBlockWithCB
-(
-    EXP_EvalVerifContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_Node parent, EXP_EvalBlockCallback cb
-)
-{
-    u32 dataStackP = ctx->dataStack.length;
-    assert(cb.type != EXP_EvalBlockCallbackType_NONE);
     EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, 0, cb };
     vec_push(&ctx->callStack, blk);
 
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
     assert(EXP_EvalBlockInfoState_Uninited == blkInfo->state);
     blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
-
     blkInfo->parent = parent;
+
+    if (isDefScope)
+    {
+        for (u32 i = 0; i < len; ++i)
+        {
+            EXP_evalVerifLoadDef(ctx, seq[i], blkInfo);
+            if (ctx->error.code)
+            {
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
@@ -488,7 +474,7 @@ next:
                 {
                     return;
                 }
-                if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, fun, curBlock->srcNode))
+                if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true))
                 {
                     goto next;
                 }
@@ -518,9 +504,72 @@ next:
             {
                 return;
             }
-            // todo
-            //EXP_evalVerifEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode);
-            //EXP_evalVerifEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode);
+            EXP_EvalBlockCallback cb1 = { EXP_EvalBlockCallbackType_Branch, .branch[0] = cb->branch[1] };
+            if (EXP_evalVerifEnterBlock
+            (
+                ctx, 1, cb->branch[0], *cb->branch[0], curBlock->srcNode, cb1, true
+            ))
+            {
+                goto next;
+            }
+            return;
+        }
+        case EXP_EvalBlockCallbackType_Branch:
+        {
+            if (!EXP_evalVerifLeaveBlock(ctx))
+            {
+                return;
+            }
+            assert(curBlockInfo->numIns + curBlockInfo->numOuts == curBlockInfo->typeInOut.length);
+            if (cb->branch[0])
+            {
+                for (u32 i = 0; i < curBlockInfo->numOuts; ++i)
+                {
+                    vec_pop(dataStack);
+                }
+                for (u32 i = 0; i < curBlockInfo->numIns; ++i)
+                {
+                    vec_push(dataStack, curBlockInfo->typeInOut.data[i]);
+                }
+                EXP_EvalBlockCallback cb1 = { EXP_EvalBlockCallbackType_BranchCheck, .lastBranch = curBlock->srcNode };
+                if (EXP_evalVerifEnterBlock
+                (
+                    ctx, 1, cb->branch[0], *cb->branch[0], curBlock->srcNode, cb1, true
+                ))
+                {
+                    goto next;
+                }
+                return;
+            }
+            goto next;
+        }
+        case EXP_EvalBlockCallbackType_BranchCheck:
+        {
+            if (!EXP_evalVerifLeaveBlock(ctx))
+            {
+                return;
+            }
+            assert(curBlockInfo->numIns + curBlockInfo->numOuts == curBlockInfo->typeInOut.length);
+            EXP_EvalBlockInfo* lastBlockInfo = blockTable->data + cb->lastBranch.id;
+            if (curBlockInfo->numIns != lastBlockInfo->numIns)
+            {
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                return;
+            }
+            if (curBlockInfo->numOuts != lastBlockInfo->numOuts)
+            {
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                return;
+            }
+            assert(curBlockInfo->typeInOut.length == lastBlockInfo->typeInOut.length);
+            for (u32 i = 0; i < curBlockInfo->typeInOut.length; ++i)
+            {
+                if (curBlockInfo->typeInOut.data[i] != lastBlockInfo->typeInOut.data[i])
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                    return;
+                }
+            }
             goto next;
         }
         default:
@@ -642,7 +691,10 @@ next:
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
                     EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                    if (EXP_evalVerifEnterBlock(ctx, bodyLen, body, fun, curBlock->srcNode))
+                    if (EXP_evalVerifEnterBlock
+                    (
+                        ctx, bodyLen, body, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true
+                    ))
                     {
                         goto next;
                     }
@@ -701,7 +753,7 @@ next:
         else
         {
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = def.fun };
-            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb);
+            EXP_evalVerifEnterBlock(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb, false);
             goto next;
         }
     }
@@ -729,7 +781,7 @@ next:
         {
             cb.branch[1] = elms + 3;
         }
-        EXP_evalVerifEnterBlockWithCB(ctx, 1, elms + 1, node, curBlock->srcNode, cb);
+        EXP_evalVerifEnterBlock(ctx, 1, elms + 1, node, curBlock->srcNode, cb, false);
         goto next;
     }
     case EXP_EvalPrimFun_Drop:
@@ -754,7 +806,7 @@ next:
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
             assert(nativeFunInfo->call);
             EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
-            EXP_evalVerifEnterBlockWithCB(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb);
+            EXP_evalVerifEnterBlock(ctx, len - 1, elms + 1, node, curBlock->srcNode, cb, false);
             goto next;
         }
         EXP_evalVerifErrorAtNode(ctx, call, EXP_EvalErrCode_EvalSyntax);
@@ -785,7 +837,7 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfoTable);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    if (!EXP_evalVerifEnterBlock(&ctx, len, seq, root, EXP_Node_Invalid))
+    if (!EXP_evalVerifEnterBlock(&ctx, len, seq, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true))
     {
         error = ctx.error;
         EXP_evalVerifContextFree(&ctx);
