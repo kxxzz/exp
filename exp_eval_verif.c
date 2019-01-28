@@ -449,11 +449,11 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             if (!EXP_evalVerifLeaveBlock(ctx))
             {
                 return;
             }
+            EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             goto next;
         }
         case EXP_EvalBlockCallbackType_Call:
