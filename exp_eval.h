@@ -51,12 +51,19 @@ typedef struct EXP_EvalNativeFunInfo
 
 
 
+enum
+{
+    EXP_EvalValueType_Any = -1,
+};
+
+bool EXP_evalTypeMatch(u32 pat, u32 x);
+
 
 typedef enum EXP_EvalPrimValueType
 {
     EXP_EvalPrimValueType_Bool,
     EXP_EvalPrimValueType_Num,
-    EXP_EvalPrimValueType_Tok,
+    EXP_EvalPrimValueType_Str,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;

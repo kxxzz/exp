@@ -352,7 +352,7 @@ static void EXP_evalVerifNativeFunCall(EXP_EvalVerifContext* ctx, EXP_EvalNative
     {
         u32 vt1 = dataStack->data[argsOffset + i];
         u32 vt = nativeFunInfo->inType[i];
-        if (vt1 != vt)
+        if (!EXP_evalTypeMatch(vt, vt1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -381,7 +381,7 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockI
     {
         u32 vt1 = dataStack->data[argsOffset + i];
         u32 vt = funInfo->typeInOut.data[i];
-        if (vt1 != vt)
+        if (!EXP_evalTypeMatch(vt, vt1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -494,7 +494,7 @@ next:
             }
             u32 vt = dataStack->data[curBlock->dataStackP];
             vec_pop(dataStack);
-            if (vt != EXP_EvalPrimValueType_Bool)
+            if (!EXP_evalTypeMatch(EXP_EvalPrimValueType_Bool, vt))
             {
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
@@ -737,7 +737,7 @@ next:
                     }
                 }
             }
-            vec_push(dataStack, EXP_EvalPrimValueType_Tok);
+            vec_push(dataStack, EXP_EvalPrimValueType_Str);
             goto next;
         }
     }

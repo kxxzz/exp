@@ -477,7 +477,7 @@ next:
                     }
                 }
             }
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Tok, .data.tok = node };
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .data.tok = node };
             vec_push(dataStack, v);
             goto next;
         }
