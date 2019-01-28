@@ -320,14 +320,13 @@ static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOf
     EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
     assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
     assert(curBlock->dataStackP >= curBlockInfo->numIns);
-    if (curBlock->dataStackP - curBlockInfo->numIns > argsOffset)
+    if (curBlock->dataStackP > argsOffset + curBlockInfo->numIns)
     {
-        u32 n = curBlock->dataStackP - curBlockInfo->numIns - argsOffset;
+        u32 n = curBlock->dataStackP - argsOffset - curBlockInfo->numIns;
         if (n > curBlockInfo->numIns)
         {
             u32 added = n - curBlockInfo->numIns;
             curBlockInfo->numIns = n;
-            curBlockInfo->typeInOut.length = 0;
             for (u32 i = 0; i < added; ++i)
             {
                 vec_insert(&curBlockInfo->typeInOut, i, funInTypes[i]);
@@ -608,9 +607,9 @@ next:
                     {
                         if (EXP_EvalPrimFun_PopDefEnd == nativeFun)
                         {
-                            if (curBlock->dataStackP > curBlockInfo->numIns + dataStack->length)
+                            if (curBlock->dataStackP > dataStack->length + curBlockInfo->numIns)
                             {
-                                u32 n = curBlock->dataStackP - dataStack->length;
+                                u32 n = curBlock->dataStackP - dataStack->length - curBlockInfo->numIns;
                                 u32 added = n - curBlockInfo->numIns;
                                 curBlockInfo->numIns = n;
                                 for (u32 i = 0; i < added; ++i)
@@ -643,7 +642,16 @@ next:
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
                     return;
                 }
+                u32 t = vec_last(dataStack);
                 vec_pop(dataStack);
+                if (curBlock->dataStackP > dataStack->length + curBlockInfo->numIns)
+                {
+                    u32 n = curBlock->dataStackP - dataStack->length - curBlockInfo->numIns;
+                    u32 added = n - curBlockInfo->numIns;
+                    assert(1 == added);
+                    curBlockInfo->numIns = n;
+                    vec_insert(&curBlockInfo->typeInOut, 0, t);
+                }
                 goto next;
             }
             default:
