@@ -27,9 +27,9 @@ typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
 
 typedef enum EXP_EvalBlockInfoState
 {
-    EXP_EvalBlockInfoState_Uninited = 0,
+    EXP_EvalBlockInfoState_Unstart = 0,
     EXP_EvalBlockInfoState_Analyzing,
-    EXP_EvalBlockInfoState_Inited,
+    EXP_EvalBlockInfoState_Got,
 } EXP_EvalBlockInfoState;
 
 typedef struct EXP_EvalBlockInfo
@@ -271,10 +271,10 @@ static bool EXP_evalVerifEnterBlock
     vec_push(&ctx->callStack, blk);
 
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
-    assert(EXP_EvalBlockInfoState_Uninited == blkInfo->state);
+    assert(EXP_EvalBlockInfoState_Unstart == blkInfo->state);
     blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
-    blkInfo->parent = parent;
 
+    blkInfo->parent = parent;
     if (isDefScope)
     {
         for (u32 i = 0; i < len; ++i)
@@ -304,7 +304,7 @@ static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     }
 
     assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
-    curBlockInfo->state = EXP_EvalBlockInfoState_Inited;
+    curBlockInfo->state = EXP_EvalBlockInfoState_Got;
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -443,7 +443,7 @@ next:
         {
             EXP_Node fun = cb->fun;
             EXP_EvalBlockInfo* funInfo = blockTable->data + fun.id;
-            if (EXP_EvalBlockInfoState_Inited == funInfo->state)
+            if (EXP_EvalBlockInfoState_Got == funInfo->state)
             {
                 if (curBlock->dataStackP != (dataStack->length - funInfo->numIns))
                 {
@@ -457,7 +457,7 @@ next:
                 EXP_evalVerifFunCall(ctx, funInfo, curBlock->srcNode);
                 goto next;
             }
-            else if (EXP_EvalBlockInfoState_Uninited == funInfo->state)
+            else if (EXP_EvalBlockInfoState_Unstart == funInfo->state)
             {
                 if (curBlock->dataStackP > dataStack->length)
                 {
@@ -682,7 +682,7 @@ next:
             {
                 EXP_Node fun = def.fun;
                 EXP_EvalBlockInfo* funInfo = blockTable->data + fun.id;
-                if (EXP_EvalBlockInfoState_Inited == funInfo->state)
+                if (EXP_EvalBlockInfoState_Got == funInfo->state)
                 {
                     if (dataStack->length < funInfo->numIns)
                     {
@@ -692,7 +692,7 @@ next:
                     EXP_evalVerifFunCall(ctx, funInfo, node);
                     goto next;
                 }
-                else if (EXP_EvalBlockInfoState_Uninited == funInfo->state)
+                else if (EXP_EvalBlockInfoState_Unstart == funInfo->state)
                 {
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
