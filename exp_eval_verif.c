@@ -322,15 +322,13 @@ static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOf
     assert(curBlock->dataStackP >= curBlockInfo->numIns);
     if (curBlock->dataStackP > argsOffset + curBlockInfo->numIns)
     {
-        u32 n = curBlock->dataStackP - argsOffset - curBlockInfo->numIns;
-        if (n > curBlockInfo->numIns)
+        u32 n = curBlock->dataStackP - argsOffset;
+        assert(n > curBlockInfo->numIns);
+        u32 added = n - curBlockInfo->numIns;
+        curBlockInfo->numIns = n;
+        for (u32 i = 0; i < added; ++i)
         {
-            u32 added = n - curBlockInfo->numIns;
-            curBlockInfo->numIns = n;
-            for (u32 i = 0; i < added; ++i)
-            {
-                vec_insert(&curBlockInfo->typeInOut, i, funInTypes[i]);
-            }
+            vec_insert(&curBlockInfo->typeInOut, i, funInTypes[i]);
         }
     }
 }
@@ -646,7 +644,7 @@ next:
                 vec_pop(dataStack);
                 if (curBlock->dataStackP > dataStack->length + curBlockInfo->numIns)
                 {
-                    u32 n = curBlock->dataStackP - dataStack->length - curBlockInfo->numIns;
+                    u32 n = curBlock->dataStackP - dataStack->length;
                     u32 added = n - curBlockInfo->numIns;
                     assert(1 == added);
                     curBlockInfo->numIns = n;
