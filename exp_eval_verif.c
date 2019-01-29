@@ -272,7 +272,6 @@ static bool EXP_evalVerifEnterBlock
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
     assert(EXP_EvalBlockInfoState_Unstart == blkInfo->state);
     blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
-
     blkInfo->parent = parent;
     if (isDefScope)
     {
@@ -291,8 +290,8 @@ static bool EXP_evalVerifEnterBlock
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
-    EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
 
+    EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
     assert(curBlockInfo->typeInOut.length == curBlockInfo->numIns);
     assert(ctx->dataStack.length + curBlockInfo->numIns >= curBlock->dataStackP);
     curBlockInfo->numOuts = ctx->dataStack.length + curBlockInfo->numIns - curBlock->dataStackP;
@@ -304,6 +303,7 @@ static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
     curBlockInfo->state = EXP_EvalBlockInfoState_Got;
+
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -496,75 +496,63 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
-            EXP_EvalBlockCallback cb1 = { EXP_EvalBlockCallbackType_Branch, .branch[0] = cb->branch[1] };
-            if (EXP_evalVerifEnterBlock
-            (
-                ctx, cb->branch[0], 1, *cb->branch[0], curBlock->srcNode, cb1, true
-            ))
-            {
-                goto next;
-            }
-            return;
+            curBlock->remain = 1;
+            curBlock->p = cb->branch[0];
+            cb->type = EXP_EvalBlockCallbackType_Branch;
+            goto next;
         }
         case EXP_EvalBlockCallbackType_Branch:
         {
-            if (!EXP_evalVerifLeaveBlock(ctx))
+            EXP_EvalBlockInfo* b0 = blockTable->data + cb->branch[0]->id;
+            assert(b0->numIns + b0->numOuts == b0->typeInOut.length);
+            if (cb->branch[1])
             {
-                return;
-            }
-            assert(curBlockInfo->numIns + curBlockInfo->numOuts == curBlockInfo->typeInOut.length);
-            if (cb->branch[0])
-            {
-                for (u32 i = 0; i < curBlockInfo->numOuts; ++i)
+                for (u32 i = 0; i < b0->numOuts; ++i)
                 {
                     vec_pop(dataStack);
                 }
-                for (u32 i = 0; i < curBlockInfo->numIns; ++i)
+                for (u32 i = 0; i < b0->numIns; ++i)
                 {
-                    vec_push(dataStack, curBlockInfo->typeInOut.data[i]);
+                    vec_push(dataStack, b0->typeInOut.data[i]);
                 }
-                EXP_EvalBlockCallback cb1 = { EXP_EvalBlockCallbackType_BranchCheck, .lastBranch = curBlock->srcNode };
-                if (EXP_evalVerifEnterBlock
-                (
-                    ctx, cb->branch[0], 1, *cb->branch[0], curBlock->srcNode, cb1, true
-                ))
-                {
-                    goto next;
-                }
+                curBlock->remain = 1;
+                curBlock->p = cb->branch[1];
+                cb->type = EXP_EvalBlockCallbackType_BranchCheck;
+                goto next;
+            }
+            if (!EXP_evalVerifLeaveBlock(ctx))
+            {
                 return;
             }
             goto next;
         }
         case EXP_EvalBlockCallbackType_BranchCheck:
         {
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
-            assert(curBlockInfo->numIns + curBlockInfo->numOuts == curBlockInfo->typeInOut.length);
-            EXP_EvalBlockInfo* lastBlockInfo = blockTable->data + cb->lastBranch.id;
-            if (curBlockInfo->numIns != lastBlockInfo->numIns)
+            EXP_EvalBlockInfo* b0 = blockTable->data + cb->branch[0]->id;
+            EXP_EvalBlockInfo* b1 = blockTable->data + cb->branch[1]->id;
+            assert(b1->numIns + b1->numOuts == b1->typeInOut.length);
+            if (b0->numIns != b1->numIns)
             {
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
                 return;
             }
-            if (curBlockInfo->numOuts != lastBlockInfo->numOuts)
+            if (b0->numOuts != b1->numOuts)
             {
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
                 return;
             }
-            assert(curBlockInfo->typeInOut.length == lastBlockInfo->typeInOut.length);
-            for (u32 i = 0; i < curBlockInfo->typeInOut.length; ++i)
+            assert(b0->typeInOut.length == b1->typeInOut.length);
+            for (u32 i = 0; i < b0->typeInOut.length; ++i)
             {
-                if (curBlockInfo->typeInOut.data[i] != lastBlockInfo->typeInOut.data[i])
+                if (b0->typeInOut.data[i] != b1->typeInOut.data[i])
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
                     return;
                 }
+            }
+            if (!EXP_evalVerifLeaveBlock(ctx))
+            {
+                return;
             }
             goto next;
         }
