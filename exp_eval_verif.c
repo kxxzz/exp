@@ -293,7 +293,7 @@ static bool EXP_evalVerifEnterBlock
     return true;
 }
 
-static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
     EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
@@ -310,14 +310,13 @@ static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     curBlockInfo->state = EXP_EvalBlockInfoState_Got;
 
     vec_pop(&ctx->callStack);
-    return ctx->callStack.length > 0;
 }
 
 
 
 
 
-static bool EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
     EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
@@ -335,7 +334,6 @@ static bool EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     EXP_evalBlockInfoReset(curBlockInfo);
 
     vec_pop(&ctx->callStack);
-    return ctx->callStack.length > 0;
 }
 
 
@@ -437,6 +435,10 @@ next:
     {
         return;
     }
+    if (0 == ctx->callStack.length)
+    {
+        return;
+    }
     curBlock = &vec_last(&ctx->callStack);
     curBlockInfo = blockTable->data + curBlock->srcNode.id;
     if (curBlock->p == curBlock->end)
@@ -446,11 +448,8 @@ next:
         {
         case EXP_EvalBlockCallbackType_NONE:
         {
-            if (EXP_evalVerifLeaveBlock(ctx))
-            {
-                goto next;
-            }
-            return;
+            EXP_evalVerifLeaveBlock(ctx);
+            goto next;
         }
         case EXP_EvalBlockCallbackType_NativeCall:
         {
@@ -461,10 +460,7 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
+            EXP_evalVerifLeaveBlock(ctx);
             EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             goto next;
         }
@@ -479,10 +475,7 @@ next:
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                if (!EXP_evalVerifLeaveBlock(ctx))
-                {
-                    return;
-                }
+                EXP_evalVerifLeaveBlock(ctx);
                 EXP_evalVerifFunCall(ctx, funInfo, curBlock->srcNode);
                 goto next;
             }
@@ -496,10 +489,7 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                if (!EXP_evalVerifLeaveBlock(ctx))
-                {
-                    return;
-                }
+                EXP_evalVerifLeaveBlock(ctx);
                 if (EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true))
                 {
                     goto next;
@@ -553,10 +543,7 @@ next:
                 cb->type = EXP_EvalBlockCallbackType_BranchCheck;
                 goto next;
             }
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
+            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         case EXP_EvalBlockCallbackType_Branch1:
@@ -578,10 +565,7 @@ next:
                 cb->type = EXP_EvalBlockCallbackType_BranchCheck;
                 goto next;
             }
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
+            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         case EXP_EvalBlockCallbackType_BranchCheck:
@@ -608,10 +592,7 @@ next:
                     return;
                 }
             }
-            if (!EXP_evalVerifLeaveBlock(ctx))
-            {
-                return;
-            }
+            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         default:
