@@ -500,8 +500,27 @@ next:
             {
                 assert(EXP_EvalBlockInfoState_Got == funInfo->state);
 
-
-                assert(false);
+                while (ctx->callStack.length > 0)
+                {
+                    EXP_evalVerifCancelBlock(ctx);
+                    curBlock = &vec_last(&ctx->callStack);
+                    if ((EXP_EvalBlockCallbackType_Branch0 == curBlock->cb.type) ||
+                        (EXP_EvalBlockCallbackType_Branch1 == curBlock->cb.type))
+                    {
+                        u32 bi = curBlock->cb.type - EXP_EvalBlockCallbackType_Branch0;
+                        if (cb->branch[bi])
+                        {
+                            curBlock->p = cb->branch[bi];
+                            curBlock->end = cb->branch[bi] + 1;
+                            cb->type = EXP_EvalBlockCallbackType_BranchCheck;
+                            goto next;
+                        }
+                        EXP_evalVerifLeaveBlock(ctx);
+                        goto next;
+                    }
+                }
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
+                return;
             }
             return;
         }
@@ -575,12 +594,12 @@ next:
             assert(b1->numIns + b1->numOuts == b1->typeInOut.length);
             if (b0->numIns != b1->numIns)
             {
-                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchUneq);
                 return;
             }
             if (b0->numOuts != b1->numOuts)
             {
-                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchUneq);
                 return;
             }
             assert(b0->typeInOut.length == b1->typeInOut.length);
@@ -588,7 +607,7 @@ next:
             {
                 if (b0->typeInOut.data[i] != b1->typeInOut.data[i])
                 {
-                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchIneq);
+                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchUneq);
                     return;
                 }
             }
