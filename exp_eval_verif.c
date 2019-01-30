@@ -498,16 +498,17 @@ next:
             }
             else
             {
-                assert(EXP_EvalBlockInfoState_Got == funInfo->state);
+                assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
 
                 while (ctx->callStack.length > 0)
                 {
                     EXP_evalVerifCancelBlock(ctx);
                     curBlock = &vec_last(&ctx->callStack);
-                    if ((EXP_EvalBlockCallbackType_Branch0 == curBlock->cb.type) ||
-                        (EXP_EvalBlockCallbackType_Branch1 == curBlock->cb.type))
+                    EXP_EvalBlockCallback* cb = &curBlock->cb;
+                    if ((EXP_EvalBlockCallbackType_Branch0 == cb->type) ||
+                        (EXP_EvalBlockCallbackType_Branch1 == cb->type))
                     {
-                        u32 bi = 1 - (curBlock->cb.type - EXP_EvalBlockCallbackType_Branch0);
+                        u32 bi = 1 - (cb->type - EXP_EvalBlockCallbackType_Branch0);
                         if (cb->branch[bi])
                         {
                             curBlock->p = cb->branch[bi];
