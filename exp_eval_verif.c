@@ -27,7 +27,7 @@ typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
 
 typedef enum EXP_EvalBlockInfoState
 {
-    EXP_EvalBlockInfoState_Unstart = 0,
+    EXP_EvalBlockInfoState_None = 0,
     EXP_EvalBlockInfoState_Analyzing,
     EXP_EvalBlockInfoState_Got,
 } EXP_EvalBlockInfoState;
@@ -50,6 +50,12 @@ static void EXP_evalBlockInfoFree(EXP_EvalBlockInfo* info)
     vec_free(&info->defs);
 }
 
+static void EXP_evalBlockInfoReset(EXP_EvalBlockInfo* info)
+{
+    EXP_evalBlockInfoFree(info);
+    memset(info, 0, sizeof(*info));
+}
+
 
 
 
@@ -58,7 +64,7 @@ typedef struct EXP_EvalVerifCall
     EXP_Node srcNode;
     u32 dataStackP;
     EXP_Node* p;
-    u32 remain;
+    EXP_Node* end;
     EXP_EvalBlockCallback cb;
 } EXP_EvalVerifCall;
 
@@ -266,11 +272,11 @@ static bool EXP_evalVerifEnterBlock
 )
 {
     u32 dataStackP = ctx->dataStack.length;
-    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, len, cb };
+    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, seq + len, cb };
     vec_push(&ctx->callStack, blk);
 
     EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + srcNode.id;
-    assert(EXP_EvalBlockInfoState_Unstart == blkInfo->state);
+    assert(EXP_EvalBlockInfoState_None == blkInfo->state);
     blkInfo->state = EXP_EvalBlockInfoState_Analyzing;
     blkInfo->parent = parent;
     if (isDefScope)
@@ -290,7 +296,6 @@ static bool EXP_evalVerifEnterBlock
 static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
-
     EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
     assert(curBlockInfo->typeInOut.length == curBlockInfo->numIns);
     assert(ctx->dataStack.length + curBlockInfo->numIns >= curBlock->dataStackP);
@@ -303,6 +308,31 @@ static bool EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
     curBlockInfo->state = EXP_EvalBlockInfoState_Got;
+
+    vec_pop(&ctx->callStack);
+    return ctx->callStack.length > 0;
+}
+
+
+
+
+
+static bool EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
+{
+    EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
+    EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
+    assert(curBlockInfo->typeInOut.length == curBlockInfo->numIns);
+    assert(0 == curBlockInfo->numOuts);
+
+    assert(curBlock->dataStackP >= curBlockInfo->numIns);
+    ctx->dataStack.length = curBlock->dataStackP - curBlockInfo->numIns;
+    for (u32 i = 0; i < curBlockInfo->numIns; ++i)
+    {
+        vec_push(&ctx->dataStack, curBlockInfo->typeInOut.data[i]);
+    }
+
+    assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
+    EXP_evalBlockInfoReset(curBlockInfo);
 
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
@@ -409,7 +439,7 @@ next:
     }
     curBlock = &vec_last(&ctx->callStack);
     curBlockInfo = blockTable->data + curBlock->srcNode.id;
-    if (0 == curBlock->remain--)
+    if (curBlock->p == curBlock->end)
     {
         EXP_EvalBlockCallback* cb = &curBlock->cb;
         switch (cb->type)
@@ -456,7 +486,7 @@ next:
                 EXP_evalVerifFunCall(ctx, funInfo, curBlock->srcNode);
                 goto next;
             }
-            else if (EXP_EvalBlockInfoState_Unstart == funInfo->state)
+            else if (EXP_EvalBlockInfoState_None == funInfo->state)
             {
                 if (curBlock->dataStackP > dataStack->length)
                 {
@@ -478,6 +508,9 @@ next:
             }
             else
             {
+                assert(EXP_EvalBlockInfoState_Got == funInfo->state);
+
+
                 assert(false);
             }
             return;
@@ -496,12 +529,12 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            curBlock->remain = 1;
             curBlock->p = cb->branch[0];
-            cb->type = EXP_EvalBlockCallbackType_Branch;
+            curBlock->end = cb->branch[0] + 1;
+            cb->type = EXP_EvalBlockCallbackType_Branch0;
             goto next;
         }
-        case EXP_EvalBlockCallbackType_Branch:
+        case EXP_EvalBlockCallbackType_Branch0:
         {
             EXP_EvalBlockInfo* b0 = blockTable->data + cb->branch[0]->id;
             assert(b0->numIns + b0->numOuts == b0->typeInOut.length);
@@ -515,8 +548,33 @@ next:
                 {
                     vec_push(dataStack, b0->typeInOut.data[i]);
                 }
-                curBlock->remain = 1;
                 curBlock->p = cb->branch[1];
+                curBlock->end = cb->branch[1] + 1;
+                cb->type = EXP_EvalBlockCallbackType_BranchCheck;
+                goto next;
+            }
+            if (!EXP_evalVerifLeaveBlock(ctx))
+            {
+                return;
+            }
+            goto next;
+        }
+        case EXP_EvalBlockCallbackType_Branch1:
+        {
+            EXP_EvalBlockInfo* b1 = blockTable->data + cb->branch[1]->id;
+            assert(b1->numIns + b1->numOuts == b1->typeInOut.length);
+            if (cb->branch[1])
+            {
+                for (u32 i = 0; i < b1->numOuts; ++i)
+                {
+                    vec_pop(dataStack);
+                }
+                for (u32 i = 0; i < b1->numIns; ++i)
+                {
+                    vec_push(dataStack, b1->typeInOut.data[i]);
+                }
+                curBlock->p = cb->branch[0];
+                curBlock->end = cb->branch[0] + 1;
                 cb->type = EXP_EvalBlockCallbackType_BranchCheck;
                 goto next;
             }
@@ -580,7 +638,7 @@ next:
                 }
                 for (;;)
                 {
-                    if (0 == curBlock->remain--)
+                    if (curBlock->p == curBlock->end)
                     {
                         EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalSyntax);
                         return;
@@ -684,7 +742,7 @@ next:
                     EXP_evalVerifFunCall(ctx, funInfo, node);
                     goto next;
                 }
-                else if (EXP_EvalBlockInfoState_Unstart == funInfo->state)
+                else if (EXP_EvalBlockInfoState_None == funInfo->state)
                 {
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
