@@ -507,7 +507,7 @@ next:
                     if ((EXP_EvalBlockCallbackType_Branch0 == curBlock->cb.type) ||
                         (EXP_EvalBlockCallbackType_Branch1 == curBlock->cb.type))
                     {
-                        u32 bi = curBlock->cb.type - EXP_EvalBlockCallbackType_Branch0;
+                        u32 bi = 1 - (curBlock->cb.type - EXP_EvalBlockCallbackType_Branch0);
                         if (cb->branch[bi])
                         {
                             curBlock->p = cb->branch[bi];
@@ -515,6 +515,7 @@ next:
                             cb->type = EXP_EvalBlockCallbackType_BranchCheck;
                             goto next;
                         }
+                        assert(1 == bi);
                         EXP_evalVerifLeaveBlock(ctx);
                         goto next;
                     }
