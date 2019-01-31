@@ -1,8 +1,6 @@
 #include "exp_a.h"
 
 
-typedef vec_t(EXP_Node) EXP_NodeVec;
-
 
 typedef struct EXP_NodeInfo
 {
