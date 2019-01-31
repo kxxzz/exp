@@ -82,6 +82,7 @@ typedef struct EXP_EvalVerifContext
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalBlockInfoTable blockTable;
     vec_u32 dataStack;
+    bool dataStackShiftAble;
     EXP_EvalVerifCallStack callStack;
     EXP_EvalError error;
 } EXP_EvalVerifContext;
@@ -152,11 +153,10 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 static bool EXP_evalVerifGetMatched
 (
-    EXP_EvalVerifContext* ctx, const char* funName, EXP_Node srcNode, EXP_EvalVerifDef* outDef
+    EXP_EvalVerifContext* ctx, const char* funName, EXP_Node blk, EXP_EvalVerifDef* outDef
 )
 {
     EXP_Space* space = ctx->space;
-    EXP_Node blk = srcNode;
     while (blk.id != EXP_NodeId_Invalid)
     {
         EXP_EvalBlockInfo* blkInfo = ctx->blockTable.data + blk.id;
@@ -346,8 +346,12 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
+static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
 {
+    if (!ctx->dataStackShiftAble)
+    {
+        return false;
+    }
     vec_u32* dataStack = &ctx->dataStack;
     vec_insertarr(dataStack, 0, a, n);
     for (u32 i = 0; i < ctx->callStack.length; ++i)
@@ -355,6 +359,7 @@ static void EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const 
         EXP_EvalVerifCall* c = ctx->callStack.data + i;
         c->dataStackP += n;
     }
+    return true;
 }
 
 
@@ -524,9 +529,10 @@ next:
             {
                 assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
 
-                EXP_Node srcNode = curBlock->srcNode;
+                EXP_Node srcNode = EXP_Node_Invalid;
                 while (ctx->callStack.length > 0)
                 {
+                    srcNode = curBlock->srcNode;
                     curBlock = &vec_last(&ctx->callStack);
                     EXP_EvalBlockCallback* cb = &curBlock->cb;
                     if (EXP_EvalBlockCallbackType_Branch0 == cb->type)
@@ -642,24 +648,24 @@ next:
             {
                 if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
-                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
                 for (;;)
                 {
                     if (curBlock->p == curBlock->end)
                     {
-                        EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalSyntax);
+                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
                         return;
                     }
-                    EXP_Node key = *(curBlock->p++);
-                    const char* skey = EXP_tokCstr(space, key);
-                    if (!EXP_isTok(space, key))
+                    node = *(curBlock->p++);
+                    const char* skey = EXP_tokCstr(space, node);
+                    if (!EXP_isTok(space, node))
                     {
-                        EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
-                    u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, EXP_tokCstr(space, key));
+                    u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, EXP_tokCstr(space, node));
                     if (nativeFun != -1)
                     {
                         if (EXP_EvalPrimFun_PopDefEnd == nativeFun)
@@ -678,26 +684,34 @@ next:
                             }
                             goto next;
                         }
-                        EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
                     if (!dataStack->length)
                     {
-                        EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
-                        return;
+                        u32 a[] = { EXP_EvalValueType_Any };
+                        if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
+                        {
+                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                            return;
+                        }
                     }
                     u32 vt = vec_last(dataStack);
-                    EXP_EvalVerifDef def = { key, true, .valType = vt };
+                    EXP_EvalVerifDef def = { node, true, .valType = vt };
                     vec_push(&curBlockInfo->defs, def);
                     vec_pop(dataStack);
                 }
             }
             case EXP_EvalPrimFun_Drop:
             {
-                if (!dataStack->length)
+                if (0 == dataStack->length)
                 {
                     u32 a[] = { EXP_EvalValueType_Any };
-                    EXP_evalVerifShiftDataStack(ctx, 1, a);
+                    if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
+                    {
+                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                        return;
+                    }
                 }
                 u32 t = vec_last(dataStack);
                 vec_pop(dataStack);
@@ -745,7 +759,7 @@ next:
                 {
                     if (dataStack->length < funInfo->numIns)
                     {
-                        EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
                     EXP_evalVerifFunCall(ctx, funInfo, node);
@@ -833,7 +847,7 @@ next:
     {
         if ((len != 3) && (len != 4))
         {
-            EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
             return;
         }
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
@@ -900,10 +914,6 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_evalVerifCall(&ctx);
     EXP_EvalBlockInfo* rootInfo = ctx.blockTable.data + root.id;
-    if (rootInfo->numIns > 0)
-    {
-        EXP_evalVerifErrorAtNode(&ctx, root, EXP_EvalErrCode_EvalStack);
-    }
     error = ctx.error;
     EXP_evalVerifContextFree(&ctx);
     return error;
