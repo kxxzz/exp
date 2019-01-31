@@ -951,7 +951,12 @@ next:
 
 static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
-
+    ctx->dataStackShiftAble = true;
+    for (u32 i = 0; i < ctx->recheckNodes.length; ++i)
+    {
+        ctx->dataStack.length = 0;
+        EXP_Node node = ctx->recheckNodes.data[i];
+    }
 }
 
 
