@@ -899,6 +899,11 @@ EXP_EvalError EXP_evalVerif
         return error;
     }
     EXP_evalVerifCall(&ctx);
+    EXP_EvalBlockInfo* rootInfo = ctx.blockTable.data + root.id;
+    if (rootInfo->numIns > 0)
+    {
+        EXP_evalVerifErrorAtNode(&ctx, root, EXP_EvalErrCode_EvalStack);
+    }
     error = ctx.error;
     EXP_evalVerifContextFree(&ctx);
     return error;

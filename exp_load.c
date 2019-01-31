@@ -519,6 +519,11 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
     }
     EXP_loadContextFree(&ctx);
     EXP_Node node = EXP_addSeqDone(space);
+    if (srcInfoTable)
+    {
+        EXP_NodeSrcInfo srcInfo = { 0 };
+        vec_push(srcInfoTable, srcInfo);
+    }
     return node;
 }
 
