@@ -739,7 +739,7 @@ static bool EXP_evalVerifNode
         }
         else
         {
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call,.fun = def.fun };
+            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = def.fun };
             EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curBlock->srcNode, cb, false);
             return true;
         }
@@ -844,8 +844,8 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            EXP_evalVerifLeaveBlock(ctx);
             EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
+            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         case EXP_EvalBlockCallbackType_Call:
@@ -864,8 +864,8 @@ next:
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                EXP_evalVerifLeaveBlock(ctx);
                 EXP_evalVerifFunCall(ctx, funInfo, curBlock->srcNode);
+                EXP_evalVerifLeaveBlock(ctx);
                 goto next;
             }
             else if (EXP_EvalBlockInfoState_None == funInfo->state)
@@ -878,7 +878,7 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                EXP_evalVerifLeaveBlock(ctx);
+                curBlock->cb.type = EXP_EvalBlockCallbackType_NONE;
                 if (!EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true))
                 {
                     return;
@@ -920,6 +920,15 @@ next:
             assert(b0->numIns + b0->numOuts == b0->typeInOut.length);
             if (cb->branch[1])
             {
+                if (dataStack->length < b0->numOuts)
+                {
+                    u32 n = b0->numOuts - dataStack->length;
+                    if (!EXP_evalVerifShiftDataStack(ctx, n, b0->typeInOut.data))
+                    {
+                        EXP_evalVerifErrorAtNode(ctx, *cb->branch[0], EXP_EvalErrCode_EvalStack);
+                        return;
+                    }
+                }
                 for (u32 i = 0; i < b0->numOuts; ++i)
                 {
                     vec_pop(dataStack);
