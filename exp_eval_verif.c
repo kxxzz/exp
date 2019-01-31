@@ -84,6 +84,7 @@ typedef struct EXP_EvalVerifContext
     vec_u32 dataStack;
     bool dataStackShiftAble;
     EXP_EvalVerifCallStack callStack;
+    EXP_NodeVec recheckNodes;
     EXP_EvalError error;
 } EXP_EvalVerifContext;
 
@@ -455,6 +456,17 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockI
 
 
 
+
+
+
+
+
+static void EXP_evalVerifAddRecheck(EXP_EvalVerifContext* ctx, EXP_Node node)
+{
+    vec_push(&ctx->recheckNodes, node);
+}
+
+
 static bool EXP_evalVerifRecurFun
 (
     EXP_EvalVerifContext* ctx, EXP_EvalVerifCall* curBlock, const EXP_EvalBlockInfo* funInfo
@@ -476,6 +488,7 @@ static bool EXP_evalVerifRecurFun
                 curBlock->p = cb->branch[1];
                 curBlock->end = cb->branch[1] + 1;
                 cb->type = EXP_EvalBlockCallbackType_NONE;
+                EXP_evalVerifAddRecheck(ctx, curBlock->srcNode);
                 return true;
             }
         }
@@ -485,6 +498,7 @@ static bool EXP_evalVerifRecurFun
             curBlock->p = cb->branch[0];
             curBlock->end = cb->branch[0] + 1;
             cb->type = EXP_EvalBlockCallbackType_NONE;
+            EXP_evalVerifAddRecheck(ctx, curBlock->srcNode);
             return true;
         }
         EXP_evalVerifCancelBlock(ctx);
@@ -934,6 +948,20 @@ next:
 
 
 
+
+static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
+{
+
+}
+
+
+
+
+
+
+
+
+
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
@@ -957,7 +985,10 @@ EXP_EvalError EXP_evalVerif
         return error;
     }
     EXP_evalVerifCall(&ctx);
-    EXP_EvalBlockInfo* rootInfo = ctx.blockTable.data + root.id;
+    if (!ctx.error.code)
+    {
+        EXP_evalVerifRecheck(&ctx);
+    }
     error = ctx.error;
     EXP_evalVerifContextFree(&ctx);
     return error;
