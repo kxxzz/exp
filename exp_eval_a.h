@@ -44,7 +44,7 @@ typedef enum EXP_EvalBlockCallbackType
     EXP_EvalBlockCallbackType_Cond,
     EXP_EvalBlockCallbackType_Branch0,
     EXP_EvalBlockCallbackType_Branch1,
-    EXP_EvalBlockCallbackType_BranchCheck,
+    EXP_EvalBlockCallbackType_BranchUnify,
 } EXP_EvalBlockCallbackType;
 
 typedef struct EXP_EvalBlockCallback

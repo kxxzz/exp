@@ -314,9 +314,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
 
 
-
-
-static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifBlockRebase(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
     EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
@@ -329,7 +327,14 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     {
         vec_push(&ctx->dataStack, curBlockInfo->typeInOut.data[i]);
     }
+}
 
+static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
+{
+    EXP_evalVerifBlockRebase(ctx);
+
+    EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
+    EXP_EvalBlockInfo* curBlockInfo = ctx->blockTable.data + curBlock->srcNode.id;
     assert(EXP_EvalBlockInfoState_Analyzing == curBlockInfo->state);
     EXP_evalBlockInfoReset(curBlockInfo);
 
@@ -500,28 +505,33 @@ next:
             {
                 assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
 
+                EXP_Node srcNode = curBlock->srcNode;
                 while (ctx->callStack.length > 0)
                 {
-                    EXP_evalVerifCancelBlock(ctx);
                     curBlock = &vec_last(&ctx->callStack);
                     EXP_EvalBlockCallback* cb = &curBlock->cb;
-                    if ((EXP_EvalBlockCallbackType_Branch0 == cb->type) ||
-                        (EXP_EvalBlockCallbackType_Branch1 == cb->type))
+                    if (EXP_EvalBlockCallbackType_Branch0 == cb->type)
                     {
-                        u32 bi = 1 - (cb->type - EXP_EvalBlockCallbackType_Branch0);
-                        if (cb->branch[bi])
+                        if (cb->branch[1])
                         {
-                            curBlock->p = cb->branch[bi];
-                            curBlock->end = cb->branch[bi] + 1;
-                            cb->type = EXP_EvalBlockCallbackType_BranchCheck;
+                            EXP_evalVerifBlockRebase(ctx);
+                            curBlock->p = cb->branch[1];
+                            curBlock->end = cb->branch[1] + 1;
+                            cb->type = EXP_EvalBlockCallbackType_NONE;
                             goto next;
                         }
-                        assert(1 == bi);
-                        EXP_evalVerifLeaveBlock(ctx);
+                    }
+                    else if (EXP_EvalBlockCallbackType_BranchUnify == cb->type)
+                    {
+                        EXP_evalVerifBlockRebase(ctx);
+                        curBlock->p = cb->branch[0];
+                        curBlock->end = cb->branch[0] + 1;
+                        cb->type = EXP_EvalBlockCallbackType_NONE;
                         goto next;
                     }
+                    EXP_evalVerifCancelBlock(ctx);
                 }
-                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
                 return;
             }
             return;
@@ -561,35 +571,13 @@ next:
                 }
                 curBlock->p = cb->branch[1];
                 curBlock->end = cb->branch[1] + 1;
-                cb->type = EXP_EvalBlockCallbackType_BranchCheck;
+                cb->type = EXP_EvalBlockCallbackType_BranchUnify;
                 goto next;
             }
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalBlockCallbackType_Branch1:
-        {
-            EXP_EvalBlockInfo* b1 = blockTable->data + cb->branch[1]->id;
-            assert(b1->numIns + b1->numOuts == b1->typeInOut.length);
-            if (cb->branch[1])
-            {
-                for (u32 i = 0; i < b1->numOuts; ++i)
-                {
-                    vec_pop(dataStack);
-                }
-                for (u32 i = 0; i < b1->numIns; ++i)
-                {
-                    vec_push(dataStack, b1->typeInOut.data[i]);
-                }
-                curBlock->p = cb->branch[0];
-                curBlock->end = cb->branch[0] + 1;
-                cb->type = EXP_EvalBlockCallbackType_BranchCheck;
-                goto next;
-            }
-            EXP_evalVerifLeaveBlock(ctx);
-            goto next;
-        }
-        case EXP_EvalBlockCallbackType_BranchCheck:
+        case EXP_EvalBlockCallbackType_BranchUnify:
         {
             EXP_EvalBlockInfo* b0 = blockTable->data + cb->branch[0]->id;
             EXP_EvalBlockInfo* b1 = blockTable->data + cb->branch[1]->id;
