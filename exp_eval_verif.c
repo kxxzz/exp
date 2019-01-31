@@ -455,8 +455,13 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockI
 
 
 
-static bool EXP_evalVerifRecurFun(EXP_EvalVerifContext* ctx, EXP_EvalVerifCall* curBlock)
+static bool EXP_evalVerifRecurFun
+(
+    EXP_EvalVerifContext* ctx, EXP_EvalVerifCall* curBlock, const EXP_EvalBlockInfo* funInfo
+)
 {
+    assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
+
     EXP_Node srcNode = EXP_Node_Invalid;
     while (ctx->callStack.length > 0)
     {
@@ -582,9 +587,7 @@ next:
             }
             else
             {
-                assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
-
-                if (!EXP_evalVerifRecurFun(ctx, curBlock))
+                if (!EXP_evalVerifRecurFun(ctx, curBlock, funInfo))
                 {
                     return;
                 }
@@ -820,9 +823,7 @@ next:
                 }
                 else
                 {
-                    assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
-
-                    if (!EXP_evalVerifRecurFun(ctx, curBlock))
+                    if (!EXP_evalVerifRecurFun(ctx, curBlock, funInfo))
                     {
                         return;
                     }
