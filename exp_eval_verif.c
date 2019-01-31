@@ -346,6 +346,25 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 
 
 
+static void EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
+{
+    vec_u32* dataStack = &ctx->dataStack;
+    vec_insertarr(dataStack, 0, a, n);
+    for (u32 i = 0; i < ctx->callStack.length; ++i)
+    {
+        EXP_EvalVerifCall* c = ctx->callStack.data + i;
+        c->dataStackP += n;
+    }
+}
+
+
+
+
+
+
+
+
+
 static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOffset, const u32* funInTypes)
 {
     EXP_EvalVerifCall* curBlock = &vec_last(&ctx->callStack);
@@ -677,8 +696,8 @@ next:
             {
                 if (!dataStack->length)
                 {
-                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
-                    return;
+                    u32 a[] = { EXP_EvalValueType_Any };
+                    EXP_evalVerifShiftDataStack(ctx, 1, a);
                 }
                 u32 t = vec_last(dataStack);
                 vec_pop(dataStack);
@@ -828,16 +847,6 @@ next:
             cb.branch[1] = elms + 3;
         }
         EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curBlock->srcNode, cb, false);
-        goto next;
-    }
-    case EXP_EvalPrimFun_Drop:
-    {
-        if (!dataStack->length)
-        {
-            EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
-            return;
-        }
-        vec_pop(dataStack);
         goto next;
     }
     case EXP_EvalPrimFun_Blk:
