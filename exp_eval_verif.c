@@ -454,6 +454,44 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockI
 
 
 
+
+static bool EXP_evalVerifRecurFun(EXP_EvalVerifContext* ctx, EXP_EvalVerifCall* curBlock)
+{
+    EXP_Node srcNode = EXP_Node_Invalid;
+    while (ctx->callStack.length > 0)
+    {
+        srcNode = curBlock->srcNode;
+        curBlock = &vec_last(&ctx->callStack);
+        EXP_EvalBlockCallback* cb = &curBlock->cb;
+        if (EXP_EvalBlockCallbackType_Branch0 == cb->type)
+        {
+            if (cb->branch[1])
+            {
+                EXP_evalVerifBlockRebase(ctx);
+                curBlock->p = cb->branch[1];
+                curBlock->end = cb->branch[1] + 1;
+                cb->type = EXP_EvalBlockCallbackType_NONE;
+                return true;
+            }
+        }
+        else if (EXP_EvalBlockCallbackType_BranchUnify == cb->type)
+        {
+            EXP_evalVerifBlockRebase(ctx);
+            curBlock->p = cb->branch[0];
+            curBlock->end = cb->branch[0] + 1;
+            cb->type = EXP_EvalBlockCallbackType_NONE;
+            return true;
+        }
+        EXP_evalVerifCancelBlock(ctx);
+    }
+    EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
+    return false;
+}
+
+
+
+
+
 static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
@@ -536,45 +574,21 @@ next:
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
                 EXP_evalVerifLeaveBlock(ctx);
-                if (EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true))
+                if (!EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true))
                 {
-                    goto next;
+                    return;
                 }
-                return;
+                goto next;
             }
             else
             {
                 assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
 
-                EXP_Node srcNode = EXP_Node_Invalid;
-                while (ctx->callStack.length > 0)
+                if (!EXP_evalVerifRecurFun(ctx, curBlock))
                 {
-                    srcNode = curBlock->srcNode;
-                    curBlock = &vec_last(&ctx->callStack);
-                    EXP_EvalBlockCallback* cb = &curBlock->cb;
-                    if (EXP_EvalBlockCallbackType_Branch0 == cb->type)
-                    {
-                        if (cb->branch[1])
-                        {
-                            EXP_evalVerifBlockRebase(ctx);
-                            curBlock->p = cb->branch[1];
-                            curBlock->end = cb->branch[1] + 1;
-                            cb->type = EXP_EvalBlockCallbackType_NONE;
-                            goto next;
-                        }
-                    }
-                    else if (EXP_EvalBlockCallbackType_BranchUnify == cb->type)
-                    {
-                        EXP_evalVerifBlockRebase(ctx);
-                        curBlock->p = cb->branch[0];
-                        curBlock->end = cb->branch[0] + 1;
-                        cb->type = EXP_EvalBlockCallbackType_NONE;
-                        goto next;
-                    }
-                    EXP_evalVerifCancelBlock(ctx);
+                    return;
                 }
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
-                return;
+                goto next;
             }
             return;
         }
@@ -795,20 +809,24 @@ next:
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
                     EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                    if (EXP_evalVerifEnterBlock
+                    if (!EXP_evalVerifEnterBlock
                     (
                         ctx, body, bodyLen, fun, curBlock->srcNode, EXP_EvalBlockCallback_NONE, true
                     ))
                     {
-                        goto next;
+                        return;
                     }
-                    return;
+                    goto next;
                 }
                 else
                 {
-                    // todo
-                    assert(false);
-                    return;
+                    assert(EXP_EvalBlockInfoState_Analyzing == funInfo->state);
+
+                    if (!EXP_evalVerifRecurFun(ctx, curBlock))
+                    {
+                        return;
+                    }
+                    goto next;
                 }
             }
         }
