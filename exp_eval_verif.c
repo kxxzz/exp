@@ -399,6 +399,7 @@ static void EXP_evalVerifNativeFunCall(EXP_EvalVerifContext* ctx, EXP_EvalNative
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
+    assert(dataStack->length >= nativeFunInfo->numIns);
     u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, nativeFunInfo->inType);
 
@@ -427,6 +428,7 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalBlockI
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
+    assert(dataStack->length >= funInfo->numIns);
     u32 argsOffset = dataStack->length - funInfo->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, funInfo->typeInOut.data);
 
@@ -482,6 +484,16 @@ next:
         }
         case EXP_EvalBlockCallbackType_NativeCall:
         {
+            if (curBlockInfo->numIns > 0)
+            {
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
+            if (dataStack->length < curBlock->dataStackP)
+            {
+                EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
             u32 numIns = dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + cb->nativeFun;
             if (numIns != nativeFunInfo->numIns)
@@ -499,6 +511,11 @@ next:
             EXP_EvalBlockInfo* funInfo = blockTable->data + fun.id;
             if (EXP_EvalBlockInfoState_Got == funInfo->state)
             {
+                if (curBlockInfo->numIns > 0)
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
                 if (curBlock->dataStackP != (dataStack->length - funInfo->numIns))
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
@@ -704,7 +721,7 @@ next:
             }
             case EXP_EvalPrimFun_Drop:
             {
-                if (0 == dataStack->length)
+                if (!dataStack->length)
                 {
                     u32 a[] = { EXP_EvalValueType_Any };
                     if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
@@ -736,8 +753,12 @@ next:
             }
             if (dataStack->length < nativeFunInfo->numIns)
             {
-                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                return;
+                u32 n = nativeFunInfo->numIns - dataStack->length;
+                if (!EXP_evalVerifShiftDataStack(ctx, n, nativeFunInfo->inType))
+                {
+                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                    return;
+                }
             }
             EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
@@ -759,8 +780,12 @@ next:
                 {
                     if (dataStack->length < funInfo->numIns)
                     {
-                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                        return;
+                        u32 n = funInfo->numIns - dataStack->length;
+                        if (!EXP_evalVerifShiftDataStack(ctx, n, funInfo->typeInOut.data))
+                        {
+                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                            return;
+                        }
                     }
                     EXP_evalVerifFunCall(ctx, funInfo, node);
                     goto next;
