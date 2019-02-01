@@ -987,11 +987,16 @@ next:
         {
             EXP_EvalBlockInfo* b0 = blockTable->data + cb->branch[0]->id;
             EXP_EvalBlockInfo* b1 = blockTable->data + cb->branch[1]->id;
-            EXP_evalVerifBlockSaveInfo(ctx, b0);
             EXP_evalVerifBlockSaveInfo(ctx, b1);
             assert(EXP_EvalBlockTypeInfoState_Got == b0->typeState);
             assert(EXP_EvalBlockTypeInfoState_Got == b1->typeState);
             assert(b1->numIns + b1->numOuts == b1->typeInOut.length);
+
+            EXP_evalVerifLeaveBlock(ctx);
+            assert(b1->numIns == curBlockInfo->numIns);
+            assert(b1->numOuts == curBlockInfo->numOuts);
+            assert(b1->typeInOut.length == curBlockInfo->typeInOut.length);
+
             if (b0->numIns != b1->numIns)
             {
                 EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchUneq);
@@ -1005,13 +1010,18 @@ next:
             assert(b0->typeInOut.length == b1->typeInOut.length);
             for (u32 i = 0; i < b0->typeInOut.length; ++i)
             {
-                if (b0->typeInOut.data[i] != b1->typeInOut.data[i])
+                u32 t;
+                bool m = EXP_evalTypeUnify(b0->typeInOut.data[i], b1->typeInOut.data[i], &t);
+                if (!m)
                 {
                     EXP_evalVerifErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalBranchUneq);
                     return;
                 }
+                assert(b1->typeInOut.data[i] == curBlockInfo->typeInOut.data[i]);
+                b0->typeInOut.data[i] = t;
+                b1->typeInOut.data[i] = t;
+                curBlockInfo->typeInOut.data[i] = t;
             }
-            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         default:
