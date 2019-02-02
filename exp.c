@@ -201,7 +201,7 @@ bool EXP_tokQuoted(EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
-    return space->toks.data[info->offset + info->length];
+    return space->toks.data[info->offset + info->length + 1];
 }
 
 

@@ -733,8 +733,8 @@ static bool EXP_evalVerifNode
         }
         else
         {
-            bool isStr = EXP_tokQuoted(space, node);
-            if (!isStr)
+            bool isQuoted = EXP_tokQuoted(space, node);
+            if (!isQuoted)
             {
                 for (u32 i = 0; i < ctx->valueTypeTable->length; ++i)
                 {
@@ -751,6 +751,8 @@ static bool EXP_evalVerifNode
                         }
                     }
                 }
+                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                return false;
             }
             vec_push(dataStack, EXP_EvalPrimValueType_Str);
             return true;

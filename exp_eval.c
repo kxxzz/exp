@@ -457,8 +457,8 @@ next:
         }
         else
         {
-            bool isStr = EXP_tokQuoted(space, node);
-            if (!isStr)
+            bool isQuoted = EXP_tokQuoted(space, node);
+            if (!isQuoted)
             {
                 for (u32 i = 0; i < ctx->valueTypeTable.length; ++i)
                 {
@@ -476,6 +476,8 @@ next:
                         }
                     }
                 }
+                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                return;
             }
             EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .data.tok = node };
             vec_push(dataStack, v);
