@@ -34,6 +34,17 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
 
 
 
+typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
+
+typedef struct EXP_EvalBlock
+{
+    EXP_Node parent;
+    EXP_EvalDefTable defs;
+} EXP_EvalBlock;
+
+typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;
+
+
 
 
 typedef enum EXP_EvalBlockCallbackType
