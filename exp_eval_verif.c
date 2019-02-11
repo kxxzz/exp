@@ -578,7 +578,7 @@ static bool EXP_evalVerifNode
         {
             switch (nativeFun)
             {
-            case EXP_EvalPrimFun_PopDefBegin:
+            case EXP_EvalPrimFun_VarDefBegin:
             {
                 if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
@@ -602,7 +602,7 @@ static bool EXP_evalVerifNode
                     u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, EXP_tokCstr(space, node));
                     if (nativeFun != -1)
                     {
-                        if (EXP_EvalPrimFun_PopDefEnd == nativeFun)
+                        if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
                         {
                             if (curCall->dataStackP > dataStack->length + curBlock->numIns)
                             {
@@ -631,7 +631,7 @@ static bool EXP_evalVerifNode
                         }
                     }
                     u32 vt = vec_last(dataStack);
-                    EXP_EvalVerifDef def = { node, true,.valType = vt };
+                    EXP_EvalVerifDef def = { node, true, .valType = vt };
                     vec_push(&curBlock->defs, def);
                     vec_pop(dataStack);
                 }

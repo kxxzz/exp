@@ -38,7 +38,8 @@ static EXP_EvalContext EXP_newEvalContext
 }
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
-    vec_free(&ctx->blockStack);
+    vec_free(&ctx->varKeyBuf);
+    vec_free(&ctx->callStack);
     vec_free(&ctx->defStack);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
@@ -178,8 +179,8 @@ static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
     u32 defStackP = ctx->defStack.length;
 
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalCall blk = { srcNode, defStackP, seq, len, 0, nocb };
-    vec_push(&ctx->blockStack, blk);
+    EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, nocb };
+    vec_push(&ctx->callStack, call);
 
     for (u32 i = 0; i < len; ++i)
     {
@@ -199,16 +200,16 @@ static void EXP_evalEnterBlockWithCB
 {
     u32 defStackP = ctx->defStack.length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalCall blk = { srcNode, defStackP, seq, len, 0, cb };
-    vec_push(&ctx->blockStack, blk);
+    EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, cb };
+    vec_push(&ctx->callStack, call);
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
-    u32 defStackP = vec_last(&ctx->blockStack).defStackP;
+    u32 defStackP = vec_last(&ctx->callStack).defStackP;
     vec_resize(&ctx->defStack, defStackP);
-    vec_pop(&ctx->blockStack);
-    return ctx->blockStack.length > 0;
+    vec_pop(&ctx->callStack);
+    return ctx->callStack.length > 0;
 }
 
 
@@ -217,7 +218,7 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 static bool EXP_evalCurIsTail(EXP_EvalContext* ctx)
 {
-    EXP_EvalCall* curBlock = &vec_last(&ctx->blockStack);
+    EXP_EvalCall* curBlock = &vec_last(&ctx->callStack);
     if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
     {
         return false;
@@ -277,7 +278,7 @@ next:
     {
         return;
     }
-    curBlock = &vec_last(&ctx->blockStack);
+    curBlock = &vec_last(&ctx->callStack);
     if (curBlock->p == curBlock->seqLen)
     {
         EXP_EvalBlockCallback* cb = &curBlock->cb;
@@ -305,13 +306,13 @@ next:
                 return;
             }
             // tail recursion optimization
-            while (EXP_evalCurIsTail(ctx))
-            {
-                if (!EXP_evalLeaveBlock(ctx))
-                {
-                    break;
-                }
-            }
+            //while (EXP_evalCurIsTail(ctx))
+            //{
+            //    if (!EXP_evalLeaveBlock(ctx))
+            //    {
+            //        break;
+            //    }
+            //}
             if (EXP_evalEnterBlock(ctx, bodyLen, body, fun))
             {
                 goto next;
@@ -367,14 +368,15 @@ next:
         {
             switch (nativeFun)
             {
-            case EXP_EvalPrimFun_PopDefBegin:
+            case EXP_EvalPrimFun_VarDefBegin:
             {
                 if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
                     EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                for (;;)
+                ctx->varKeyBuf.length = 0;
+                for (u32 n = 0;;)
                 {
                     EXP_Node key = curBlock->seq[curBlock->p++];
                     const char* skey = EXP_tokCstr(space, key);
@@ -386,8 +388,18 @@ next:
                     u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
                     if (nativeFun != -1)
                     {
-                        if (EXP_EvalPrimFun_PopDefEnd == nativeFun)
+                        if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
                         {
+                            u32 off = dataStack->length - n;
+                            for (u32 i = 0; i < n; ++i)
+                            {
+                                EXP_EvalValue val = dataStack->data[off + i];
+                                EXP_EvalDef def = { ctx->varKeyBuf.data[i], true, .val = val };
+                                vec_push(&ctx->defStack, def);
+                            }
+                            assert(n <= dataStack->length);
+                            vec_resize(dataStack, off);
+                            ctx->varKeyBuf.length = 0;
                             goto next;
                         }
                         EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
@@ -398,10 +410,8 @@ next:
                         EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
                         return;
                     }
-                    EXP_EvalValue val = vec_last(dataStack);
-                    EXP_EvalDef def = { key, true, .val = val };
-                    vec_push(&ctx->defStack, def);
-                    vec_pop(dataStack);
+                    vec_push(&ctx->varKeyBuf, key);
+                    ++n;
                 }
             }
             case EXP_EvalPrimFun_Drop:

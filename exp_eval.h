@@ -76,8 +76,8 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 typedef enum EXP_EvalPrimFun
 {
     EXP_EvalPrimFun_Def,
-    EXP_EvalPrimFun_PopDefBegin,
-    EXP_EvalPrimFun_PopDefEnd,
+    EXP_EvalPrimFun_VarDefBegin,
+    EXP_EvalPrimFun_VarDefEnd,
     EXP_EvalPrimFun_If,
     EXP_EvalPrimFun_Drop,
     EXP_EvalPrimFun_Blk,
