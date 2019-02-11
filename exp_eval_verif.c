@@ -2,14 +2,6 @@
 
 
 
-//typedef struct EXP_EvalValueTypeDef
-//{
-//    int x;
-//} EXP_EvalValueTypeDef;
-
-
-
-
 typedef struct EXP_EvalVerifDef
 {
     EXP_Node key;
