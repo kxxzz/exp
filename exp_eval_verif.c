@@ -93,6 +93,7 @@ typedef struct EXP_EvalVerifContext
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
     EXP_EvalError error;
+    EXP_NodeVec varKeyBuf;
 } EXP_EvalVerifContext;
 
 
@@ -118,6 +119,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
+    vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->recheckNodes);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);

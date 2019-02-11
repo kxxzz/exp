@@ -4,6 +4,35 @@
 
 
 
+typedef struct EXP_EvalCall
+{
+    EXP_Node srcNode;
+    u32 defStackP;
+    EXP_Node* seq;
+    u32 seqLen;
+    u32 p;
+    EXP_EvalBlockCallback cb;
+} EXP_EvalCall;
+
+typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
+
+
+
+typedef struct EXP_EvalContext
+{
+    EXP_Space* space;
+    EXP_EvalDataStack* dataStack;
+    EXP_EvalValueTypeInfoTable valueTypeTable;
+    EXP_EvalNativeFunInfoTable nativeFunTable;
+    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_EvalDefStack defStack;
+    EXP_EvalCallStack callStack;
+    EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
+    EXP_EvalError error;
+    EXP_NodeVec varKeyBuf;
+} EXP_EvalContext;
+
+
 static EXP_EvalContext EXP_newEvalContext
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv,
@@ -591,6 +620,20 @@ next:
 
 
 
+
+
+
+
+
+
+
+
+EXP_EvalError EXP_evalVerif
+(
+    EXP_Space* space, EXP_Node root,
+    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_NodeSrcInfoTable* srcInfoTable
+);
 
 
 
