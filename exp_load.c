@@ -321,10 +321,6 @@ static bool EXP_loadEnd(EXP_LoadContext* ctx)
 
 static bool EXP_loadSeqEnd(EXP_LoadContext* ctx, EXP_TokenType endTokType)
 {
-    if (EXP_loadEnd(ctx))
-    {
-        return true;
-    }
     u32 cur0 = ctx->cur;
     u32 curLine0 = ctx->curLine;
     EXP_Token tok;
@@ -375,6 +371,10 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
             return node;
         }
         EXP_addSeqPush(ctx->space, e);
+    }
+    if (EXP_loadEnd(ctx))
+    {
+        return EXP_Node_Invalid;
     }
     EXP_Node node = EXP_addSeqDone(space);
     return node;
@@ -504,13 +504,18 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
 {
     EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
-    for (;;)
+    bool errorHappen = false;
+    while (EXP_skipSapce(&ctx))
     {
         EXP_Node e = EXP_loadNode(&ctx);
-        if (EXP_NodeId_Invalid == e.id) break;
+        if (EXP_NodeId_Invalid == e.id)
+        {
+            errorHappen = true;
+            break;
+        }
         EXP_addSeqPush(ctx.space, e);
     }
-    if (!EXP_loadEnd(&ctx))
+    if (!EXP_loadEnd(&ctx) || errorHappen)
     {
         EXP_loadContextFree(&ctx);
         EXP_addSeqCancel(space);
