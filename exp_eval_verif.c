@@ -118,12 +118,13 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
+    vec_free(&ctx->recheckNodes);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
-        EXP_EvalVerifBlock* blkInfo = ctx->blockTable.data + i;
-        EXP_evalVerifBlockFree(blkInfo);
+        EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
+        EXP_evalVerifBlockFree(b);
     }
     vec_free(&ctx->blockTable);
 }
@@ -280,8 +281,8 @@ static bool EXP_evalVerifEnterBlock
 )
 {
     u32 dataStackP = ctx->dataStack.length;
-    EXP_EvalVerifCall blk = { srcNode, dataStackP, seq, seq + len, cb };
-    vec_push(&ctx->callStack, blk);
+    EXP_EvalVerifCall call = { srcNode, dataStackP, seq, seq + len, cb };
+    vec_push(&ctx->callStack, call);
 
     EXP_EvalVerifBlock* blkInfo = ctx->blockTable.data + srcNode.id;
     if (ctx->recheckFlag && (blkInfo->typeInferState != EXP_EvalVerifBlockTypeInferState_None))
