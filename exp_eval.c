@@ -419,6 +419,11 @@ next:
                     {
                         if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
                         {
+                            if (n > dataStack->length)
+                            {
+                                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
+                                return;
+                            }
                             u32 off = dataStack->length - n;
                             for (u32 i = 0; i < n; ++i)
                             {
@@ -426,17 +431,11 @@ next:
                                 EXP_EvalDef def = { ctx->varKeyBuf.data[i], true, .val = val };
                                 vec_push(&ctx->defStack, def);
                             }
-                            assert(n <= dataStack->length);
                             vec_resize(dataStack, off);
                             ctx->varKeyBuf.length = 0;
                             goto next;
                         }
                         EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                        return;
-                    }
-                    if (!dataStack->length)
-                    {
-                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
                         return;
                     }
                     vec_push(&ctx->varKeyBuf, key);

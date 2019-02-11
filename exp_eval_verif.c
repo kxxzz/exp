@@ -588,7 +588,8 @@ static bool EXP_evalVerifNode
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return false;
                 }
-                for (;;)
+                ctx->varKeyBuf.length = 0;
+                for (u32 n = 0;;)
                 {
                     if (curCall->p == curCall->end)
                     {
@@ -607,6 +608,30 @@ static bool EXP_evalVerifNode
                     {
                         if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
                         {
+                            if (n > dataStack->length)
+                            {
+                                for (u32 i = 0; i < n - dataStack->length; ++i)
+                                {
+                                    u32 a[] = { EXP_EvalValueType_Any };
+                                    if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
+                                    {
+                                        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                                        return false;
+                                    }
+                                }
+                            }
+
+                            u32 off = dataStack->length - n;
+                            for (u32 i = 0; i < n; ++i)
+                            {
+                                u32 vt = dataStack->data[off + i];
+                                EXP_EvalVerifDef def = { ctx->varKeyBuf.data[i], true, .valType = vt };
+                                vec_push(&curBlock->defs, def);
+                            }
+                            assert(n <= dataStack->length);
+                            vec_resize(dataStack, off);
+                            ctx->varKeyBuf.length = 0;
+
                             if (curCall->dataStackP > dataStack->length + curBlock->numIns)
                             {
                                 u32 n = curCall->dataStackP - dataStack->length - curBlock->numIns;
@@ -624,19 +649,8 @@ static bool EXP_evalVerifNode
                         EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                         return false;
                     }
-                    if (!dataStack->length)
-                    {
-                        u32 a[] = { EXP_EvalValueType_Any };
-                        if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
-                        {
-                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
-                            return false;
-                        }
-                    }
-                    u32 vt = vec_last(dataStack);
-                    EXP_EvalVerifDef def = { node, true, .valType = vt };
-                    vec_push(&curBlock->defs, def);
-                    vec_pop(dataStack);
+                    vec_push(&ctx->varKeyBuf, node);
+                    ++n;
                 }
             }
             case EXP_EvalPrimFun_Drop:
