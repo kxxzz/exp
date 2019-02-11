@@ -752,8 +752,8 @@ static bool EXP_evalVerifNode
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
-                        EXP_EvalValueData d = { 0 };
-                        if (ctx->valueTypeTable->data[j].fromStr(l, s, &d))
+                        EXP_EvalValue v = { 0 };
+                        if (ctx->valueTypeTable->data[j].fromStr(l, s, &v))
                         {
                             vec_push(dataStack, j);
                             return true;
@@ -1088,7 +1088,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
     EXP_EvalError error = { 0 };
@@ -1111,6 +1111,13 @@ EXP_EvalError EXP_evalVerif
     if (!ctx->error.code)
     {
         EXP_evalVerifRecheck(ctx);
+    }
+    if (!ctx->error.code)
+    {
+        if (typeStack)
+        {
+            vec_dup(typeStack, &ctx->dataStack);
+        }
     }
     error = ctx->error;
     EXP_evalVerifContextFree(ctx);

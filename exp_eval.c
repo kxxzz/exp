@@ -27,7 +27,7 @@ typedef struct EXP_EvalContext
     EXP_NodeSrcInfoTable* srcInfoTable;
     EXP_EvalDefStack defStack;
     EXP_EvalCallStack callStack;
-    EXP_EvalValueData nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
+    EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
 } EXP_EvalContext;
@@ -269,23 +269,11 @@ static void EXP_evalNativeFunCall
     EXP_Space* space = ctx->space;
     EXP_EvalDataStack* dataStack = ctx->dataStack;
     u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
-    for (u32 i = 0; i < nativeFunInfo->numIns; ++i)
-    {
-        EXP_EvalValue* v = dataStack->data + argsOffset + i;
-        u32 vt = nativeFunInfo->inType[i];
-        if (v->type != vt)
-        {
-            EXP_evalErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-            return;
-        }
-    }
     nativeFunInfo->call(space, dataStack->data + argsOffset, ctx->nativeCallOutBuf);
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < nativeFunInfo->numOuts; ++i)
     {
-        u32 t = nativeFunInfo->outType[i];
-        EXP_EvalValueData d = ctx->nativeCallOutBuf[i];
-        EXP_EvalValue v = { t, d };
+        EXP_EvalValue v = ctx->nativeCallOutBuf[i];
         vec_push(dataStack, v);
     }
 }
@@ -352,16 +340,11 @@ next:
         {
             EXP_EvalValue v = vec_last(dataStack);
             vec_pop(dataStack);
-            if (v.type != EXP_EvalPrimValueType_Bool)
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
             if (!EXP_evalLeaveBlock(ctx))
             {
                 return;
             }
-            if (v.data.b)
+            if (v.truth)
             {
                 if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
                 {
@@ -504,10 +487,9 @@ next:
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
-                        EXP_EvalValueData d = { 0 };
-                        if (ctx->valueTypeTable.data[j].fromStr(l, s, &d))
+                        EXP_EvalValue v = { 0 };
+                        if (ctx->valueTypeTable.data[j].fromStr(l, s, &v))
                         {
-                            EXP_EvalValue v = { j, .data = d };
                             vec_push(dataStack, v);
                             goto next;
                         }
@@ -516,7 +498,7 @@ next:
                 EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
                 return;
             }
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .data.tok = node };
+            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .tok = node };
             vec_push(dataStack, v);
             goto next;
         }
@@ -631,7 +613,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 );
 
 
@@ -640,7 +622,7 @@ EXP_EvalError EXP_evalVerif
 EXP_EvalError EXP_eval
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
     EXP_EvalError error = { 0 };
@@ -649,7 +631,7 @@ EXP_EvalError EXP_eval
         return error;
     }
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
-    error = EXP_evalVerif(space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, srcInfoTable);
+    error = EXP_evalVerif(space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, typeStack, srcInfoTable);
     if (error.code)
     {
         EXP_evalContextFree(&ctx);
@@ -683,7 +665,7 @@ EXP_EvalError EXP_eval
 EXP_EvalError EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    bool traceSrcInfo
+    vec_u32* typeStack, bool enableSrcInfo
 )
 {
     EXP_EvalError error = { EXP_EvalErrCode_NONE };
@@ -702,7 +684,7 @@ EXP_EvalError EXP_evalFile
 
     EXP_NodeSrcInfoTable* srcInfoTable = NULL;
     EXP_NodeSrcInfoTable _srcInfoTable = { 0 };
-    if (traceSrcInfo)
+    if (enableSrcInfo)
     {
         srcInfoTable = &_srcInfoTable;
     }
@@ -731,7 +713,7 @@ EXP_EvalError EXP_evalFile
         }
         return error;
     }
-    error = EXP_eval(space, dataStack, root, nativeEnv, srcInfoTable);
+    error = EXP_eval(space, dataStack, root, nativeEnv, typeStack, srcInfoTable);
     if (srcInfoTable)
     {
         vec_free(srcInfoTable);
@@ -751,22 +733,22 @@ EXP_EvalError EXP_evalFile
 
 
 
-static bool EXP_evalBoolFromStr(u32 len, const char* str, EXP_EvalValueData* pData)
+static bool EXP_evalBoolFromStr(u32 len, const char* str, EXP_EvalValue* pData)
 {
     if (0 == strncmp(str, "true", len))
     {
-        pData->b = true;
+        pData->truth = true;
         return true;
     }
     if (0 == strncmp(str, "false", len))
     {
-        pData->b = true;
+        pData->truth = true;
         return true;
     }
     return false;
 }
 
-static bool EXP_evalNumFromStr(u32 len, const char* str, EXP_EvalValueData* pData)
+static bool EXP_evalNumFromStr(u32 len, const char* str, EXP_EvalValue* pData)
 {
     double num;
     u32 r = NSTR_str2num(&num, str, len, NULL);
@@ -796,93 +778,93 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 
 
-static void EXP_evalNativeFunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    bool a = ins[0].data.b;
-    outs[0].b = !a;
+    bool a = ins[0].truth;
+    outs[0].truth = !a;
 }
 
 
 
-static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
+    double a = ins[0].num;
+    double b = ins[1].num;
     outs[0].num = a + b;
 }
 
-static void EXP_evalNativeFunCall_Sub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Sub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
+    double a = ins[0].num;
+    double b = ins[1].num;
     outs[0].num = a - b;
 }
 
-static void EXP_evalNativeFunCall_Mul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Mul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
+    double a = ins[0].num;
+    double b = ins[1].num;
     outs[0].num = a * b;
 }
 
-static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
+    double a = ins[0].num;
+    double b = ins[1].num;
     outs[0].num = a / b;
 }
 
 
 
-static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
+    double a = ins[0].num;
     outs[0].num = -a;
 }
 
 
 
 
-static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a == b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a == b;
 }
 
-static void EXP_evalNativeFunCall_INEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_INEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a != b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a != b;
 }
 
-static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a > b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a > b;
 }
 
-static void EXP_evalNativeFunCall_LT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_LT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a < b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a < b;
 }
 
-static void EXP_evalNativeFunCall_GE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_GE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a >= b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a >= b;
 }
 
-static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs)
+static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].data.num;
-    double b = ins[1].data.num;
-    outs[0].b = a <= b;
+    double a = ins[0].num;
+    double b = ins[1].num;
+    outs[0].truth = a <= b;
 }
 
 

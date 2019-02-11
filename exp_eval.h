@@ -5,23 +5,17 @@
 
 
 
-typedef union EXP_EvalValueData
+typedef union EXP_EvalValue
 {
-    bool b;
+    bool truth;
     double num;
     EXP_Node tok;
     void* ptr;
-} EXP_EvalValueData;
-
-typedef struct EXP_EvalValue
-{
-    u32 type;
-    EXP_EvalValueData data;
 } EXP_EvalValue;
 
 
 
-typedef bool(*EXP_EvalValFromStr)(u32 len, const char* str, EXP_EvalValueData* pData);
+typedef bool(*EXP_EvalValFromStr)(u32 len, const char* str, EXP_EvalValue* pVal);
 
 typedef struct EXP_EvalValueTypeInfo
 {
@@ -37,7 +31,7 @@ enum
     EXP_EvalNativeFunOuts_MAX = 16,
 };
 
-typedef void(*EXP_EvalNativeFunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValueData* outs);
+typedef void(*EXP_EvalNativeFunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs);
 
 typedef struct EXP_EvalNativeFunInfo
 {
@@ -148,13 +142,13 @@ typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
 EXP_EvalError EXP_eval
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 );
 
 EXP_EvalError EXP_evalFile
 (
     EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    bool traceSrcInfo
+    vec_u32* typeStack, bool enableSrcInfo
 );
 
 

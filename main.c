@@ -52,38 +52,41 @@ void testEval(void)
 {
     EXP_Space* space = EXP_newSpace();
     EXP_EvalDataStack dataStack = { 0 };
-    EXP_EvalError r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, true);
+    vec_u32 typeStack = { 0 };
+    EXP_EvalError r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, &typeStack, true);
     assert(EXP_EvalErrCode_NONE == r.code);
     for (u32 i = 0; i < dataStack.length; ++i)
     {
         EXP_EvalValue v = dataStack.data[i];
-        switch (v.type)
+        u32 vt = typeStack.data[i];
+        switch (vt)
         {
         case EXP_EvalPrimValueType_Bool:
         {
-            printf("%s\n", v.data.b ? "true" : "false");
+            printf("%s\n", v.truth ? "true" : "false");
             break;
         }
         case EXP_EvalPrimValueType_Num:
         {
-            printf("%f\n", v.data.num);
+            printf("%f\n", v.num);
             break;
         }
         case EXP_EvalPrimValueType_Str:
         {
-            const char* s = EXP_tokCstr(space, v.data.tok);
+            const char* s = EXP_tokCstr(space, v.tok);
             printf("%s\n", s);
             break;
         }
         default:
         {
-            const char* s = EXP_EvalPrimValueTypeInfoTable[v.type].name;
+            const char* s = EXP_EvalPrimValueTypeInfoTable[vt].name;
             printf("%s\n", s);
             break;
         }
         }
     }
     vec_free(&dataStack);
+    vec_free(&typeStack);
     EXP_spaceFree(space);
 }
 
