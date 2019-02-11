@@ -173,14 +173,12 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 
 
-// todo remove dataStackP
 static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     u32 defStackP = ctx->defStack.length;
-    u32 dataStackP = ctx->dataStack->length;
 
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalCall blk = { srcNode, defStackP, dataStackP, seq, len, 0, nocb };
+    EXP_EvalCall blk = { srcNode, defStackP, seq, len, 0, nocb };
     vec_push(&ctx->blockStack, blk);
 
     for (u32 i = 0; i < len; ++i)
@@ -200,9 +198,8 @@ static void EXP_evalEnterBlockWithCB
 )
 {
     u32 defStackP = ctx->defStack.length;
-    u32 dataStackP = ctx->dataStack->length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalCall blk = { srcNode, defStackP, dataStackP, seq, len, 0, cb };
+    EXP_EvalCall blk = { srcNode, defStackP, seq, len, 0, cb };
     vec_push(&ctx->blockStack, blk);
 }
 
@@ -213,6 +210,22 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
     vec_pop(&ctx->blockStack);
     return ctx->blockStack.length > 0;
 }
+
+
+
+
+
+static bool EXP_evalCurIsTail(EXP_EvalContext* ctx)
+{
+    EXP_EvalCall* curBlock = &vec_last(&ctx->blockStack);
+    if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
+    {
+        return false;
+    }
+    return curBlock->p == curBlock->seqLen;
+}
+
+
 
 
 
@@ -249,6 +262,11 @@ static void EXP_evalNativeFunCall
 
 
 
+
+
+
+
+
 static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
@@ -271,36 +289,28 @@ next:
         }
         case EXP_EvalBlockCallbackType_NativeCall:
         {
-            u32 numIns = dataStack->length - curBlock->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
-            if (numIns != nativeFunInfo->numIns)
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
+            u32 numIns = nativeFunInfo->numIns;
             EXP_evalNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Call:
         {
-            if (curBlock->dataStackP > dataStack->length)
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
             EXP_Node fun = cb->fun;
-            // todo
-            //if (curBlock->dataStackP > (dataStack->length - numIns))
-            //{
-            //    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-            //    return;
-            //}
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
             EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
             if (!EXP_evalLeaveBlock(ctx))
             {
                 return;
+            }
+            // tail recursion optimization
+            while (EXP_evalCurIsTail(ctx))
+            {
+                if (!EXP_evalLeaveBlock(ctx))
+                {
+                    break;
+                }
             }
             if (EXP_evalEnterBlock(ctx, bodyLen, body, fun))
             {
@@ -310,12 +320,7 @@ next:
         }
         case EXP_EvalBlockCallbackType_Cond:
         {
-            if (curBlock->dataStackP + 1 != dataStack->length)
-            {
-                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
-            EXP_EvalValue v = dataStack->data[curBlock->dataStackP];
+            EXP_EvalValue v = vec_last(dataStack);
             vec_pop(dataStack);
             if (v.type != EXP_EvalPrimValueType_Bool)
             {
@@ -436,12 +441,6 @@ next:
             }
             else
             {
-                // todo
-                //if (dataStack->length < numIns)
-                //{
-                //    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
-                //    return;
-                //}
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalDefGetBody(ctx, def->fun, &bodyLen, &body);

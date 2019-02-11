@@ -39,7 +39,8 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
 typedef struct EXP_EvalBlock
 {
     EXP_Node parent;
-    EXP_EvalDefTable defs;
+    u32 defsCount;
+    u32 defsOffset;
 } EXP_EvalBlock;
 
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;
@@ -78,8 +79,6 @@ typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
     u32 defStackP;
-    // todo remove
-    u32 dataStackP;
     EXP_Node* seq;
     u32 seqLen;
     u32 p;
