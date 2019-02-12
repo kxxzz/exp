@@ -58,7 +58,6 @@ typedef struct EXP_EvalBlockCallback
     {
         u32 nativeFun;
         EXP_Node fun;
-        EXP_Node* branch[2];
     };
 } EXP_EvalBlockCallback;
 
@@ -412,17 +411,20 @@ next:
             {
                 return;
             }
+            EXP_Node* elms = EXP_seqElm(space, curBlock->srcNode);
+            u32 len = EXP_seqLen(space, curBlock->srcNode);
+            assert((3 == len) || (4 == len));
             if (v.truth)
             {
-                if (EXP_evalEnterBlock(ctx, 1, cb->branch[0], curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, elms + 2, curBlock->srcNode))
                 {
                     goto next;
                 }
                 return;
             }
-            else if (cb->branch[1])
+            else if (4 == len)
             {
-                if (EXP_evalEnterBlock(ctx, 1, cb->branch[1], curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, elms + 3, curBlock->srcNode))
                 {
                     goto next;
                 }
@@ -576,9 +578,8 @@ next:
         EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return;
     }
-    EXP_Node call = node;
-    EXP_Node* elms = EXP_seqElm(space, call);
-    u32 len = EXP_seqLen(space, call);
+    EXP_Node* elms = EXP_seqElm(space, node);
+    u32 len = EXP_seqLen(space, node);
     const char* funName = EXP_tokCstr(space, elms[0]);
     EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
     if (def)
@@ -615,15 +616,6 @@ next:
             return;
         }
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
-        cb.branch[0] = elms + 2;
-        if (3 == len)
-        {
-            cb.branch[1] = NULL;
-        }
-        else if (4 == len)
-        {
-            cb.branch[1] = elms + 3;
-        }
         EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
     }
@@ -652,7 +644,7 @@ next:
             EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
             goto next;
         }
-        EXP_evalErrorAtNode(ctx, call, EXP_EvalErrCode_EvalSyntax);
+        EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         break;
     }
     }
