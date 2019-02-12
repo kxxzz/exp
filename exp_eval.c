@@ -167,27 +167,6 @@ static u32 EXP_evalGetNativeFun(EXP_EvalContext* ctx, const char* funName)
 
 
 
-
-
-
-
-static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
-{
-    ctx->error.code = errCode;
-    EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
-    if (srcInfoTable)
-    {
-        assert(node.id < srcInfoTable->length);
-        ctx->error.file = NULL;// todo
-        ctx->error.line = srcInfoTable->data[node.id].line;
-        ctx->error.column = srcInfoTable->data[node.id].column;
-    }
-}
-
-
-
-
-
 static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
@@ -195,11 +174,7 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     {
         return;
     }
-    if (!EXP_evalCheckCall(space, node))
-    {
-        EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return;
-    }
+    assert(EXP_evalCheckCall(space, node));
     EXP_Node* defCall = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, defCall[0]);
     u32 nativeFun = EXP_evalGetNativeFun(ctx, kDef);
@@ -208,15 +183,8 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
         return;
     }
     EXP_Node name;
-    if (EXP_isTok(space, defCall[1]))
-    {
-        name = defCall[1];
-    }
-    else
-    {
-        EXP_evalErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
-        return;
-    }
+    assert(EXP_isTok(space, defCall[1]));
+    name = defCall[1];
     EXP_EvalDef def = { name, false, .fun = node };
     vec_push(&ctx->defStack, def);
 }
@@ -450,44 +418,28 @@ next:
             {
             case EXP_EvalPrimFun_VarDefBegin:
             {
-                if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
-                {
-                    EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
-                    return;
-                }
+                assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
                 ctx->varKeyBuf.length = 0;
                 for (u32 n = 0;;)
                 {
                     EXP_Node key = curCall->seq[curCall->p++];
                     const char* skey = EXP_tokCstr(space, key);
-                    if (!EXP_isTok(space, key))
-                    {
-                        EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
-                        return;
-                    }
+                    assert(EXP_isTok(space, key));
                     u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
                     if (nativeFun != -1)
                     {
-                        if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
+                        assert(EXP_EvalPrimFun_VarDefEnd == nativeFun);
+                        assert(n <= dataStack->length);
+                        u32 off = dataStack->length - n;
+                        for (u32 i = 0; i < n; ++i)
                         {
-                            if (n > dataStack->length)
-                            {
-                                EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
-                                return;
-                            }
-                            u32 off = dataStack->length - n;
-                            for (u32 i = 0; i < n; ++i)
-                            {
-                                EXP_EvalValue val = dataStack->data[off + i];
-                                EXP_EvalDef def = { ctx->varKeyBuf.data[i], true, .val = val };
-                                vec_push(&ctx->defStack, def);
-                            }
-                            vec_resize(dataStack, off);
-                            ctx->varKeyBuf.length = 0;
-                            goto next;
+                            EXP_EvalValue val = dataStack->data[off + i];
+                            EXP_EvalDef def = { ctx->varKeyBuf.data[i], true,.val = val };
+                            vec_push(&ctx->defStack, def);
                         }
-                        EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
-                        return;
+                        vec_resize(dataStack, off);
+                        ctx->varKeyBuf.length = 0;
+                        goto next;
                     }
                     vec_push(&ctx->varKeyBuf, key);
                     ++n;
@@ -495,11 +447,7 @@ next:
             }
             case EXP_EvalPrimFun_Drop:
             {
-                if (!dataStack->length)
-                {
-                    EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
-                    return;
-                }
+                assert(dataStack->length > 0);
                 vec_pop(dataStack);
                 goto next;
             }
@@ -507,16 +455,8 @@ next:
                 break;
             }
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
-            if (!nativeFunInfo->call)
-            {
-                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
-            if (dataStack->length < nativeFunInfo->numIns)
-            {
-                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
+            assert(nativeFunInfo->call);
+            assert(dataStack->length >= nativeFunInfo->numIns);
             EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
         }
@@ -563,7 +503,7 @@ next:
                         }
                     }
                 }
-                EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                assert(false);
                 return;
             }
             EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .tok = node };
@@ -571,10 +511,9 @@ next:
             goto next;
         }
     }
-    else if (!EXP_evalCheckCall(space, node))
+    else
     {
-        EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return;
+        assert(EXP_evalCheckCall(space, node));
     }
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
@@ -599,31 +538,19 @@ next:
     {
     case EXP_EvalPrimFun_Def:
     {
-        if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
-        {
-            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
-            return;
-        }
+        assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
         goto next;
     }
     case EXP_EvalPrimFun_If:
     {
-        if ((len != 3) && (len != 4))
-        {
-            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
-            return;
-        }
+        assert((3 == len) || (4 == len));
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
         EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
     }
     case EXP_EvalPrimFun_Drop:
     {
-        if (!dataStack->length)
-        {
-            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
-            return;
-        }
+        assert(dataStack->length > 0);
         vec_pop(dataStack);
         goto next;
     }
@@ -634,16 +561,12 @@ next:
     }
     default:
     {
-        if (nativeFun != -1)
-        {
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
-            assert(nativeFunInfo->call);
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
-            EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
-            goto next;
-        }
-        EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        break;
+        assert(nativeFun != -1);
+        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
+        assert(nativeFunInfo->call);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+        goto next;
     }
     }
 }
