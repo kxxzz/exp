@@ -411,20 +411,18 @@ next:
             {
                 return;
             }
-            EXP_Node* elms = EXP_seqElm(space, curBlock->srcNode);
-            u32 len = EXP_seqLen(space, curBlock->srcNode);
-            assert((3 == len) || (4 == len));
+            EXP_Node srcNode = curBlock->srcNode;
             if (v.truth)
             {
-                if (EXP_evalEnterBlock(ctx, 1, elms + 2, curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode))
                 {
                     goto next;
                 }
                 return;
             }
-            else if (4 == len)
+            else if (EXP_evalIfHasBranch1(space, srcNode))
             {
-                if (EXP_evalEnterBlock(ctx, 1, elms + 3, curBlock->srcNode))
+                if (EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode))
                 {
                     goto next;
                 }
@@ -601,7 +599,7 @@ next:
     {
     case EXP_EvalPrimFun_Def:
     {
-        if (curBlock->cb.type |= EXP_EvalBlockCallbackType_NONE)
+        if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
         {
             EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
             return;
