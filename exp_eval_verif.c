@@ -76,7 +76,6 @@ typedef struct EXP_EvalVerifBlockCallback
     {
         u32 nativeFun;
         EXP_Node fun;
-        EXP_Node* branch[2];
     };
 } EXP_EvalVerifBlockCallback;
 
@@ -548,36 +547,37 @@ static bool EXP_evalVerifRecurFun
     assert(!ctx->recheckFlag);
     EXP_Space* space = ctx->space;
 
-    EXP_Node srcNode = EXP_Node_Invalid;
+    EXP_Node lastSrcNode = EXP_Node_Invalid;
     while (ctx->callStack.length > 0)
     {
-        srcNode = curCall->srcNode;
+        lastSrcNode = curCall->srcNode;
         curCall = &vec_last(&ctx->callStack);
+        EXP_Node srcNode = curCall->srcNode;
         EXP_EvalVerifBlockCallback* cb = &curCall->cb;
         if (EXP_EvalVerifBlockCallbackType_Branch0 == cb->type)
         {
-            if (cb->branch[1])
+            if (EXP_evalIfHasBranch1(space, srcNode))
             {
                 EXP_evalVerifBlockRebase(ctx);
-                curCall->p = cb->branch[1];
-                curCall->end = cb->branch[1] + 1;
+                curCall->p = EXP_evalIfBranch1(space, srcNode);
+                curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
                 cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-                EXP_evalVerifAddRecheck(ctx, curCall->srcNode);
+                EXP_evalVerifAddRecheck(ctx, srcNode);
                 return true;
             }
         }
         else if (EXP_EvalVerifBlockCallbackType_BranchUnify == cb->type)
         {
             EXP_evalVerifBlockRebase(ctx);
-            curCall->p = cb->branch[0];
-            curCall->end = cb->branch[0] + 1;
+            curCall->p = EXP_evalIfBranch0(space, srcNode);
+            curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
             cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-            EXP_evalVerifAddRecheck(ctx, curCall->srcNode);
+            EXP_evalVerifAddRecheck(ctx, srcNode);
             return true;
         }
         EXP_evalVerifCancelBlock(ctx);
     }
-    EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
+    EXP_evalVerifErrorAtNode(ctx, lastSrcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
     return false;
 }
 
@@ -835,15 +835,6 @@ static bool EXP_evalVerifNode
             return false;
         }
         EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Cond };
-        cb.branch[0] = elms + 2;
-        if (3 == len)
-        {
-            cb.branch[1] = NULL;
-        }
-        else if (4 == len)
-        {
-            cb.branch[1] = elms + 3;
-        }
         EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
         return true;
     }
