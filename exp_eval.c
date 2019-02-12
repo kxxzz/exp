@@ -314,12 +314,12 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 static bool EXP_evalCurIsTail(EXP_EvalContext* ctx)
 {
-    EXP_EvalCall* curBlock = &vec_last(&ctx->callStack);
-    if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
+    EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
+    if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
     {
         return false;
     }
-    return curBlock->p == curBlock->seqLen;
+    return curCall->p == curCall->seqLen;
 }
 
 
@@ -355,17 +355,17 @@ static void EXP_evalNativeFunCall
 static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalCall* curBlock;
+    EXP_EvalCall* curCall;
     EXP_EvalDataStack* dataStack = ctx->dataStack;
 next:
     if (ctx->error.code)
     {
         return;
     }
-    curBlock = &vec_last(&ctx->callStack);
-    if (curBlock->p == curBlock->seqLen)
+    curCall = &vec_last(&ctx->callStack);
+    if (curCall->p == curCall->seqLen)
     {
-        EXP_EvalBlockCallback* cb = &curBlock->cb;
+        EXP_EvalBlockCallback* cb = &curCall->cb;
         switch (cb->type)
         {
         case EXP_EvalBlockCallbackType_NONE:
@@ -376,7 +376,7 @@ next:
         {
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
             u32 numIns = nativeFunInfo->numIns;
-            EXP_evalNativeFunCall(ctx, nativeFunInfo, curBlock->srcNode);
+            EXP_evalNativeFunCall(ctx, nativeFunInfo, curCall->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Call:
@@ -411,7 +411,7 @@ next:
             {
                 return;
             }
-            EXP_Node srcNode = curBlock->srcNode;
+            EXP_Node srcNode = curCall->srcNode;
             if (v.truth)
             {
                 if (EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode))
@@ -439,7 +439,7 @@ next:
         }
         return;
     }
-    EXP_Node node = curBlock->seq[curBlock->p++];
+    EXP_Node node = curCall->seq[curCall->p++];
     if (EXP_isTok(space, node))
     {
         const char* funName = EXP_tokCstr(space, node);
@@ -450,19 +450,19 @@ next:
             {
             case EXP_EvalPrimFun_VarDefBegin:
             {
-                if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
+                if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
                 {
-                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
                 ctx->varKeyBuf.length = 0;
                 for (u32 n = 0;;)
                 {
-                    EXP_Node key = curBlock->seq[curBlock->p++];
+                    EXP_Node key = curCall->seq[curCall->p++];
                     const char* skey = EXP_tokCstr(space, key);
                     if (!EXP_isTok(space, key))
                     {
-                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
                     u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
@@ -472,7 +472,7 @@ next:
                         {
                             if (n > dataStack->length)
                             {
-                                EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
+                                EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
                                 return;
                             }
                             u32 off = dataStack->length - n;
@@ -486,7 +486,7 @@ next:
                             ctx->varKeyBuf.length = 0;
                             goto next;
                         }
-                        EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                         return;
                     }
                     vec_push(&ctx->varKeyBuf, key);
@@ -497,7 +497,7 @@ next:
             {
                 if (!dataStack->length)
                 {
-                    EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
+                    EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
                     return;
                 }
                 vec_pop(dataStack);
@@ -599,9 +599,9 @@ next:
     {
     case EXP_EvalPrimFun_Def:
     {
-        if (curBlock->cb.type != EXP_EvalBlockCallbackType_NONE)
+        if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
         {
-            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
         goto next;
@@ -610,7 +610,7 @@ next:
     {
         if ((len != 3) && (len != 4))
         {
-            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
@@ -621,7 +621,7 @@ next:
     {
         if (!dataStack->length)
         {
-            EXP_evalErrorAtNode(ctx, curBlock->srcNode, EXP_EvalErrCode_EvalStack);
+            EXP_evalErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalStack);
             return;
         }
         vec_pop(dataStack);
