@@ -255,7 +255,7 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 
 
 
-static bool EXP_evalCurIsTail(EXP_EvalContext* ctx)
+static bool EXP_evalAtTail(EXP_EvalContext* ctx)
 {
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
     if (curCall->cb.type != EXP_EvalBlockCallbackType_NONE)
@@ -332,8 +332,8 @@ next:
             {
                 return;
             }
-            // tail recursion optimization
-            while (EXP_evalCurIsTail(ctx))
+            // tail call optimization
+            while (EXP_evalAtTail(ctx))
             {
                 if (!EXP_evalLeaveBlock(ctx))
                 {
