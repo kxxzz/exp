@@ -52,7 +52,6 @@ typedef struct EXP_EvalBlockCallback
 typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
-    u32 defStackP;
     EXP_Node* seq;
     u32 seqLen;
     u32 p;
@@ -225,10 +224,8 @@ static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name
 
 static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
-    u32 defStackP = ctx->varStack.length;
-
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, nocb };
+    EXP_EvalCall call = { srcNode, seq, len, 0, nocb };
     vec_push(&ctx->callStack, call);
     return true;
 }
@@ -238,16 +235,17 @@ static void EXP_evalEnterBlockWithCB
     EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
 {
-    u32 defStackP = ctx->varStack.length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, cb };
+    EXP_EvalCall call = { srcNode, seq, len, 0, cb };
     vec_push(&ctx->callStack, call);
 }
 
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
-    u32 defStackP = vec_last(&ctx->callStack).defStackP;
-    vec_resize(&ctx->varStack, defStackP);
+    EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalBlock* blkInfo = ctx->blockTable.data + curCall->srcNode.id;
+    assert(ctx->varStack.length >= blkInfo->varsCount);
+    vec_resize(&ctx->varStack, ctx->varStack.length - blkInfo->varsCount);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
