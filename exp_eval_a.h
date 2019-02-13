@@ -19,18 +19,6 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 
 
 
-
-typedef struct EXP_EvalVar
-{
-    EXP_Node key;
-    EXP_EvalValue val;
-} EXP_EvalVar;
-
-typedef vec_t(EXP_EvalVar) EXP_EvalVarStack;
-
-
-
-
 typedef struct EXP_EvalFun
 {
     EXP_Node key;

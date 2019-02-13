@@ -15,6 +15,18 @@ typedef vec_t(EXP_EvalModInfo) EXP_EvalModInfoTable;
 
 
 
+typedef struct EXP_EvalVar
+{
+    EXP_Node key;
+    EXP_EvalValue val;
+} EXP_EvalVar;
+
+typedef vec_t(EXP_EvalVar) EXP_EvalVarStack;
+
+
+
+
+
 typedef enum EXP_EvalBlockCallbackType
 {
     EXP_EvalBlockCallbackType_NONE,
@@ -37,8 +49,6 @@ typedef struct EXP_EvalBlockCallback
 
 
 
-
-
 typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
@@ -50,6 +60,10 @@ typedef struct EXP_EvalCall
 } EXP_EvalCall;
 
 typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
+
+
+
+
 
 
 
