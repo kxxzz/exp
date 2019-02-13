@@ -22,7 +22,7 @@
                 (facttail (- n 1) (/ n res))))))
 
 
-(facttail 500 2)
+(facttail 50000 2)
 
 
 

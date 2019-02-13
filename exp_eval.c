@@ -141,33 +141,6 @@ static u32 EXP_evalGetNativeFun(EXP_EvalContext* ctx, const char* funName)
 
 
 
-
-
-static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
-{
-    EXP_Space* space = ctx->space;
-    if (EXP_isTok(space, node))
-    {
-        return;
-    }
-    assert(EXP_evalCheckCall(space, node));
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    const char* kDef = EXP_tokCstr(space, defCall[0]);
-    u32 nativeFun = EXP_evalGetNativeFun(ctx, kDef);
-    if (nativeFun != EXP_EvalPrimFun_Def)
-    {
-        return;
-    }
-    EXP_Node name;
-    assert(EXP_isTok(space, defCall[1]));
-    name = defCall[1];
-    EXP_EvalVar def = { name, false, .fun = node };
-    vec_push(&ctx->varStack, def);
-}
-
-
-
-
 static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
@@ -186,15 +159,37 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
+static EXP_EvalFun* EXP_evalGetMatchedFun(EXP_EvalContext* ctx, const char* name, EXP_Node blk)
+{
+    EXP_Space* space = ctx->space;
+    EXP_EvalFunTable* funTable = &ctx->funTable;
+    EXP_EvalBlockTable* blockTable = &ctx->blockTable;
+    while (blk.id != EXP_NodeId_Invalid)
+    {
+        EXP_EvalBlock* blkInfo = blockTable->data + blk.id;
+        for (u32 i = 0; i < blkInfo->funsCount; ++i)
+        {
+            EXP_EvalFun* fun = funTable->data + blkInfo->funsOffset + blkInfo->funsCount - 1 - i;
+            const char* str = EXP_tokCstr(space, fun->key);
+            if (0 == strcmp(str, name))
+            {
+                return fun;
+            }
+        }
+        blk = blkInfo->parent;
+    }
+    return NULL;
+}
 
-static EXP_EvalVar* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
+
+static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->varStack.length; ++i)
     {
         EXP_EvalVar* def = ctx->varStack.data + ctx->varStack.length - 1 - i;
         const char* str = EXP_tokCstr(space, def->key);
-        if (0 == strcmp(str, funName))
+        if (0 == strcmp(str, name))
         {
             return def;
         }
@@ -221,15 +216,6 @@ static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, nocb };
     vec_push(&ctx->callStack, call);
-
-    for (u32 i = 0; i < len; ++i)
-    {
-        EXP_evalLoadDef(ctx, seq[i]);
-        if (ctx->error.code)
-        {
-            return false;;
-        }
-    }
     return true;
 }
 
@@ -334,13 +320,13 @@ next:
                 return;
             }
             // tail recursion optimization
-            //while (EXP_evalCurIsTail(ctx))
-            //{
-            //    if (!EXP_evalLeaveBlock(ctx))
-            //    {
-            //        break;
-            //    }
-            //}
+            while (EXP_evalCurIsTail(ctx))
+            {
+                if (!EXP_evalLeaveBlock(ctx))
+                {
+                    break;
+                }
+            }
             if (EXP_evalEnterBlock(ctx, bodyLen, body, fun))
             {
                 goto next;
@@ -386,8 +372,8 @@ next:
     EXP_Node node = curCall->seq[curCall->p++];
     if (EXP_isTok(space, node))
     {
-        const char* funName = EXP_tokCstr(space, node);
-        u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
+        const char* name = EXP_tokCstr(space, node);
+        u32 nativeFun = EXP_evalGetNativeFun(ctx, name);
         if (nativeFun != -1)
         {
             switch (nativeFun)
@@ -410,7 +396,7 @@ next:
                         for (u32 i = 0; i < n; ++i)
                         {
                             EXP_EvalValue val = dataStack->data[off + i];
-                            EXP_EvalVar def = { ctx->varKeyBuf.data[i], true,.val = val };
+                            EXP_EvalVar def = { ctx->varKeyBuf.data[i], val };
                             vec_push(&ctx->varStack, def);
                         }
                         vec_resize(dataStack, off);
@@ -436,27 +422,25 @@ next:
             EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
         }
-        EXP_EvalVar* def = EXP_evalGetMatched(ctx, funName);
-        if (def)
+        EXP_EvalVar* var = EXP_evalGetMatchedVar(ctx, name);
+        if (var)
         {
-            if (def->isVal)
+            vec_push(dataStack, var->val);
+            goto next;
+        }
+        EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
+        if (fun)
+        {
+            u32 bodyLen = 0;
+            EXP_Node* body = NULL;
+            EXP_evalDefGetBody(ctx, fun->src, &bodyLen, &body);
+            if (EXP_evalEnterBlock(ctx, bodyLen, body, fun->src))
             {
-                vec_push(dataStack, def->val);
                 goto next;
             }
             else
             {
-                u32 bodyLen = 0;
-                EXP_Node* body = NULL;
-                EXP_evalDefGetBody(ctx, def->fun, &bodyLen, &body);
-                if (EXP_evalEnterBlock(ctx, bodyLen, body, def->fun))
-                {
-                    goto next;
-                }
-                else
-                {
-                    return;
-                }
+                return;
             }
         }
         else
@@ -493,23 +477,21 @@ next:
     }
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
-    const char* funName = EXP_tokCstr(space, elms[0]);
-    EXP_EvalVar* def = EXP_evalGetMatched(ctx, funName);
-    if (def)
+    const char* name = EXP_tokCstr(space, elms[0]);
+    EXP_EvalVar* var = EXP_evalGetMatchedVar(ctx, name);
+    if (var)
     {
-        if (def->isVal)
-        {
-            vec_push(dataStack, def->val);
-            goto next;
-        }
-        else
-        {
-            EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = def->fun };
-            EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
-            goto next;
-        }
+        vec_push(dataStack, var->val);
+        goto next;
     }
-    u32 nativeFun = EXP_evalGetNativeFun(ctx, funName);
+    EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
+    if (fun)
+    {
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = fun->src };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+        goto next;
+    }
+    u32 nativeFun = EXP_evalGetNativeFun(ctx, name);
     switch (nativeFun)
     {
     case EXP_EvalPrimFun_Def:

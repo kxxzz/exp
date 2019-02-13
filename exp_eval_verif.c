@@ -184,7 +184,7 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 static bool EXP_evalVerifGetMatched
 (
-    EXP_EvalVerifContext* ctx, const char* funName, EXP_Node blk, EXP_EvalVerifDef* outDef
+    EXP_EvalVerifContext* ctx, const char* name, EXP_Node blk, EXP_EvalVerifDef* outDef
 )
 {
     EXP_Space* space = ctx->space;
@@ -195,7 +195,7 @@ static bool EXP_evalVerifGetMatched
         {
             EXP_EvalVerifDef* def = blkInfo->defs.data + blkInfo->defs.length - 1 - i;
             const char* str = EXP_tokCstr(space, def->key);
-            if (0 == strcmp(str, funName))
+            if (0 == strcmp(str, name))
             {
                 *outDef = *def;
                 return true;
