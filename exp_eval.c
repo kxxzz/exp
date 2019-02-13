@@ -13,34 +13,6 @@ typedef vec_t(EXP_EvalModInfo) EXP_EvalModInfoTable;
 
 
 
-typedef struct EXP_EvalDef
-{
-    EXP_Node key;
-    bool isVal;
-    union
-    {
-        EXP_Node fun;
-        EXP_EvalValue val;
-    };
-} EXP_EvalDef;
-
-typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
-
-
-
-typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
-
-typedef struct EXP_EvalBlock
-{
-    EXP_Node parent;
-    u32 defsCount;
-    u32 defsOffset;
-} EXP_EvalBlock;
-
-typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;
-
-
-
 
 
 typedef enum EXP_EvalBlockCallbackType
@@ -88,6 +60,8 @@ typedef struct EXP_EvalContext
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_EvalDefTable defTable;
+    EXP_EvalBlockTable blockTable;
     EXP_EvalDefStack defStack;
     EXP_EvalCallStack callStack;
     EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
@@ -137,6 +111,8 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->callStack);
     vec_free(&ctx->defStack);
+    vec_free(&ctx->blockTable);
+    vec_free(&ctx->defTable);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
 }
@@ -594,6 +570,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_EvalDefTable* defTable, EXP_EvalBlockTable* blockTable,
     vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 );
 
@@ -612,7 +589,10 @@ EXP_EvalError EXP_eval
         return error;
     }
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
-    error = EXP_evalVerif(space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, typeStack, srcInfoTable);
+    error = EXP_evalVerif
+    (
+        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.defTable, &ctx.blockTable, typeStack, srcInfoTable
+    );
     if (error.code)
     {
         EXP_evalContextFree(&ctx);

@@ -18,6 +18,44 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 
 
 
+
+
+typedef struct EXP_EvalDef
+{
+    EXP_Node key;
+    bool isVal;
+    union
+    {
+        EXP_Node fun;
+        EXP_EvalValue val;
+    };
+} EXP_EvalDef;
+
+typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
+
+
+
+typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
+
+typedef struct EXP_EvalBlock
+{
+    EXP_Node parent;
+    u32 defsOffset;
+    u32 defsCount;
+} EXP_EvalBlock;
+
+typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;
+
+
+
+
+
+
+
+
+
+
+
 static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 {
     if (!EXP_isSeqRound(space, node))
