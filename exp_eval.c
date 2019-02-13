@@ -52,9 +52,8 @@ typedef struct EXP_EvalBlockCallback
 typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
-    EXP_Node* seq;
-    u32 seqLen;
-    u32 p;
+    EXP_Node* p;
+    EXP_Node* end;
     EXP_EvalBlockCallback cb;
 } EXP_EvalCall;
 
@@ -119,6 +118,8 @@ static EXP_EvalContext EXP_newEvalContext
     }
     return *ctx;
 }
+
+
 static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
@@ -225,7 +226,7 @@ static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name
 static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalCall call = { srcNode, seq, len, 0, nocb };
+    EXP_EvalCall call = { srcNode, seq, seq + len, nocb };
     vec_push(&ctx->callStack, call);
     return true;
 }
@@ -236,7 +237,7 @@ static void EXP_evalEnterBlockWithCB
 )
 {
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalCall call = { srcNode, seq, len, 0, cb };
+    EXP_EvalCall call = { srcNode, seq, seq + len, cb };
     vec_push(&ctx->callStack, call);
 }
 
@@ -261,7 +262,7 @@ static bool EXP_evalCurIsTail(EXP_EvalContext* ctx)
     {
         return false;
     }
-    return curCall->p == curCall->seqLen;
+    return curCall->p == curCall->end;
 }
 
 
@@ -305,7 +306,7 @@ next:
         return;
     }
     curCall = &vec_last(&ctx->callStack);
-    if (curCall->p == curCall->seqLen)
+    if (curCall->p == curCall->end)
     {
         EXP_EvalBlockCallback* cb = &curCall->cb;
         switch (cb->type)
@@ -381,7 +382,7 @@ next:
         }
         return;
     }
-    EXP_Node node = curCall->seq[curCall->p++];
+    EXP_Node node = *(curCall->p++);
     if (EXP_isTok(space, node))
     {
         const char* name = EXP_tokCstr(space, node);
@@ -396,7 +397,8 @@ next:
                 ctx->varKeyBuf.length = 0;
                 for (u32 n = 0;;)
                 {
-                    EXP_Node key = curCall->seq[curCall->p++];
+                    assert(curCall->p < curCall->end);
+                    EXP_Node key = *(curCall->p++);
                     const char* skey = EXP_tokCstr(space, key);
                     assert(EXP_isTok(space, key));
                     u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
