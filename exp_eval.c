@@ -60,9 +60,9 @@ typedef struct EXP_EvalContext
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
-    EXP_EvalDefTable defTable;
+    EXP_EvalDefTable funTable;
     EXP_EvalBlockTable blockTable;
-    EXP_EvalDefStack defStack;
+    EXP_EvalDefStack varStack;
     EXP_EvalCallStack callStack;
     EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
     EXP_EvalError error;
@@ -110,9 +110,9 @@ static void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->callStack);
-    vec_free(&ctx->defStack);
+    vec_free(&ctx->varStack);
     vec_free(&ctx->blockTable);
-    vec_free(&ctx->defTable);
+    vec_free(&ctx->funTable);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
 }
@@ -162,7 +162,7 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     assert(EXP_isTok(space, defCall[1]));
     name = defCall[1];
     EXP_EvalDef def = { name, false, .fun = node };
-    vec_push(&ctx->defStack, def);
+    vec_push(&ctx->varStack, def);
 }
 
 
@@ -190,9 +190,9 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
 {
     EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < ctx->defStack.length; ++i)
+    for (u32 i = 0; i < ctx->varStack.length; ++i)
     {
-        EXP_EvalDef* def = ctx->defStack.data + ctx->defStack.length - 1 - i;
+        EXP_EvalDef* def = ctx->varStack.data + ctx->varStack.length - 1 - i;
         const char* str = EXP_tokCstr(space, def->key);
         if (0 == strcmp(str, funName))
         {
@@ -216,7 +216,7 @@ static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName
 
 static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
-    u32 defStackP = ctx->defStack.length;
+    u32 defStackP = ctx->varStack.length;
 
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, nocb };
@@ -238,7 +238,7 @@ static void EXP_evalEnterBlockWithCB
     EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
 {
-    u32 defStackP = ctx->defStack.length;
+    u32 defStackP = ctx->varStack.length;
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
     EXP_EvalCall call = { srcNode, defStackP, seq, len, 0, cb };
     vec_push(&ctx->callStack, call);
@@ -247,7 +247,7 @@ static void EXP_evalEnterBlockWithCB
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
     u32 defStackP = vec_last(&ctx->callStack).defStackP;
-    vec_resize(&ctx->defStack, defStackP);
+    vec_resize(&ctx->varStack, defStackP);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -411,7 +411,7 @@ next:
                         {
                             EXP_EvalValue val = dataStack->data[off + i];
                             EXP_EvalDef def = { ctx->varKeyBuf.data[i], true,.val = val };
-                            vec_push(&ctx->defStack, def);
+                            vec_push(&ctx->varStack, def);
                         }
                         vec_resize(dataStack, off);
                         ctx->varKeyBuf.length = 0;
@@ -570,7 +570,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalDefTable* defTable, EXP_EvalBlockTable* blockTable,
+    EXP_EvalDefTable* funTable, EXP_EvalBlockTable* blockTable,
     vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 );
 
@@ -591,7 +591,7 @@ EXP_EvalError EXP_eval
     EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
     error = EXP_evalVerif
     (
-        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.defTable, &ctx.blockTable, typeStack, srcInfoTable
+        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.funTable, &ctx.blockTable, typeStack, srcInfoTable
     );
     if (error.code)
     {

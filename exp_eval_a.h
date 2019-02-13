@@ -40,8 +40,9 @@ typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
 typedef struct EXP_EvalBlock
 {
     EXP_Node parent;
-    u32 defsOffset;
-    u32 defsCount;
+    u32 funsOffset;
+    u32 funsCount;
+    u32 varsCount;
 } EXP_EvalBlock;
 
 typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;

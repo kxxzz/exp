@@ -1113,7 +1113,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalDefTable* defTable, EXP_EvalBlockTable* blockTable,
+    EXP_EvalDefTable* funTable, EXP_EvalBlockTable* blockTable,
     vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
@@ -1152,17 +1152,18 @@ EXP_EvalError EXP_evalVerif
         {
             EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
             EXP_EvalBlock b = { vb->parent };
-            b.defsOffset = defTable->length;
+            b.funsOffset = funTable->length;
             for (u32 i = 0; i < vb->defs.length; ++i)
             {
                 EXP_EvalVerifDef* vdef = vb->defs.data + i;
                 if (vdef->isVal)
                 {
+                    ++b.varsCount;
                     continue;
                 }
-                ++b.defsCount;
-                EXP_EvalDef def = { vdef->key,.fun = vdef->fun };
-                vec_push(defTable, def);
+                ++b.funsCount;
+                EXP_EvalDef def = { vdef->key, .fun = vdef->fun };
+                vec_push(funTable, def);
             }
             blockTable->data[i] = b;
         }
