@@ -1113,7 +1113,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalDefTable* funTable, EXP_EvalBlockTable* blockTable,
+    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
     vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 )
 {
@@ -1162,8 +1162,8 @@ EXP_EvalError EXP_evalVerif
                     continue;
                 }
                 ++b.funsCount;
-                EXP_EvalDef def = { vdef->key, .fun = vdef->fun };
-                vec_push(funTable, def);
+                EXP_EvalFun fun = { vdef->key, vdef->fun };
+                vec_push(funTable, fun);
             }
             blockTable->data[i] = b;
         }

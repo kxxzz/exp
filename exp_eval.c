@@ -60,9 +60,9 @@ typedef struct EXP_EvalContext
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_NodeSrcInfoTable* srcInfoTable;
-    EXP_EvalDefTable funTable;
+    EXP_EvalFunTable funTable;
     EXP_EvalBlockTable blockTable;
-    EXP_EvalDefStack varStack;
+    EXP_EvalVarStack varStack;
     EXP_EvalCallStack callStack;
     EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
     EXP_EvalError error;
@@ -161,7 +161,7 @@ static void EXP_evalLoadDef(EXP_EvalContext* ctx, EXP_Node node)
     EXP_Node name;
     assert(EXP_isTok(space, defCall[1]));
     name = defCall[1];
-    EXP_EvalDef def = { name, false, .fun = node };
+    EXP_EvalVar def = { name, false, .fun = node };
     vec_push(&ctx->varStack, def);
 }
 
@@ -187,12 +187,12 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_EvalDef* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
+static EXP_EvalVar* EXP_evalGetMatched(EXP_EvalContext* ctx, const char* funName)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->varStack.length; ++i)
     {
-        EXP_EvalDef* def = ctx->varStack.data + ctx->varStack.length - 1 - i;
+        EXP_EvalVar* def = ctx->varStack.data + ctx->varStack.length - 1 - i;
         const char* str = EXP_tokCstr(space, def->key);
         if (0 == strcmp(str, funName))
         {
@@ -410,7 +410,7 @@ next:
                         for (u32 i = 0; i < n; ++i)
                         {
                             EXP_EvalValue val = dataStack->data[off + i];
-                            EXP_EvalDef def = { ctx->varKeyBuf.data[i], true,.val = val };
+                            EXP_EvalVar def = { ctx->varKeyBuf.data[i], true,.val = val };
                             vec_push(&ctx->varStack, def);
                         }
                         vec_resize(dataStack, off);
@@ -436,7 +436,7 @@ next:
             EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
         }
-        EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
+        EXP_EvalVar* def = EXP_evalGetMatched(ctx, funName);
         if (def)
         {
             if (def->isVal)
@@ -494,7 +494,7 @@ next:
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
     const char* funName = EXP_tokCstr(space, elms[0]);
-    EXP_EvalDef* def = EXP_evalGetMatched(ctx, funName);
+    EXP_EvalVar* def = EXP_evalGetMatched(ctx, funName);
     if (def)
     {
         if (def->isVal)
@@ -570,7 +570,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalDefTable* funTable, EXP_EvalBlockTable* blockTable,
+    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
     vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
 );
 

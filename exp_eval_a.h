@@ -20,7 +20,7 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 
 
 
-typedef struct EXP_EvalDef
+typedef struct EXP_EvalVar
 {
     EXP_Node key;
     bool isVal;
@@ -29,13 +29,20 @@ typedef struct EXP_EvalDef
         EXP_Node fun;
         EXP_EvalValue val;
     };
-} EXP_EvalDef;
+} EXP_EvalVar;
 
-typedef vec_t(EXP_EvalDef) EXP_EvalDefStack;
+typedef vec_t(EXP_EvalVar) EXP_EvalVarStack;
 
 
 
-typedef vec_t(EXP_EvalDef) EXP_EvalDefTable;
+
+typedef struct EXP_EvalFun
+{
+    EXP_Node key;
+    EXP_Node fun;
+} EXP_EvalFun;
+
+typedef vec_t(EXP_EvalFun) EXP_EvalFunTable;
 
 typedef struct EXP_EvalBlock
 {
