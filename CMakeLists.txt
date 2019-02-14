@@ -62,7 +62,11 @@ source_group (src FILES ${SRC_FILES})
 
 
 add_executable (main ${SRC_FILES} ${IMP_SRC_FILES})
-target_link_libraries (main m)
+
+if (WIN32)
+else ()
+	target_link_libraries (main m)
+endif ()
 
 
 
