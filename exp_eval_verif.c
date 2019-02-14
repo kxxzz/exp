@@ -179,7 +179,7 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
     if (srcInfo)
     {
         assert(node.id < srcInfo->nodes.length);
-        const char* file = srcInfo->files.data[vec_last(&ctx->fileCallStack)].name;
+        const char* file = ctx->fileTable.data[vec_last(&ctx->fileCallStack)].path;
         ctx->error.file = file;
         ctx->error.line = srcInfo->nodes.data[node.id].line;
         ctx->error.column = srcInfo->nodes.data[node.id].column;
