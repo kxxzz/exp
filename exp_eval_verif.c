@@ -1142,6 +1142,9 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
+    EXP_EvalVerifFile file = { srcFile, root };
+    vec_push(&ctx->fileTable, file);
+    vec_push(&ctx->fileCallStack, 0);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     if (!EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true))
