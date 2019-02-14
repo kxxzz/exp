@@ -1,9 +1,9 @@
 [submodule "imp/vec"]
 	path = imp/vec
-	url = https://github.com/kxxzz/vec.git
+	url = git@github.com:kxxzz/vec.git
 [submodule "imp/nstr"]
 	path = imp/nstr
-	url = https://github.com/kxxzz/nstr.git
+	url = git@github.com:kxxzz/nstr.git
 [submodule "imp/fileu"]
     path = imp/fileu
-    url = https://github.com/kxxzz/fileu.git
+    url = git@github.com:kxxzz/fileu.git

@@ -65,7 +65,7 @@ add_executable (main ${SRC_FILES} ${IMP_SRC_FILES})
 
 if (WIN32)
 else ()
-	target_link_libraries (main m)
+    target_link_libraries (main m)
 endif ()
 
 
