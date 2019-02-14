@@ -123,31 +123,19 @@ typedef struct EXP_NodeSrcInfo
 typedef vec_t(EXP_NodeSrcInfo) EXP_NodeSrcInfoVec;
 
 
-enum
-{
-    EXP_SrcFileName_MAX = 260,
-};
-
-
-typedef struct EXP_SrcFileInfo
-{
-    char name[EXP_SrcFileName_MAX];
-} EXP_SrcFileInfo;
-
-typedef vec_t(EXP_SrcFileInfo) EXP_SrcFileInfoVec;
 
 
 typedef struct EXP_SpaceSrcInfo
 {
-    EXP_SrcFileInfoVec files;
+    u32 fileCount;
     EXP_NodeSrcInfoVec nodes;
 } EXP_SpaceSrcInfo;
 
 void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo);
 
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo);
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
 
 
 

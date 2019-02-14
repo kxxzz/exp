@@ -634,7 +634,7 @@ EXP_EvalError EXP_evalFile
     {
         srcInfo = &_srcInfo;
     }
-    EXP_Node root = EXP_loadSrcAsList(space, src, srcFile, srcInfo);
+    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfo);
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {

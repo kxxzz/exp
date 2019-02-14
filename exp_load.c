@@ -44,13 +44,11 @@ typedef struct EXP_LoadContext
 
 static EXP_LoadContext EXP_newLoadContext
 (
-    EXP_Space* space, u32 strSize, const char* srcStr, const char* name, EXP_SpaceSrcInfo* srcInfo
+    EXP_Space* space, u32 strSize, const char* srcStr, EXP_SpaceSrcInfo* srcInfo
 )
 {
     assert(strSize == strlen(srcStr));
-    EXP_SrcFileInfo fileInfo = { 0 };
-    stzncpy(fileInfo.name, name, EXP_SrcFileName_MAX);
-    vec_push(&srcInfo->files, fileInfo);
+    ++srcInfo->fileCount;
     EXP_LoadContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
 }
@@ -391,8 +389,8 @@ static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_
     {
         return;
     }
-    assert(ctx->srcInfo->files.length > 0);
-    info->file = ctx->srcInfo->files.length - 1;
+    assert(ctx->srcInfo->fileCount > 0);
+    info->file = ctx->srcInfo->fileCount - 1;
     info->offset = ctx->cur;
     info->line = ctx->curLine;
     info->column = 1;
@@ -496,9 +494,9 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 
 
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, name, srcInfo);
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfo);
     EXP_Node node = EXP_loadNode(&ctx);
     if ((EXP_NodeId_Invalid == node.id) || (!EXP_loadEnd(&ctx)))
     {
@@ -510,9 +508,9 @@ EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, const char* name, 
     return node;
 }
 
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, name, srcInfo);
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfo);
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     bool errorHappen = false;
     while (EXP_skipSapce(&ctx))
@@ -536,7 +534,7 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, const char* name, 
     EXP_Node node = EXP_addSeqDone(space);
     if (srcInfo)
     {
-        EXP_NodeSrcInfo nodeSrcInfo = { srcInfo->files.length - 1 };
+        EXP_NodeSrcInfo nodeSrcInfo = { srcInfo->fileCount - 1 };
         vec_push(&srcInfo->nodes, nodeSrcInfo);
     }
     return node;

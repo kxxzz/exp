@@ -58,7 +58,6 @@ void EXP_spaceFree(EXP_Space* space)
 void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo)
 {
     vec_free(&srcInfo->nodes);
-    vec_free(&srcInfo->files);
 }
 
 
