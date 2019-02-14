@@ -100,13 +100,26 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallStack;
 
 
 
+typedef struct EXP_EvalVerifFile
+{
+    const char* path;
+    EXP_Node root;
+} EXP_EvalVerifFile;
+
+typedef vec_t(EXP_EvalVerifFile) EXP_EvalVerifFileTable;
+
+
+
+
+
 typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
     EXP_EvalValueTypeInfoTable* valueTypeTable;
     EXP_EvalNativeFunInfoTable* nativeFunTable;
-    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_SpaceSrcInfo* srcInfo;
     EXP_EvalVerifBlockTable blockTable;
+    EXP_EvalVerifFileTable fileTable;
     vec_u32 dataStack;
     bool dataStackShiftEnable;
     EXP_EvalVerifCallStack callStack;
@@ -114,6 +127,7 @@ typedef struct EXP_EvalVerifContext
     bool recheckFlag;
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
+    vec_u32 fileCallStack;
 } EXP_EvalVerifContext;
 
 
@@ -123,7 +137,7 @@ typedef struct EXP_EvalVerifContext
 static EXP_EvalVerifContext EXP_newEvalVerifContext
 (
     EXP_Space* space, EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalVerifContext _ctx = { 0 };
@@ -131,7 +145,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->space = space;
     ctx->valueTypeTable = valueTypeTable;
     ctx->nativeFunTable = nativeFunTable;
-    ctx->srcInfoTable = srcInfoTable;
+    ctx->srcInfo = srcInfo;
     vec_resize(&ctx->blockTable, EXP_spaceNodesTotal(space));
     memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
     return *ctx;
@@ -139,10 +153,12 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
+    vec_free(&ctx->fileCallStack);
     vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->recheckNodes);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
+    vec_free(&ctx->fileTable);
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
         EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
@@ -159,13 +175,14 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
 {
     ctx->error.code = errCode;
-    EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
-    if (srcInfoTable)
+    EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
+    if (srcInfo)
     {
-        assert(node.id < srcInfoTable->length);
-        ctx->error.file = NULL;// todo
-        ctx->error.line = srcInfoTable->data[node.id].line;
-        ctx->error.column = srcInfoTable->data[node.id].column;
+        assert(node.id < srcInfo->nodes.length);
+        const char* file = srcInfo->files.data[vec_last(&ctx->fileCallStack)].name;
+        ctx->error.file = file;
+        ctx->error.line = srcInfo->nodes.data[node.id].line;
+        ctx->error.column = srcInfo->nodes.data[node.id].column;
     }
 }
 
@@ -1114,7 +1131,7 @@ EXP_EvalError EXP_evalVerif
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
-    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, const char* srcFile, EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalError error = { 0 };
@@ -1123,7 +1140,7 @@ EXP_EvalError EXP_evalVerif
     {
         return error;
     }
-    EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfoTable);
+    EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);

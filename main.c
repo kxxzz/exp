@@ -26,8 +26,8 @@ void testLoadSave(void)
 
 
     EXP_Space* space = EXP_newSpace();
-    EXP_NodeSrcInfoTable srcInfoTable = { 0 };
-    EXP_Node root = EXP_loadSrcAsList(space, text, &srcInfoTable);
+    EXP_SpaceSrcInfo srcInfo = { 0 };
+    EXP_Node root = EXP_loadSrcAsList(space, text, "0.exp", &srcInfo);
     assert(root.id != EXP_NodeId_Invalid);
     free(text);
 
@@ -42,7 +42,7 @@ void testLoadSave(void)
     }
 
 
-    vec_free(&srcInfoTable);
+    EXP_spaceSrcInfoFree(&srcInfo);
     EXP_spaceFree(space);
 }
 

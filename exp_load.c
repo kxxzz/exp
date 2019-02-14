@@ -36,7 +36,7 @@ typedef struct EXP_LoadContext
     const char* src;
     u32 cur;
     u32 curLine;
-    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_SpaceSrcInfo* srcInfo;
     vec_char tmpStrBuf;
 } EXP_LoadContext;
 
@@ -44,11 +44,14 @@ typedef struct EXP_LoadContext
 
 static EXP_LoadContext EXP_newLoadContext
 (
-    EXP_Space* space, u32 strSize, const char* str, EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, u32 strSize, const char* srcStr, const char* name, EXP_SpaceSrcInfo* srcInfo
 )
 {
-    assert(strSize == strlen(str));
-    EXP_LoadContext ctx = { space, strSize, str, 0, 1, srcInfoTable };
+    assert(strSize == strlen(srcStr));
+    EXP_SrcFileInfo fileInfo = { 0 };
+    stzncpy(fileInfo.name, name, EXP_SrcFileName_MAX);
+    vec_push(&srcInfo->files, fileInfo);
+    EXP_LoadContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
 }
 
@@ -384,6 +387,12 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
 
 static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
 {
+    if (!ctx->srcInfo)
+    {
+        return;
+    }
+    assert(ctx->srcInfo->files.length > 0);
+    info->file = ctx->srcInfo->files.length - 1;
     info->offset = ctx->cur;
     info->line = ctx->curLine;
     info->column = 1;
@@ -404,21 +413,22 @@ static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_
 static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_NodeSrcInfoTable* srcInfoTable = ctx->srcInfoTable;
+    EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
     EXP_Node node = { EXP_NodeId_Invalid };
     EXP_Token tok;
     if (!EXP_readToken(ctx, &tok))
     {
         return node;
     }
-    EXP_NodeSrcInfo srcInfo = { 0 };
-    EXP_loadNodeSrcInfo(ctx, &tok, &srcInfo);
+    bool isQuotStr = EXP_TokenType_String == tok.type;
+    EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+    EXP_loadNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
     switch (tok.type)
     {
     case EXP_TokenType_Text:
     {
         const char* str = ctx->src + tok.begin;
-        node = EXP_addTokL(space, tok.len, str, srcInfo.isQuotStr);
+        node = EXP_addTokL(space, tok.len, str, isQuotStr);
         break;
     }
     case EXP_TokenType_String:
@@ -449,7 +459,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
         }
         ctx->tmpStrBuf.data[len] = 0;
         assert(si == len);
-        node = EXP_addTokL(space, len, ctx->tmpStrBuf.data, srcInfo.isQuotStr);
+        node = EXP_addTokL(space, len, ctx->tmpStrBuf.data, isQuotStr);
         break;
     }
     case EXP_TokenType_SeqParenBegin:
@@ -467,9 +477,9 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
         assert(false);
         return node;
     }
-    if (srcInfoTable)
+    if (srcInfo)
     {
-        vec_push(srcInfoTable, srcInfo);
+        vec_push(&srcInfo->nodes, nodeSrcInfo);
     }
     return node;
 }
@@ -486,11 +496,11 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 
 
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
+EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, name, srcInfo);
     EXP_Node node = EXP_loadNode(&ctx);
-    if (!EXP_loadEnd(&ctx))
+    if ((EXP_NodeId_Invalid == node.id) || (!EXP_loadEnd(&ctx)))
     {
         EXP_loadContextFree(&ctx);
         EXP_Node node = { EXP_NodeId_Invalid };
@@ -500,9 +510,9 @@ EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
     return node;
 }
 
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable)
+EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfoTable);
+    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, name, srcInfo);
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     bool errorHappen = false;
     while (EXP_skipSapce(&ctx))
@@ -524,10 +534,10 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
     }
     EXP_loadContextFree(&ctx);
     EXP_Node node = EXP_addSeqDone(space);
-    if (srcInfoTable)
+    if (srcInfo)
     {
-        EXP_NodeSrcInfo srcInfo = { 0 };
-        vec_push(srcInfoTable, srcInfo);
+        EXP_NodeSrcInfo nodeSrcInfo = { srcInfo->files.length - 1 };
+        vec_push(&srcInfo->nodes, nodeSrcInfo);
     }
     return node;
 }

@@ -3,17 +3,6 @@
 
 
 
-typedef struct EXP_EvalModInfo
-{
-    EXP_Node url;
-    EXP_Node root;
-} EXP_EvalModInfo;
-
-typedef vec_t(EXP_EvalModInfo) EXP_EvalModInfoTable;
-
-
-
-
 
 typedef struct EXP_EvalVar
 {
@@ -71,7 +60,7 @@ typedef struct EXP_EvalContext
     EXP_EvalDataStack* dataStack;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
-    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_SpaceSrcInfo* srcInfo;
     EXP_EvalFunTable funTable;
     EXP_EvalBlockTable blockTable;
     EXP_EvalVarStack varStack;
@@ -88,15 +77,14 @@ typedef struct EXP_EvalContext
 
 static EXP_EvalContext EXP_newEvalContext
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv,
-    EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv, EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalContext _ctx = { 0 };
     EXP_EvalContext* ctx = &_ctx;
     ctx->space = space;
     ctx->dataStack = dataStack;
-    ctx->srcInfoTable = srcInfoTable;
+    ctx->srcInfo = srcInfo;
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
         vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
@@ -567,7 +555,7 @@ EXP_EvalError EXP_evalVerif
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
-    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
+    vec_u32* typeStack, const char* srcFile, EXP_SpaceSrcInfo* srcInfo
 );
 
 
@@ -575,8 +563,9 @@ EXP_EvalError EXP_evalVerif
 
 EXP_EvalError EXP_eval
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
-    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root,
+    const EXP_EvalNativeEnv* nativeEnv, vec_u32* typeStack, const char* srcFile,
+    EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalError error = { 0 };
@@ -584,10 +573,10 @@ EXP_EvalError EXP_eval
     {
         return error;
     }
-    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfoTable);
+    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfo);
     error = EXP_evalVerif
     (
-        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.funTable, &ctx.blockTable, typeStack, srcInfoTable
+        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.funTable, &ctx.blockTable, typeStack, srcFile, srcInfo
     );
     if (error.code)
     {
@@ -639,26 +628,26 @@ EXP_EvalError EXP_evalFile
         return error;
     }
 
-    EXP_NodeSrcInfoTable* srcInfoTable = NULL;
-    EXP_NodeSrcInfoTable _srcInfoTable = { 0 };
+    EXP_SpaceSrcInfo* srcInfo = NULL;
+    EXP_SpaceSrcInfo _srcInfo = { 0 };
     if (enableSrcInfo)
     {
-        srcInfoTable = &_srcInfoTable;
+        srcInfo = &_srcInfo;
     }
-    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfoTable);
+    EXP_Node root = EXP_loadSrcAsList(space, src, srcFile, srcInfo);
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
         error.code = EXP_EvalErrCode_ExpSyntax;
         error.file = srcFile;
-        if (srcInfoTable)
+        if (srcInfo)
         {
 #ifdef _MSC_VER
 # pragma warning(push)
 # pragma warning(disable : 6011)
 #endif
-            error.line = vec_last(srcInfoTable).line;
-            error.column = vec_last(srcInfoTable).column;
+            error.line = vec_last(&srcInfo->nodes).line;
+            error.column = vec_last(&srcInfo->nodes).column;
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
@@ -670,10 +659,10 @@ EXP_EvalError EXP_evalFile
         }
         return error;
     }
-    error = EXP_eval(space, dataStack, root, nativeEnv, typeStack, srcInfoTable);
-    if (srcInfoTable)
+    error = EXP_eval(space, dataStack, root, nativeEnv, typeStack, srcFile, srcInfo);
+    if (srcInfo)
     {
-        vec_free(srcInfoTable);
+        EXP_spaceSrcInfoFree(srcInfo);
     }
     return error;
 }

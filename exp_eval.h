@@ -141,8 +141,9 @@ typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
 
 EXP_EvalError EXP_eval
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root, const EXP_EvalNativeEnv* nativeEnv,
-    vec_u32* typeStack, EXP_NodeSrcInfoTable* srcInfoTable
+    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root,
+    const EXP_EvalNativeEnv* nativeEnv, vec_u32* typeStack, const char* srcFile,
+    EXP_SpaceSrcInfo* srcInfo
 );
 
 EXP_EvalError EXP_evalFile

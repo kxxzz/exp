@@ -55,6 +55,16 @@ void EXP_spaceFree(EXP_Space* space)
 
 
 
+void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo)
+{
+    vec_free(&srcInfo->nodes);
+    vec_free(&srcInfo->files);
+}
+
+
+
+
+
 
 u32 EXP_spaceNodesTotal(EXP_Space* space)
 {
@@ -271,8 +281,7 @@ static void EXP_seqBracketChs(EXP_NodeType type, char ch[2])
 
 static u32 EXP_saveSeqSL
 (
-    const EXP_Space* space, const EXP_NodeInfo* seqInfo, char* buf, u32 bufSize,
-    const EXP_NodeSrcInfoTable* srcInfoTable
+    const EXP_Space* space, const EXP_NodeInfo* seqInfo, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
 )
 {
     u32 n = 0;
@@ -281,7 +290,7 @@ static u32 EXP_saveSeqSL
 
     for (u32 i = 0; i < seqInfo->length; ++i)
     {
-        u32 en = EXP_saveSL(space, space->seqs.data[seqInfo->offset + i], bufPtr, bufRemain, srcInfoTable);
+        u32 en = EXP_saveSL(space, space->seqs.data[seqInfo->offset + i], bufPtr, bufRemain, srcInfo);
         if (en < bufRemain)
         {
             bufRemain -= en;
@@ -316,8 +325,7 @@ static u32 EXP_saveSeqSL
 
 u32 EXP_saveSL
 (
-    const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize,
-    const EXP_NodeSrcInfoTable* srcInfoTable
+    const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
@@ -329,9 +337,9 @@ u32 EXP_saveSL
         u32 sreLen = info->length;
         u32 n;
         bool isQuotStr = false;
-        if (srcInfoTable && (node.id < srcInfoTable->length))
+        if (srcInfo && (node.id < srcInfo->nodes.length))
         {
-            isQuotStr = srcInfoTable->data[node.id].isQuotStr;
+            isQuotStr = srcInfo->nodes.data[node.id].isQuotStr;
         }
         else
         {
@@ -414,7 +422,7 @@ u32 EXP_saveSL
             n += 1;
         }
 
-        u32 n1 = EXP_saveSeqSL(space, info, bufPtr, bufRemain, srcInfoTable);
+        u32 n1 = EXP_saveSeqSL(space, info, bufPtr, bufRemain, srcInfo);
         if (n1 < bufRemain)
         {
             bufRemain -= n1;
@@ -632,7 +640,7 @@ static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
 
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
     char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-    u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfoTable);
+    u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfo);
     bool ok = EXP_saveMlForward(ctx, a);
 
     if (!ok)
@@ -655,7 +663,7 @@ static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
     {
         u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfoTable);
+        u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfo);
         EXP_saveMlForward(ctx, a);
         return;
     }
@@ -692,7 +700,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
     {
     case EXP_NodeType_Tok:
     {
-        return EXP_saveSL(space, node, buf, bufSize, opt->srcInfoTable);
+        return EXP_saveSL(space, node, buf, bufSize, opt->srcInfo);
     }
     default:
     {

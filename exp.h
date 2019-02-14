@@ -22,6 +22,8 @@ typedef double f64;
 
 
 
+
+
 typedef enum EXP_NodeType
 {
     EXP_NodeType_Tok,
@@ -111,17 +113,41 @@ EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);
 
 typedef struct EXP_NodeSrcInfo
 {
+    u32 file;
     u32 offset;
     u32 line;
     u32 column;
     bool isQuotStr;
 } EXP_NodeSrcInfo;
 
-typedef vec_t(EXP_NodeSrcInfo) EXP_NodeSrcInfoTable;
+typedef vec_t(EXP_NodeSrcInfo) EXP_NodeSrcInfoVec;
 
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable);
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTable* srcInfoTable);
+enum
+{
+    EXP_SrcFileName_MAX = 260,
+};
+
+
+typedef struct EXP_SrcFileInfo
+{
+    char name[EXP_SrcFileName_MAX];
+} EXP_SrcFileInfo;
+
+typedef vec_t(EXP_SrcFileInfo) EXP_SrcFileInfoVec;
+
+
+typedef struct EXP_SpaceSrcInfo
+{
+    EXP_SrcFileInfoVec files;
+    EXP_NodeSrcInfoVec nodes;
+} EXP_SpaceSrcInfo;
+
+void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo);
+
+
+EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, const char* name, EXP_SpaceSrcInfo* srcInfo);
 
 
 
@@ -129,15 +155,14 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_NodeSrcInfoTab
 
 u32 EXP_saveSL
 (
-    const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize,
-    const EXP_NodeSrcInfoTable* srcInfoTable
+    const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
 );
 
 typedef struct EXP_SaveMLopt
 {
     u32 indent;
     u32 width;
-    EXP_NodeSrcInfoTable* srcInfoTable;
+    EXP_SpaceSrcInfo* srcInfo;
 } EXP_SaveMLopt;
 
 u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMLopt* opt);
