@@ -5,11 +5,13 @@
 
 
 
+typedef vec_t(union EXP_EvalValue) EXP_EvalSeq;
+
 typedef union EXP_EvalValue
 {
     bool truth;
     double num;
-    EXP_Node tok;
+    EXP_EvalSeq* seq;
     void* ptr;
 } EXP_EvalValue;
 
@@ -58,7 +60,6 @@ typedef enum EXP_EvalPrimValueType
 {
     EXP_EvalPrimValueType_Bool,
     EXP_EvalPrimValueType_Num,
-    EXP_EvalPrimValueType_Str,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;

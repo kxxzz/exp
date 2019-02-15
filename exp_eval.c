@@ -709,7 +709,6 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 {
     { "bool", EXP_evalBoolFromStr },
     { "num", EXP_evalNumFromStr },
-    { "tok" },
 };
 
 
