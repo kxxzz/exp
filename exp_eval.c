@@ -453,12 +453,12 @@ next:
                 for (u32 i = 0; i < ctx->valueTypeTable.length; ++i)
                 {
                     u32 j = ctx->valueTypeTable.length - 1 - i;
-                    if (ctx->valueTypeTable.data[j].fromSym)
+                    if (ctx->valueTypeTable.data[j].ctorBySym)
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
                         EXP_EvalValue v = { 0 };
-                        if (ctx->valueTypeTable.data[j].fromSym(l, s, &v))
+                        if (ctx->valueTypeTable.data[j].ctorBySym(l, s, &v))
                         {
                             vec_push(dataStack, v);
                             goto next;

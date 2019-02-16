@@ -18,12 +18,14 @@ typedef union EXP_EvalValue
 
 
 
-typedef bool(*EXP_EvalValFromSym)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef bool(*EXP_EvalValCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef void(*EXP_EvalValDtor)(EXP_EvalValue* pVal);
 
 typedef struct EXP_EvalValueTypeInfo
 {
     const char* name;
-    EXP_EvalValFromSym fromSym;
+    EXP_EvalValCtorBySym ctorBySym;
+    EXP_EvalValDtor dtor;
 } EXP_EvalValueTypeInfo;
 
 
