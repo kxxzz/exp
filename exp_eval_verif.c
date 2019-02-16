@@ -795,12 +795,12 @@ static bool EXP_evalVerifNode
                 for (u32 i = 0; i < ctx->valueTypeTable->length; ++i)
                 {
                     u32 j = ctx->valueTypeTable->length - 1 - i;
-                    if (ctx->valueTypeTable->data[j].fromStr)
+                    if (ctx->valueTypeTable->data[j].fromSym)
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
                         EXP_EvalValue v = { 0 };
-                        if (ctx->valueTypeTable->data[j].fromStr(l, s, &v))
+                        if (ctx->valueTypeTable->data[j].fromSym(l, s, &v))
                         {
                             vec_push(dataStack, j);
                             return true;

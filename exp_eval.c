@@ -453,12 +453,12 @@ next:
                 for (u32 i = 0; i < ctx->valueTypeTable.length; ++i)
                 {
                     u32 j = ctx->valueTypeTable.length - 1 - i;
-                    if (ctx->valueTypeTable.data[j].fromStr)
+                    if (ctx->valueTypeTable.data[j].fromSym)
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
                         EXP_EvalValue v = { 0 };
-                        if (ctx->valueTypeTable.data[j].fromStr(l, s, &v))
+                        if (ctx->valueTypeTable.data[j].fromSym(l, s, &v))
                         {
                             vec_push(dataStack, v);
                             goto next;
@@ -468,7 +468,11 @@ next:
                 assert(false);
                 return;
             }
-            EXP_EvalValue v = { EXP_EvalPrimValueType_Str, .tok = node };
+            EXP_EvalValue v = { 0 };
+            u32 l = EXP_tokSize(space, node);
+            const char* s = EXP_tokCstr(space, node);
+            v.str = (vec_char*)zalloc(sizeof(vec_char));
+            vec_pusharr(v.str, s, l);
             vec_push(dataStack, v);
             goto next;
         }
@@ -679,36 +683,39 @@ EXP_EvalError EXP_evalFile
 
 
 
-static bool EXP_evalBoolFromStr(u32 len, const char* str, EXP_EvalValue* pData)
+static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (0 == strncmp(str, "true", len))
     {
-        pData->truth = true;
+        pVal->truth = true;
         return true;
     }
     if (0 == strncmp(str, "false", len))
     {
-        pData->truth = true;
+        pVal->truth = true;
         return true;
     }
     return false;
 }
 
-static bool EXP_evalNumFromStr(u32 len, const char* str, EXP_EvalValue* pData)
+static bool EXP_evalNumFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     double num;
     u32 r = NSTR_str2num(&num, str, len, NULL);
     if (len == r)
     {
-        pData->num = num;
+        pVal->num = num;
     }
     return len == r;
 }
 
+
+
 const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes] =
 {
-    { "bool", EXP_evalBoolFromStr },
-    { "num", EXP_evalNumFromStr },
+    { "bool", EXP_evalBoolFromSym },
+    { "num", EXP_evalNumFromSym },
+    { "str", NULL },
 };
 
 

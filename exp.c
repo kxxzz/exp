@@ -322,10 +322,7 @@ static u32 EXP_saveSeqSL
 }
 
 
-u32 EXP_saveSL
-(
-    const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
-)
+u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)

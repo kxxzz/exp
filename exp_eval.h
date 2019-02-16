@@ -5,24 +5,25 @@
 
 
 
-typedef vec_t(union EXP_EvalValue) EXP_EvalSeq;
+typedef vec_t(union EXP_EvalValue) EXP_EvalValueVec;
 
 typedef union EXP_EvalValue
 {
     bool truth;
     double num;
-    EXP_EvalSeq* seq;
+    vec_char* str;
+    EXP_EvalValueVec* vec;
     void* ptr;
 } EXP_EvalValue;
 
 
 
-typedef bool(*EXP_EvalValFromStr)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef bool(*EXP_EvalValFromSym)(u32 len, const char* str, EXP_EvalValue* pVal);
 
 typedef struct EXP_EvalValueTypeInfo
 {
     const char* name;
-    EXP_EvalValFromStr fromStr;
+    EXP_EvalValFromSym fromSym;
 } EXP_EvalValueTypeInfo;
 
 
@@ -60,6 +61,7 @@ typedef enum EXP_EvalPrimValueType
 {
     EXP_EvalPrimValueType_Bool,
     EXP_EvalPrimValueType_Num,
+    EXP_EvalPrimValueType_Str,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;
@@ -137,7 +139,7 @@ typedef struct EXP_EvalError
 } EXP_EvalError;
 
 
-typedef vec_t(EXP_EvalValue) EXP_EvalDataStack;
+typedef EXP_EvalValueVec EXP_EvalDataStack;
 
 
 EXP_EvalError EXP_eval
