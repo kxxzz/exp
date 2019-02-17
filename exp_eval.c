@@ -57,7 +57,7 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
-    EXP_EvalDataStack* dataStack;
+    EXP_EvalValueVec* dataStack;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_SpaceSrcInfo* srcInfo;
@@ -77,7 +77,7 @@ typedef struct EXP_EvalContext
 
 static EXP_EvalContext EXP_newEvalContext
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, const EXP_EvalNativeEnv* nativeEnv, EXP_SpaceSrcInfo* srcInfo
+    EXP_Space* space, EXP_EvalValueVec* dataStack, const EXP_EvalNativeEnv* nativeEnv, EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalContext _ctx = { 0 };
@@ -265,7 +265,7 @@ static void EXP_evalNativeFunCall
 )
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalDataStack* dataStack = ctx->dataStack;
+    EXP_EvalValueVec* dataStack = ctx->dataStack;
     u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
     nativeFunInfo->call(space, dataStack->data + argsOffset, ctx->nativeCallOutBuf);
     vec_resize(dataStack, argsOffset);
@@ -287,7 +287,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalCall* curCall;
-    EXP_EvalDataStack* dataStack = ctx->dataStack;
+    EXP_EvalValueVec* dataStack = ctx->dataStack;
 next:
     if (ctx->error.code)
     {
@@ -473,6 +473,7 @@ next:
             const char* s = EXP_tokCstr(space, node);
             v.str = (vec_char*)zalloc(sizeof(vec_char));
             vec_pusharr(v.str, s, l);
+            vec_push(v.str, 0);
             vec_push(dataStack, v);
             goto next;
         }
@@ -567,7 +568,7 @@ EXP_EvalError EXP_evalVerif
 
 EXP_EvalError EXP_eval
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, EXP_Node root,
+    EXP_Space* space, EXP_EvalValueVec* dataStack, EXP_Node root,
     const EXP_EvalNativeEnv* nativeEnv, vec_u32* typeStack, const char* srcFile,
     EXP_SpaceSrcInfo* srcInfo
 )
@@ -614,7 +615,7 @@ EXP_EvalError EXP_eval
 
 EXP_EvalError EXP_evalFile
 (
-    EXP_Space* space, EXP_EvalDataStack* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
+    EXP_Space* space, EXP_EvalValueVec* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
     vec_u32* typeStack, bool enableSrcInfo
 )
 {
