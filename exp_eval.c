@@ -66,9 +66,9 @@ typedef struct EXP_EvalContext
     EXP_EvalCallStack callStack;
     vec_u32 typeStack;
     EXP_EvalValueVec dataStack;
-    EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
-    EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
+    EXP_EvalError error;
+    EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
 } EXP_EvalContext;
 
 
@@ -135,7 +135,15 @@ EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx)
     return ctx->error;
 }
 
+vec_u32* EXP_evalDataTypeStack(EXP_EvalContext* ctx)
+{
+    return &ctx->typeStack;
+}
 
+EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx)
+{
+    return &ctx->dataStack;
+}
 
 
 
@@ -639,11 +647,11 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* sr
     {
         ctx->error.code = EXP_EvalErrCode_SrcFile;
         ctx->error.file = srcFile;
-        return;
+        return ctx;
     }
     if (0 == srcSize)
     {
-        return;
+        return ctx;
     }
 
     EXP_SpaceSrcInfo* srcInfo = NULL;

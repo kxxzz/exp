@@ -48,7 +48,10 @@ static EXP_LoadContext EXP_newLoadContext
 )
 {
     assert(strSize == strlen(srcStr));
-    ++srcInfo->fileCount;
+    if (srcInfo)
+    {
+        ++srcInfo->fileCount;
+    }
     EXP_LoadContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
 }

@@ -53,10 +53,12 @@ void testEval(void)
     EXP_EvalContext* ctx = EXP_evalFile(NULL, "../1.exp", true);
     EXP_EvalError err = EXP_evalLastError(ctx);
     assert(EXP_EvalErrCode_NONE == err.code);
-    for (u32 i = 0; i < dataStack.length; ++i)
+    vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
+    EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
+    for (u32 i = 0; i < dataStack->length; ++i)
     {
-        EXP_EvalValue v = dataStack.data[i];
-        u32 vt = typeStack.data[i];
+        EXP_EvalValue v = dataStack->data[i];
+        u32 vt = typeStack->data[i];
         switch (vt)
         {
         case EXP_EvalPrimValueType_Bool:

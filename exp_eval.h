@@ -147,6 +147,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv);
 void EXP_evalContextFree(EXP_EvalContext* ctx);
 
 EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx);
+vec_u32* EXP_evalDataTypeStack(EXP_EvalContext* ctx);
+EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx);
 
 void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name);
 EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo);
