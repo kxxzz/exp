@@ -141,24 +141,15 @@ typedef struct EXP_EvalError
 } EXP_EvalError;
 
 
-typedef struct EXP_EvalRun EXP_EvalRun;
+typedef struct EXP_EvalContext EXP_EvalContext;
 
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv);
+void EXP_evalContextFree(EXP_EvalContext* ctx);
 
+EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx);
 
-
-
-EXP_EvalError EXP_eval
-(
-    EXP_Space* space, EXP_EvalValueVec* dataStack, EXP_Node root,
-    const EXP_EvalNativeEnv* nativeEnv, vec_u32* typeStack, const char* srcFile,
-    EXP_SpaceSrcInfo* srcInfo
-);
-
-EXP_EvalError EXP_evalFile
-(
-    EXP_Space* space, EXP_EvalValueVec* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    vec_u32* typeStack, bool enableSrcInfo
-);
+void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name);
+EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo);
 
 
 

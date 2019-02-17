@@ -57,14 +57,15 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
-    EXP_EvalValueVec* dataStack;
+    EXP_SpaceSrcInfo srcInfo;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
-    EXP_SpaceSrcInfo* srcInfo;
     EXP_EvalFunTable funTable;
     EXP_EvalBlockTable blockTable;
     EXP_EvalVarStack varStack;
     EXP_EvalCallStack callStack;
+    vec_u32 typeStack;
+    EXP_EvalValueVec dataStack;
     EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
@@ -75,16 +76,10 @@ typedef struct EXP_EvalContext
 
 
 
-static EXP_EvalContext EXP_newEvalContext
-(
-    EXP_Space* space, EXP_EvalValueVec* dataStack, const EXP_EvalNativeEnv* nativeEnv, EXP_SpaceSrcInfo* srcInfo
-)
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv)
 {
-    EXP_EvalContext _ctx = { 0 };
-    EXP_EvalContext* ctx = &_ctx;
-    ctx->space = space;
-    ctx->dataStack = dataStack;
-    ctx->srcInfo = srcInfo;
+    EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
+    ctx->space = EXP_newSpace();
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
         vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
@@ -104,20 +99,53 @@ static EXP_EvalContext EXP_newEvalContext
             vec_push(&ctx->nativeFunTable, nativeEnv->funs[i]);
         }
     }
-    return *ctx;
+    return ctx;
 }
 
 
-static void EXP_evalContextFree(EXP_EvalContext* ctx)
+void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
+    vec_free(&ctx->dataStack);
+    vec_free(&ctx->typeStack);
     vec_free(&ctx->callStack);
     vec_free(&ctx->varStack);
     vec_free(&ctx->blockTable);
     vec_free(&ctx->funTable);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
+    EXP_spaceSrcInfoFree(&ctx->srcInfo);
+    EXP_spaceFree(ctx->space);
+    free(ctx);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx)
+{
+    return ctx->error;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -265,7 +293,7 @@ static void EXP_evalNativeFunCall
 )
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalValueVec* dataStack = ctx->dataStack;
+    EXP_EvalValueVec* dataStack = &ctx->dataStack;
     u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
     nativeFunInfo->call(space, dataStack->data + argsOffset, ctx->nativeCallOutBuf);
     vec_resize(dataStack, argsOffset);
@@ -287,7 +315,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalCall* curCall;
-    EXP_EvalValueVec* dataStack = ctx->dataStack;
+    EXP_EvalValueVec* dataStack = &ctx->dataStack;
 next:
     if (ctx->error.code)
     {
@@ -566,40 +594,29 @@ EXP_EvalError EXP_evalVerif
 
 
 
-EXP_EvalError EXP_eval
-(
-    EXP_Space* space, EXP_EvalValueVec* dataStack, EXP_Node root,
-    const EXP_EvalNativeEnv* nativeEnv, vec_u32* typeStack, const char* srcFile,
-    EXP_SpaceSrcInfo* srcInfo
-)
+void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name)
 {
-    EXP_EvalError error = { 0 };
+    EXP_Space* space = ctx->space;
     if (!EXP_isSeq(space, root))
     {
-        return error;
+        return;
     }
-    EXP_EvalContext ctx = EXP_newEvalContext(space, dataStack, nativeEnv, srcInfo);
-    error = EXP_evalVerif
+    EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx.valueTypeTable, &ctx.nativeFunTable, &ctx.funTable, &ctx.blockTable, typeStack, srcFile, srcInfo
+        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack, name, &ctx->srcInfo
     );
     if (error.code)
     {
-        EXP_evalContextFree(&ctx);
-        return error;
+        ctx->error = error;
+        return;
     }
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    if (!EXP_evalEnterBlock(&ctx, len, seq, root))
+    if (!EXP_evalEnterBlock(ctx, len, seq, root))
     {
-        error = ctx.error;
-        EXP_evalContextFree(&ctx);
-        return error;
+        return;
     }
-    EXP_evalCall(&ctx);
-    error = ctx.error;
-    EXP_evalContextFree(&ctx);
-    return error;
+    EXP_evalCall(ctx);
 }
 
 
@@ -613,63 +630,55 @@ EXP_EvalError EXP_eval
 
 
 
-EXP_EvalError EXP_evalFile
-(
-    EXP_Space* space, EXP_EvalValueVec* dataStack, const char* srcFile, const EXP_EvalNativeEnv* nativeEnv,
-    vec_u32* typeStack, bool enableSrcInfo
-)
+EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo)
 {
-    EXP_EvalError error = { EXP_EvalErrCode_NONE };
+    EXP_EvalContext* ctx = EXP_newEvalContext(nativeEnv);
     char* src = NULL;
     u32 srcSize = FILEU_readFile(srcFile, &src);
     if (-1 == srcSize)
     {
-        error.code = EXP_EvalErrCode_SrcFile;
-        error.file = srcFile;
-        return error;
+        ctx->error.code = EXP_EvalErrCode_SrcFile;
+        ctx->error.file = srcFile;
+        return;
     }
     if (0 == srcSize)
     {
-        return error;
+        return;
     }
 
     EXP_SpaceSrcInfo* srcInfo = NULL;
-    EXP_SpaceSrcInfo _srcInfo = { 0 };
     if (enableSrcInfo)
     {
-        srcInfo = &_srcInfo;
+        srcInfo = &ctx->srcInfo;
     }
+    EXP_Space* space = ctx->space;
     EXP_Node root = EXP_loadSrcAsList(space, src, srcInfo);
     free(src);
     if (EXP_NodeId_Invalid == root.id)
     {
-        error.code = EXP_EvalErrCode_ExpSyntax;
-        error.file = srcFile;
+        ctx->error.code = EXP_EvalErrCode_ExpSyntax;
+        ctx->error.file = srcFile;
         if (srcInfo)
         {
 #ifdef _MSC_VER
 # pragma warning(push)
 # pragma warning(disable : 6011)
 #endif
-            error.line = vec_last(&srcInfo->nodes).line;
-            error.column = vec_last(&srcInfo->nodes).column;
+            ctx->error.line = vec_last(&srcInfo->nodes).line;
+            ctx->error.column = vec_last(&srcInfo->nodes).column;
 #ifdef _MSC_VER
 # pragma warning(pop)
 #endif
         }
         else
         {
-            error.line = -1;
-            error.column = -1;
+            ctx->error.line = -1;
+            ctx->error.column = -1;
         }
-        return error;
+        return ctx;
     }
-    error = EXP_eval(space, dataStack, root, nativeEnv, typeStack, srcFile, srcInfo);
-    if (srcInfo)
-    {
-        EXP_spaceSrcInfoFree(srcInfo);
-    }
-    return error;
+    EXP_eval(ctx, root, srcFile);
+    return ctx;
 }
 
 

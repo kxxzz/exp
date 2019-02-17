@@ -50,11 +50,9 @@ void testLoadSave(void)
 
 void testEval(void)
 {
-    EXP_Space* space = EXP_newSpace();
-    EXP_EvalValueVec dataStack = { 0 };
-    vec_u32 typeStack = { 0 };
-    EXP_EvalError r = EXP_evalFile(space, &dataStack, "../1.exp", NULL, &typeStack, true);
-    assert(EXP_EvalErrCode_NONE == r.code);
+    EXP_EvalContext* ctx = EXP_evalFile(NULL, "../1.exp", true);
+    EXP_EvalError err = EXP_evalLastError(ctx);
+    assert(EXP_EvalErrCode_NONE == err.code);
     for (u32 i = 0; i < dataStack.length; ++i)
     {
         EXP_EvalValue v = dataStack.data[i];
@@ -85,9 +83,7 @@ void testEval(void)
         }
         }
     }
-    vec_free(&dataStack);
-    vec_free(&typeStack);
-    EXP_spaceFree(space);
+    EXP_evalContextFree(ctx);
 }
 
 
