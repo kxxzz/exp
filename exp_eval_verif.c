@@ -1130,8 +1130,8 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
-    vec_u32* typeStack, const char* srcFile, EXP_SpaceSrcInfo* srcInfo
+    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
+    const char* name, EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalError error = { 0 };
@@ -1142,7 +1142,7 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
-    EXP_EvalVerifFile file = { srcFile, root };
+    EXP_EvalVerifFile file = { name, root };
     vec_push(&ctx->fileTable, file);
     vec_push(&ctx->fileCallStack, 0);
     u32 len = EXP_seqLen(space, root);

@@ -595,8 +595,8 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable,
-    vec_u32* typeStack, const char* srcFile, EXP_SpaceSrcInfo* srcInfo
+    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
+    const char* srcFile, EXP_SpaceSrcInfo* srcInfo
 );
 
 
@@ -611,7 +611,8 @@ void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name)
     }
     EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack, name, &ctx->srcInfo
+        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
+        name, &ctx->srcInfo
     );
     if (error.code)
     {
