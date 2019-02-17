@@ -1142,6 +1142,9 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
+
+    vec_dup(&ctx->dataStack, typeStack);
+
     EXP_EvalVerifFile file = { name, root };
     vec_push(&ctx->fileTable, file);
     vec_push(&ctx->fileCallStack, 0);
