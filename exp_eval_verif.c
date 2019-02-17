@@ -1156,10 +1156,7 @@ EXP_EvalError EXP_evalVerif
     EXP_evalVerifCall(ctx);
     if (!ctx->error.code)
     {
-        if (typeStack)
-        {
-            vec_dup(typeStack, &ctx->dataStack);
-        }
+        vec_dup(typeStack, &ctx->dataStack);
     }
     if (!ctx->error.code)
     {
