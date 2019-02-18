@@ -154,6 +154,30 @@ EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx)
 
 
 
+void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue* val)
+{
+    vec_push(&ctx->typeStack, type);
+    vec_push(&ctx->dataStack, *val);
+}
+
+void EXP_evalDrop(EXP_EvalContext* ctx)
+{
+    assert(ctx->typeStack.length > 0);
+    assert(ctx->dataStack.length > 0);
+    assert(ctx->typeStack.length == ctx->dataStack.length);
+    vec_pop(&ctx->typeStack);
+    vec_pop(&ctx->dataStack);
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -596,13 +620,13 @@ EXP_EvalError EXP_evalVerif
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
-    const char* srcFile, EXP_SpaceSrcInfo* srcInfo
+    const char* srcFileName, EXP_SpaceSrcInfo* srcInfo
 );
 
 
 
 
-void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name)
+void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* srcFileName)
 {
     EXP_Space* space = ctx->space;
     if (!EXP_isSeq(space, root))
@@ -612,7 +636,7 @@ void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name)
     EXP_EvalError error = EXP_evalVerif
     (
         space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
-        name, &ctx->srcInfo
+        srcFileName, &ctx->srcInfo
     );
     if (error.code)
     {
@@ -639,15 +663,15 @@ void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name)
 
 
 
-EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo)
+EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fileName, bool enableSrcInfo)
 {
     EXP_EvalContext* ctx = EXP_newEvalContext(nativeEnv);
     char* src = NULL;
-    u32 srcSize = FILEU_readFile(srcFile, &src);
+    u32 srcSize = FILEU_readFile(fileName, &src);
     if (-1 == srcSize)
     {
         ctx->error.code = EXP_EvalErrCode_SrcFile;
-        ctx->error.file = srcFile;
+        ctx->error.fileName = fileName;
         return ctx;
     }
     if (0 == srcSize)
@@ -666,7 +690,7 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* sr
     if (EXP_NodeId_Invalid == root.id)
     {
         ctx->error.code = EXP_EvalErrCode_ExpSyntax;
-        ctx->error.file = srcFile;
+        ctx->error.fileName = fileName;
         if (srcInfo)
         {
 #ifdef _MSC_VER
@@ -686,7 +710,7 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* sr
         }
         return ctx;
     }
-    EXP_eval(ctx, root, srcFile);
+    EXP_eval(ctx, root, fileName);
     return ctx;
 }
 

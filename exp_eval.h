@@ -135,22 +135,37 @@ typedef enum EXP_EvalErrCode
 typedef struct EXP_EvalError
 {
     EXP_EvalErrCode code;
-    const char* file;
+    const char* fileName;
     u32 line;
     u32 column;
 } EXP_EvalError;
 
 
+
+
+
 typedef struct EXP_EvalContext EXP_EvalContext;
+
 
 EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv);
 void EXP_evalContextFree(EXP_EvalContext* ctx);
+
+
+
 
 EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx);
 vec_u32* EXP_evalDataTypeStack(EXP_EvalContext* ctx);
 EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx);
 
-void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* name);
+
+void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue* val);
+void EXP_evalDrop(EXP_EvalContext* ctx);
+
+
+
+
+
+void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* srcFileName);
 EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo);
 
 
