@@ -1148,7 +1148,6 @@ EXP_EvalError EXP_evalVerif
     }
     if (!ctx->error.code)
     {
-        vec_resize(blockTable, ctx->blockTable.length);
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
         {
             EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
@@ -1166,7 +1165,7 @@ EXP_EvalError EXP_evalVerif
                 EXP_EvalFun fun = { vdef->key, vdef->fun };
                 vec_push(funTable, fun);
             }
-            blockTable->data[i] = b;
+            vec_push(blockTable, b);
         }
     }
     error = ctx->error;
