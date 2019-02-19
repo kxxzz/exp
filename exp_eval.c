@@ -620,57 +620,30 @@ EXP_EvalError EXP_evalVerif
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
-    const char* srcFileName, EXP_SpaceSrcInfo* srcInfo
+    EXP_SpaceSrcInfo* srcInfo
 );
 
 
 
 
-void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* srcFileName)
+
+
+
+
+
+bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
 {
-    EXP_Space* space = ctx->space;
-
-}
-
-
-
-
-
-
-
-
-
-
-
-
-EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fileName, bool enableSrcInfo)
-{
-    EXP_EvalContext* ctx = EXP_newEvalContext(nativeEnv);
-    char* src = NULL;
-    u32 srcSize = FILEU_readFile(fileName, &src);
-    if (-1 == srcSize)
-    {
-        ctx->error.code = EXP_EvalErrCode_SrcFile;
-        ctx->error.fileName = fileName;
-        return ctx;
-    }
-    if (0 == srcSize)
-    {
-        return ctx;
-    }
-
     EXP_SpaceSrcInfo* srcInfo = NULL;
     if (enableSrcInfo)
     {
         srcInfo = &ctx->srcInfo;
     }
     EXP_Space* space = ctx->space;
-    EXP_Node root = EXP_loadSrcAsList(space, src, srcInfo);
-    free(src);
+    EXP_Node root = EXP_loadSrcAsList(space, code, srcInfo);
     if (EXP_NodeId_Invalid == root.id)
     {
         ctx->error.code = EXP_EvalErrCode_ExpSyntax;
-        ctx->error.fileName = fileName;
+        ctx->error.file = 0;
         if (srcInfo)
         {
 #ifdef _MSC_VER
@@ -688,7 +661,7 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fi
             ctx->error.line = -1;
             ctx->error.column = -1;
         }
-        return ctx;
+        return false;
     }
 
 
@@ -699,23 +672,42 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fi
     EXP_EvalError error = EXP_evalVerif
     (
         space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
-        fileName, &ctx->srcInfo
+        &ctx->srcInfo
     );
     if (error.code)
     {
         ctx->error = error;
-        return ctx;
+        return false;
     }
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     if (!EXP_evalEnterBlock(ctx, len, seq, root))
     {
-        return ctx;
+        return false;
     }
     EXP_evalCall(ctx);
+    return true;
+}
 
 
-    return ctx;
+
+bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo)
+{
+    char* code = NULL;
+    u32 codeSize = FILEU_readFile(fileName, &code);
+    if (-1 == codeSize)
+    {
+        ctx->error.code = EXP_EvalErrCode_SrcFile;
+        ctx->error.file = 0;
+        return false;
+    }
+    if (0 == codeSize)
+    {
+        return false;
+    }
+    bool r = EXP_evalCode(ctx, code, enableSrcInfo);
+    free(code);
+    return r;
 }
 
 

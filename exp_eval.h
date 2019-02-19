@@ -135,7 +135,7 @@ typedef enum EXP_EvalErrCode
 typedef struct EXP_EvalError
 {
     EXP_EvalErrCode code;
-    const char* fileName;
+    u32 file;
     u32 line;
     u32 column;
 } EXP_EvalError;
@@ -163,7 +163,9 @@ void EXP_evalDrop(EXP_EvalContext* ctx);
 
 
 
-EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fileName, bool enableSrcInfo);
+
+bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo);
+bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo);
 
 
 

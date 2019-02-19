@@ -100,18 +100,6 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallStack;
 
 
 
-typedef struct EXP_EvalVerifFile
-{
-    const char* path;
-    EXP_Node root;
-} EXP_EvalVerifFile;
-
-typedef vec_t(EXP_EvalVerifFile) EXP_EvalVerifFileTable;
-
-
-
-
-
 typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
@@ -119,7 +107,6 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNativeFunInfoTable* nativeFunTable;
     EXP_SpaceSrcInfo* srcInfo;
     EXP_EvalVerifBlockTable blockTable;
-    EXP_EvalVerifFileTable fileTable;
     vec_u32 dataStack;
     bool dataStackShiftEnable;
     EXP_EvalVerifCallStack callStack;
@@ -127,7 +114,6 @@ typedef struct EXP_EvalVerifContext
     bool recheckFlag;
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
-    vec_u32 fileCallStack;
 } EXP_EvalVerifContext;
 
 
@@ -153,12 +139,10 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
-    vec_free(&ctx->fileCallStack);
     vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->recheckNodes);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
-    vec_free(&ctx->fileTable);
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
         EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
@@ -179,8 +163,7 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
     if (srcInfo)
     {
         assert(node.id < srcInfo->nodes.length);
-        const char* file = ctx->fileTable.data[vec_last(&ctx->fileCallStack)].path;
-        ctx->error.fileName = file;
+        ctx->error.file = srcInfo->nodes.data[node.id].file;
         ctx->error.line = srcInfo->nodes.data[node.id].line;
         ctx->error.column = srcInfo->nodes.data[node.id].column;
     }
@@ -1131,7 +1114,7 @@ EXP_EvalError EXP_evalVerif
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
-    const char* srcFileName, EXP_SpaceSrcInfo* srcInfo
+    EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalError error = { 0 };
@@ -1145,9 +1128,6 @@ EXP_EvalError EXP_evalVerif
 
     vec_dup(&ctx->dataStack, typeStack);
 
-    EXP_EvalVerifFile file = { srcFileName, root };
-    vec_push(&ctx->fileTable, file);
-    vec_push(&ctx->fileCallStack, 0);
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
     if (!EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true))

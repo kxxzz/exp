@@ -50,7 +50,9 @@ void testLoadSave(void)
 
 void testEval(void)
 {
-    EXP_EvalContext* ctx = EXP_evalFile(NULL, "../1.exp", true);
+    EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
+    bool r = EXP_evalFile(ctx, "../1.exp", true);
+    assert(r);
     EXP_EvalError err = EXP_evalLastError(ctx);
     assert(EXP_EvalErrCode_NONE == err.code);
     vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
