@@ -21,13 +21,16 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 typedef enum EXP_EvalNodeType
 {
     EXP_EvalNodeType_Block,
+
     EXP_EvalNodeType_VarDefBegin,
     EXP_EvalNodeType_VarDefEnd,
     EXP_EvalNodeType_Drop,
     EXP_EvalNodeType_NativeFun,
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Fun,
-    EXP_EvalNodeType_Value,
+    EXP_EvalNodeType_ValueSymbol,
+    EXP_EvalNodeType_String,
+
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallFun,
     EXP_EvalNodeType_CallNativeFun,
@@ -38,9 +41,10 @@ typedef struct EXP_EvalNode
     EXP_EvalNodeType type;
     union
     {
+        u32 varsCount;
         u32 nativeFun;
         EXP_Node funDef;
-        u32 varsCount;
+        u32 valueType;
     };
 } EXP_EvalNode;
 
