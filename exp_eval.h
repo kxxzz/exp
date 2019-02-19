@@ -123,6 +123,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_SrcFile,
     EXP_EvalErrCode_ExpSyntax,
     EXP_EvalErrCode_EvalSyntax,
+    EXP_EvalErrCode_EvalUnable,
     EXP_EvalErrCode_EvalUndefined,
     EXP_EvalErrCode_EvalArgs,
     EXP_EvalErrCode_EvalStack,
