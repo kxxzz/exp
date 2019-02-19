@@ -163,9 +163,6 @@ void EXP_evalDrop(EXP_EvalContext* ctx);
 
 
 
-
-
-void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* srcFileName);
 EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* srcFile, bool enableSrcInfo);
 
 

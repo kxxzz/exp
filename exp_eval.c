@@ -629,27 +629,7 @@ EXP_EvalError EXP_evalVerif
 void EXP_eval(EXP_EvalContext* ctx, EXP_Node root, const char* srcFileName)
 {
     EXP_Space* space = ctx->space;
-    if (!EXP_isSeq(space, root))
-    {
-        return;
-    }
-    EXP_EvalError error = EXP_evalVerif
-    (
-        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
-        srcFileName, &ctx->srcInfo
-    );
-    if (error.code)
-    {
-        ctx->error = error;
-        return;
-    }
-    u32 len = EXP_seqLen(space, root);
-    EXP_Node* seq = EXP_seqElm(space, root);
-    if (!EXP_evalEnterBlock(ctx, len, seq, root))
-    {
-        return;
-    }
-    EXP_evalCall(ctx);
+
 }
 
 
@@ -710,7 +690,31 @@ EXP_EvalContext* EXP_evalFile(const EXP_EvalNativeEnv* nativeEnv, const char* fi
         }
         return ctx;
     }
-    EXP_eval(ctx, root, fileName);
+
+
+    if (!EXP_isSeq(space, root))
+    {
+        return ctx;
+    }
+    EXP_EvalError error = EXP_evalVerif
+    (
+        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
+        fileName, &ctx->srcInfo
+    );
+    if (error.code)
+    {
+        ctx->error = error;
+        return ctx;
+    }
+    u32 len = EXP_seqLen(space, root);
+    EXP_Node* seq = EXP_seqElm(space, root);
+    if (!EXP_evalEnterBlock(ctx, len, seq, root))
+    {
+        return ctx;
+    }
+    EXP_evalCall(ctx);
+
+
     return ctx;
 }
 
