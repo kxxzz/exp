@@ -271,12 +271,11 @@ static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name
 
 
 
-static bool EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalCall call = { srcNode, seq, seq + len, nocb };
     vec_push(&ctx->callStack, call);
-    return true;
 }
 
 static void EXP_evalEnterBlockWithCB
@@ -388,11 +387,8 @@ next:
                     break;
                 }
             }
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, fun))
-            {
-                goto next;
-            }
-            return;
+            EXP_evalEnterBlock(ctx, bodyLen, body, fun);
+            goto next;
         }
         case EXP_EvalBlockCallbackType_Cond:
         {
@@ -405,19 +401,13 @@ next:
             EXP_Node srcNode = curCall->srcNode;
             if (v.truth)
             {
-                if (EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode))
-                {
-                    goto next;
-                }
-                return;
+                EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode);
+                goto next;
             }
             else if (EXP_evalIfHasBranch1(space, srcNode))
             {
-                if (EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode))
-                {
-                    goto next;
-                }
-                return;
+                EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
+                goto next;
             }
         }
         default:
@@ -496,14 +486,8 @@ next:
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
             EXP_evalDefGetBody(ctx, fun->src, &bodyLen, &body);
-            if (EXP_evalEnterBlock(ctx, bodyLen, body, fun->src))
-            {
-                goto next;
-            }
-            else
-            {
-                return;
-            }
+            EXP_evalEnterBlock(ctx, bodyLen, body, fun->src);
+            goto next;
         }
         else
         {
@@ -614,6 +598,22 @@ next:
 
 
 
+void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
+{
+    EXP_Space* space = ctx->space;
+    u32 len = EXP_seqLen(space, root);
+    EXP_Node* seq = EXP_seqElm(space, root);
+    EXP_evalEnterBlock(ctx, len, seq, root);
+    EXP_evalCall(ctx);
+}
+
+
+
+
+
+
+
+
 
 EXP_EvalError EXP_evalVerif
 (
@@ -622,12 +622,6 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
     EXP_SpaceSrcInfo* srcInfo
 );
-
-
-
-
-
-
 
 
 
@@ -683,13 +677,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
         ctx->error = error;
         return false;
     }
-    u32 len = EXP_seqLen(space, root);
-    EXP_Node* seq = EXP_seqElm(space, root);
-    if (!EXP_evalEnterBlock(ctx, len, seq, root))
-    {
-        return false;
-    }
-    EXP_evalCall(ctx);
+    EXP_evalBlock(ctx, root);
     return true;
 }
 
