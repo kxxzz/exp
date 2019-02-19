@@ -271,8 +271,8 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalNode* nodeEval = ctx->nodeTable.data + curCall->srcNode.id;
     assert(EXP_EvalNodeType_Block == nodeEval->type);
-    assert(ctx->varStack.length >= nodeEval->block.varsCount);
-    vec_resize(&ctx->varStack, ctx->varStack.length - nodeEval->block.varsCount);
+    assert(ctx->varStack.length >= nodeEval->varsCount);
+    vec_resize(&ctx->varStack, ctx->varStack.length - nodeEval->varsCount);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -400,6 +400,7 @@ next:
         return;
     }
     EXP_Node node = *(curCall->p++);
+    EXP_EvalNode* enode = ctx->nodeTable.data + node.id;
     if (EXP_isTok(space, node))
     {
         const char* name = EXP_tokCstr(space, node);
@@ -459,14 +460,13 @@ next:
             vec_push(dataStack, var->val);
             goto next;
         }
-        //EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
-        EXP_Node fun;
-        if (fun.id != EXP_NodeId_Invalid)
+        if (EXP_EvalNodeType_Fun == enode->type)
         {
+            EXP_Node funDef = enode->funDef;
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
-            EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
-            EXP_evalEnterBlock(ctx, bodyLen, body, fun);
+            EXP_evalDefGetBody(ctx, funDef, &bodyLen, &body);
+            EXP_evalEnterBlock(ctx, bodyLen, body, funDef);
             goto next;
         }
         else
@@ -516,11 +516,9 @@ next:
         assert(false);
         goto next;
     }
-    EXP_Node fun;
-    //= EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
-    if (fun.id != EXP_NodeId_Invalid)
+    if (EXP_EvalNodeType_CallFun == enode->type)
     {
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = fun };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = enode->funDef };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
