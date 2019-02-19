@@ -60,8 +60,7 @@ typedef struct EXP_EvalContext
     EXP_SpaceSrcInfo srcInfo;
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
-    EXP_EvalFunTable funTable;
-    EXP_EvalBlockTable blockTable;
+    EXP_EvalNodeTable nodeTable;
     EXP_EvalVarStack varStack;
     EXP_EvalCallStack callStack;
     vec_u32 typeStack;
@@ -110,8 +109,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->typeStack);
     vec_free(&ctx->callStack);
     vec_free(&ctx->varStack);
-    vec_free(&ctx->blockTable);
-    vec_free(&ctx->funTable);
+    vec_free(&ctx->nodeTable);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
@@ -221,27 +219,7 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_EvalFun* EXP_evalGetMatchedFun(EXP_EvalContext* ctx, const char* name, EXP_Node blk)
-{
-    EXP_Space* space = ctx->space;
-    EXP_EvalFunTable* funTable = &ctx->funTable;
-    EXP_EvalBlockTable* blockTable = &ctx->blockTable;
-    while (blk.id != EXP_NodeId_Invalid)
-    {
-        EXP_EvalBlock* blkInfo = blockTable->data + blk.id;
-        for (u32 i = 0; i < blkInfo->funsCount; ++i)
-        {
-            EXP_EvalFun* fun = funTable->data + blkInfo->funsOffset + blkInfo->funsCount - 1 - i;
-            const char* str = EXP_tokCstr(space, fun->key);
-            if (0 == strcmp(str, name))
-            {
-                return fun;
-            }
-        }
-        blk = blkInfo->parent;
-    }
-    return NULL;
-}
+
 
 
 static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name)
@@ -291,9 +269,10 @@ static void EXP_evalEnterBlockWithCB
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalBlock* blkInfo = ctx->blockTable.data + curCall->srcNode.id;
-    assert(ctx->varStack.length >= blkInfo->varsCount);
-    vec_resize(&ctx->varStack, ctx->varStack.length - blkInfo->varsCount);
+    EXP_EvalNode* nodeEval = ctx->nodeTable.data + curCall->srcNode.id;
+    assert(EXP_EvalNodeType_Block == nodeEval->type);
+    assert(ctx->varStack.length >= nodeEval->block.varsCount);
+    vec_resize(&ctx->varStack, ctx->varStack.length - nodeEval->block.varsCount);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -480,13 +459,14 @@ next:
             vec_push(dataStack, var->val);
             goto next;
         }
-        EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
-        if (fun)
+        //EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
+        EXP_Node fun;
+        if (fun.id != EXP_NodeId_Invalid)
         {
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
-            EXP_evalDefGetBody(ctx, fun->src, &bodyLen, &body);
-            EXP_evalEnterBlock(ctx, bodyLen, body, fun->src);
+            EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
+            EXP_evalEnterBlock(ctx, bodyLen, body, fun);
             goto next;
         }
         else
@@ -532,13 +512,15 @@ next:
     EXP_EvalVar* var = EXP_evalGetMatchedVar(ctx, name);
     if (var)
     {
-        vec_push(dataStack, var->val);
+        // todo
+        assert(false);
         goto next;
     }
-    EXP_EvalFun* fun = EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
-    if (fun)
+    EXP_Node fun;
+    //= EXP_evalGetMatchedFun(ctx, name, curCall->srcNode);
+    if (fun.id != EXP_NodeId_Invalid)
     {
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = fun->src };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = fun };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
@@ -619,8 +601,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
-    EXP_SpaceSrcInfo* srcInfo
+    EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
 );
 
 
@@ -669,8 +650,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     }
     EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->funTable, &ctx->blockTable, &ctx->typeStack,
-        &ctx->srcInfo
+        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
     );
     if (error.code)
     {

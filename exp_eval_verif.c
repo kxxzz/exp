@@ -1114,8 +1114,7 @@ EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
     EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
-    EXP_EvalFunTable* funTable, EXP_EvalBlockTable* blockTable, vec_u32* typeStack,
-    EXP_SpaceSrcInfo* srcInfo
+    EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
 )
 {
     EXP_EvalError error = { 0 };
@@ -1150,22 +1149,22 @@ EXP_EvalError EXP_evalVerif
     {
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
         {
-            EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
-            EXP_EvalBlock b = { vb->parent };
-            b.funsOffset = funTable->length;
-            for (u32 i = 0; i < vb->defs.length; ++i)
-            {
-                EXP_EvalVerifDef* vdef = vb->defs.data + i;
-                if (vdef->isVal)
-                {
-                    ++b.varsCount;
-                    continue;
-                }
-                ++b.funsCount;
-                EXP_EvalFun fun = { vdef->key, vdef->fun };
-                vec_push(funTable, fun);
-            }
-            vec_push(blockTable, b);
+            //EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
+            //EXP_EvalBlock b = { vb->parent };
+            //b.funsOffset = funTable->length;
+            //for (u32 i = 0; i < vb->defs.length; ++i)
+            //{
+            //    EXP_EvalVerifDef* vdef = vb->defs.data + i;
+            //    if (vdef->isVal)
+            //    {
+            //        ++b.varsCount;
+            //        continue;
+            //    }
+            //    ++b.funsCount;
+            //    EXP_EvalFun fun = { vdef->key, vdef->fun };
+            //    vec_push(funTable, fun);
+            //}
+            //vec_push(blockTable, b);
         }
     }
     error = ctx->error;

@@ -18,24 +18,49 @@ typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
 
 
 
-
-typedef struct EXP_EvalFun
+typedef enum EXP_EvalNodeType
 {
-    EXP_Node key;
-    EXP_Node src;
-} EXP_EvalFun;
+    EXP_EvalNodeType_Block,
+    EXP_EvalNodeType_VarDefBegin,
+    EXP_EvalNodeType_VarDefEnd,
+    EXP_EvalNodeType_Drop,
+    EXP_EvalNodeType_NativeFun,
+    EXP_EvalNodeType_Var,
+    EXP_EvalNodeType_Fun,
+    EXP_EvalNodeType_Value,
+    EXP_EvalNodeType_CallVar,
+    EXP_EvalNodeType_CallFun,
+    EXP_EvalNodeType_CallNativeFun,
+} EXP_EvalNodeType;
 
-typedef vec_t(EXP_EvalFun) EXP_EvalFunTable;
 
-typedef struct EXP_EvalBlock
+typedef struct EXP_EvalNodeBlock
 {
-    EXP_Node parent;
-    u32 funsOffset;
-    u32 funsCount;
     u32 varsCount;
-} EXP_EvalBlock;
+} EXP_EvalNodeBlock;
 
-typedef vec_t(EXP_EvalBlock) EXP_EvalBlockTable;
+typedef struct EXP_EvalNodeNativeFun
+{
+    u32 id;
+} EXP_EvalNodeNativeFun;
+
+typedef struct EXP_EvalNodeFun
+{
+    EXP_Node src;
+} EXP_EvalNodeFun;
+
+typedef struct EXP_EvalNode
+{
+    EXP_EvalNodeType type;
+    union
+    {
+        EXP_EvalNodeBlock block;
+        EXP_EvalNodeNativeFun nativeFun;
+        EXP_EvalNodeFun fun;
+    };
+} EXP_EvalNode;
+
+typedef vec_t(EXP_EvalNode) EXP_EvalNodeTable;
 
 
 
