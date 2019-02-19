@@ -106,6 +106,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalValueTypeInfoTable* valueTypeTable;
     EXP_EvalNativeFunInfoTable* nativeFunTable;
     EXP_SpaceSrcInfo* srcInfo;
+
     EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
     bool dataStackShiftEnable;
