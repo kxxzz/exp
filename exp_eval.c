@@ -269,10 +269,9 @@ static void EXP_evalEnterBlockWithCB
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalNode* nodeEval = ctx->nodeTable.data + curCall->srcNode.id;
-    assert(EXP_EvalNodeType_Block == nodeEval->type);
-    assert(ctx->varStack.length >= nodeEval->varsCount);
-    vec_resize(&ctx->varStack, ctx->varStack.length - nodeEval->varsCount);
+    EXP_EvalNode* enode = ctx->nodeTable.data + curCall->srcNode.id;
+    assert(ctx->varStack.length >= enode->varsCount);
+    vec_resize(&ctx->varStack, ctx->varStack.length - enode->varsCount);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -749,7 +748,7 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
     { "uint", EXP_evalUintFromSym },
     { "int", EXP_evalIntFromSym },
     { "float", EXP_evalFloatFromSym },
-    { "str", NULL },
+    { "string", NULL },
 };
 
 

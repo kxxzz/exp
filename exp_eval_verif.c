@@ -138,7 +138,14 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->nativeFunTable = nativeFunTable;
     ctx->nodeTable = nodeTable;
     ctx->srcInfo = srcInfo;
-    vec_resize(&ctx->blockTable, EXP_spaceNodesTotal(space));
+
+    u32 n = EXP_spaceNodesTotal(space);
+    u32 nodeTableLen0 = nodeTable->length;
+    vec_resize(nodeTable, n);
+    memset(nodeTable->data + nodeTableLen0, 0, sizeof(EXP_EvalNode)*n);
+
+    // todo
+    vec_resize(&ctx->blockTable, n);
     memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
     return *ctx;
 }
@@ -613,6 +620,7 @@ static bool EXP_evalVerifNode
             {
             case EXP_EvalPrimFun_VarDefBegin:
             {
+                enode->type = EXP_EvalNodeType_VarDefBegin;
                 if (curCall->cb.type != EXP_EvalVerifBlockCallbackType_NONE)
                 {
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
@@ -627,6 +635,7 @@ static bool EXP_evalVerifNode
                         return false;
                     }
                     node = *(curCall->p++);
+                    enode = nodeTable->data + node.id;
                     const char* skey = EXP_tokCstr(space, node);
                     if (!EXP_isTok(space, node))
                     {
@@ -638,6 +647,7 @@ static bool EXP_evalVerifNode
                     {
                         if (EXP_EvalPrimFun_VarDefEnd == nativeFun)
                         {
+                            enode->type = EXP_EvalNodeType_VarDefEnd;
                             if (n > dataStack->length)
                             {
                                 for (u32 i = 0; i < n - dataStack->length; ++i)
@@ -685,6 +695,7 @@ static bool EXP_evalVerifNode
             }
             case EXP_EvalPrimFun_Drop:
             {
+                enode->type = EXP_EvalNodeType_Drop;
                 if (!dataStack->length)
                 {
                     u32 a[] = { EXP_EvalValueType_Any };
@@ -709,6 +720,8 @@ static bool EXP_evalVerifNode
             default:
                 break;
             }
+            enode->type = EXP_EvalNodeType_NativeFun;
+            enode->nativeFun = nativeFun;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
             if (!nativeFunInfo->call)
             {
@@ -733,11 +746,15 @@ static bool EXP_evalVerifNode
         {
             if (def.isVal)
             {
+                enode->type = EXP_EvalNodeType_Var;
+                // todo
                 vec_push(dataStack, def.valType);
                 return true;
             }
             else
             {
+                enode->type = EXP_EvalNodeType_Fun;
+                enode->funDef = def.fun;
                 EXP_Node fun = def.fun;
                 EXP_EvalVerifBlock* funInfo = blockTable->data + fun.id;
                 if (EXP_EvalVerifBlockTypeInferState_Done == funInfo->typeInferState)
@@ -793,6 +810,8 @@ static bool EXP_evalVerifNode
                         EXP_EvalValue v = { 0 };
                         if (ctx->valueTypeTable->data[j].ctorBySym(l, s, &v))
                         {
+                            enode->type = EXP_EvalNodeType_Value;
+                            enode->val = v;
                             vec_push(dataStack, j);
                             return true;
                         }
@@ -801,6 +820,7 @@ static bool EXP_evalVerifNode
                 EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
                 return false;
             }
+            enode->type = EXP_EvalNodeType_String;
             vec_push(dataStack, EXP_EvalPrimValueType_STRING);
             return true;
         }
@@ -818,11 +838,17 @@ static bool EXP_evalVerifNode
     {
         if (def.isVal)
         {
+            enode->type = EXP_EvalNodeType_CallVar;
+            // todo
+            assert(false);
             vec_push(dataStack, def.valType);
             return true;
         }
         else
         {
+            enode->type = EXP_EvalNodeType_CallFun;
+            enode->funDef = def.fun;
+
             EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call, .fun = def.fun };
             EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             return true;
@@ -855,6 +881,9 @@ static bool EXP_evalVerifNode
     {
         if (nativeFun != -1)
         {
+            enode->type = EXP_EvalNodeType_CallNativeFun;
+            enode->nativeFun = nativeFun;
+
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
             assert(nativeFunInfo->call);
             EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_NativeCall, .nativeFun = nativeFun };
@@ -1151,6 +1180,22 @@ EXP_EvalError EXP_evalVerif
     if (!ctx->error.code)
     {
         EXP_evalVerifRecheck(ctx);
+    }
+    if (!ctx->error.code)
+    {
+        for (u32 i = 0; i < ctx->blockTable.length; ++i)
+        {
+            EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
+            EXP_EvalNode* enode = nodeTable->data + i;
+            for (u32 i = 0; i < vb->defs.length; ++i)
+            {
+                EXP_EvalVerifDef* vdef = vb->defs.data + i;
+                if (vdef->isVal)
+                {
+                    ++enode->varsCount;
+                }
+            }
+        }
     }
     error = ctx->error;
     EXP_evalVerifContextFree(ctx);
