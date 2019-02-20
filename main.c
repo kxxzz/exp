@@ -63,26 +63,36 @@ void testEval(void)
         u32 vt = typeStack->data[i];
         switch (vt)
         {
-        case EXP_EvalPrimValueType_Bool:
+        case EXP_EvalPrimValueType_BOOL:
         {
-            printf("%s\n", v.truth ? "true" : "false");
+            printf("%s\n", v.b ? "true" : "false");
             break;
         }
-        case EXP_EvalPrimValueType_Num:
+        case EXP_EvalPrimValueType_UINT:
         {
-            printf("%f\n", v.num);
+            printf("%llu\n", v.u);
             break;
         }
-        case EXP_EvalPrimValueType_Str:
+        case EXP_EvalPrimValueType_INT:
         {
-            const char* s = v.str->data;
+            printf("%lld\n", v.i);
+            break;
+        }
+        case EXP_EvalPrimValueType_FLOAT:
+        {
+            printf("%f\n", v.f);
+            break;
+        }
+        case EXP_EvalPrimValueType_STRING:
+        {
+            const char* s = v.s->data;
             printf("%s\n", s);
             break;
         }
         default:
         {
             const char* s = EXP_EvalPrimValueTypeInfoTable[vt].name;
-            printf("%s\n", s);
+            printf("TYPE: %s\n", s);
             break;
         }
         }

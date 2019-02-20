@@ -9,11 +9,13 @@ typedef vec_t(union EXP_EvalValue) EXP_EvalValueVec;
 
 typedef union EXP_EvalValue
 {
-    bool truth;
-    double num;
-    vec_char* str;
-    EXP_EvalValueVec* vec;
-    void* ptr;
+    bool b;
+    u64 u;
+    s64 i;
+    f64 f;
+    vec_char* s;
+    EXP_EvalValueVec* v;
+    void* p;
 } EXP_EvalValue;
 
 
@@ -61,9 +63,11 @@ bool EXP_evalTypeUnify(u32 a, u32 b, u32* out);
 
 typedef enum EXP_EvalPrimValueType
 {
-    EXP_EvalPrimValueType_Bool,
-    EXP_EvalPrimValueType_Num,
-    EXP_EvalPrimValueType_Str,
+    EXP_EvalPrimValueType_BOOL,
+    EXP_EvalPrimValueType_UINT,
+    EXP_EvalPrimValueType_INT,
+    EXP_EvalPrimValueType_FLOAT,
+    EXP_EvalPrimValueType_STRING,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;

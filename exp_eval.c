@@ -325,6 +325,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalCall* curCall;
+    EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
 next:
     if (ctx->error.code)
@@ -378,7 +379,7 @@ next:
                 return;
             }
             EXP_Node srcNode = curCall->srcNode;
-            if (v.truth)
+            if (v.b)
             {
                 EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode);
                 goto next;
@@ -400,7 +401,7 @@ next:
         return;
     }
     EXP_Node node = *(curCall->p++);
-    EXP_EvalNode* enode = ctx->nodeTable.data + node.id;
+    EXP_EvalNode* enode = nodeTable->data + node.id;
     if (EXP_isTok(space, node))
     {
         const char* name = EXP_tokCstr(space, node);
@@ -495,9 +496,9 @@ next:
             EXP_EvalValue v = { 0 };
             u32 l = EXP_tokSize(space, node);
             const char* s = EXP_tokCstr(space, node);
-            v.str = (vec_char*)zalloc(sizeof(vec_char));
-            vec_pusharr(v.str, s, l);
-            vec_push(v.str, 0);
+            v.s = (vec_char*)zalloc(sizeof(vec_char));
+            vec_pusharr(v.s, s, l);
+            vec_push(v.s, 0);
             vec_push(dataStack, v);
             goto next;
         }
@@ -696,24 +697,46 @@ static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (0 == strncmp(str, "true", len))
     {
-        pVal->truth = true;
+        pVal->b = true;
         return true;
     }
     if (0 == strncmp(str, "false", len))
     {
-        pVal->truth = true;
+        pVal->b = true;
         return true;
     }
     return false;
 }
 
-static bool EXP_evalNumFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalUintFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
-    double num;
-    u32 r = NSTR_str2num(&num, str, len, NULL);
+    f64 f;
+    u32 r = NSTR_str2num(&f, str, len, NULL);
     if (len == r)
     {
-        pVal->num = num;
+        pVal->u = (u64)f;
+    }
+    return len == r;
+}
+
+static bool EXP_evalIntFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+{
+    f64 f;
+    u32 r = NSTR_str2num(&f, str, len, NULL);
+    if (len == r)
+    {
+        pVal->i = (s64)f;
+    }
+    return len == r;
+}
+
+static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+{
+    f64 f;
+    u32 r = NSTR_str2num(&f, str, len, NULL);
+    if (len == r)
+    {
+        pVal->f = f;
     }
     return len == r;
 }
@@ -723,7 +746,9 @@ static bool EXP_evalNumFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes] =
 {
     { "bool", EXP_evalBoolFromSym },
-    { "num", EXP_evalNumFromSym },
+    { "uint", EXP_evalUintFromSym },
+    { "int", EXP_evalIntFromSym },
+    { "float", EXP_evalFloatFromSym },
     { "str", NULL },
 };
 
@@ -741,46 +766,46 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 static void EXP_evalNativeFunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    bool a = ins[0].truth;
-    outs[0].truth = !a;
+    bool a = ins[0].b;
+    outs[0].b = !a;
 }
 
 
 
 static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].num = a + b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].f = a + b;
 }
 
 static void EXP_evalNativeFunCall_Sub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].num = a - b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].f = a - b;
 }
 
 static void EXP_evalNativeFunCall_Mul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].num = a * b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].f = a * b;
 }
 
 static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].num = a / b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].f = a / b;
 }
 
 
 
 static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    outs[0].num = -a;
+    f64 a = ins[0].f;
+    outs[0].f = -a;
 }
 
 
@@ -788,44 +813,44 @@ static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a == b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a == b;
 }
 
 static void EXP_evalNativeFunCall_INEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a != b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a != b;
 }
 
 static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a > b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a > b;
 }
 
 static void EXP_evalNativeFunCall_LT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a < b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a < b;
 }
 
 static void EXP_evalNativeFunCall_GE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a >= b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a >= b;
 }
 
 static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    double a = ins[0].num;
-    double b = ins[1].num;
-    outs[0].truth = a <= b;
+    f64 a = ins[0].f;
+    f64 b = ins[1].f;
+    outs[0].b = a <= b;
 }
 
 
@@ -843,78 +868,78 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
     {
         "!",
         EXP_evalNativeFunCall_Not,
-        1, { EXP_EvalPrimValueType_Bool },
-        1, { EXP_EvalPrimValueType_Bool },
+        1, { EXP_EvalPrimValueType_BOOL },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
 
     {
         "+",
         EXP_evalNativeFunCall_Add,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "-",
         EXP_evalNativeFunCall_Sub,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "*",
         EXP_evalNativeFunCall_Mul,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "/",
         EXP_evalNativeFunCall_Div,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Num },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
 
     {
         "neg",
         EXP_evalNativeFunCall_Neg,
-        1, { EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Num },
+        1, { EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
 
     {
         "=",
         EXP_evalNativeFunCall_EQ,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "!=",
         EXP_evalNativeFunCall_INEQ,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
 
     {
         ">",
         EXP_evalNativeFunCall_GT,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "<",
         EXP_evalNativeFunCall_LT,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         ">=",
         EXP_evalNativeFunCall_GE,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "<=",
         EXP_evalNativeFunCall_LE,
-        2, { EXP_EvalPrimValueType_Num, EXP_EvalPrimValueType_Num },
-        1, { EXP_EvalPrimValueType_Bool },
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_BOOL },
     },
 };
 
