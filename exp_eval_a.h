@@ -50,7 +50,7 @@ typedef struct EXP_EvalNode
     {
         u32 nativeFun;
         EXP_Node funDef;
-        EXP_EvalValue val;
+        EXP_EvalValue value;
         EXP_EvalNodeVar var;
     };
     u32 varsCount;

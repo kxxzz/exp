@@ -165,28 +165,6 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
 
 
 
-
-static u32 EXP_evalGetNativeFun(EXP_EvalContext* ctx, const char* funName)
-{
-    EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < ctx->nativeFunTable.length; ++i)
-    {
-        u32 idx = ctx->nativeFunTable.length - 1 - i;
-        const char* name = ctx->nativeFunTable.data[idx].name;
-        if (0 == strcmp(funName, name))
-        {
-            return idx;
-        }
-    }
-    return -1;
-}
-
-
-
-
-
-
-
 static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
@@ -396,48 +374,43 @@ next:
     EXP_EvalNode* enode = nodeTable->data + node.id;
     if (EXP_isTok(space, node))
     {
-        const char* name = EXP_tokCstr(space, node);
-        u32 nativeFun = EXP_evalGetNativeFun(ctx, name);
-        if (nativeFun != -1)
+        if (EXP_EvalNodeType_VarDefBegin == enode->type)
         {
-            switch (nativeFun)
+            assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
+            for (u32 n = 0;;)
             {
-            case EXP_EvalPrimFun_VarDefBegin:
-            {
-                assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
-                for (u32 n = 0;;)
+                assert(curCall->p < curCall->end);
+                node = *(curCall->p++);
+                assert(EXP_isTok(space, node));
+                enode = nodeTable->data + node.id;
+                if (EXP_EvalNodeType_VarDefEnd == enode->type)
                 {
-                    assert(curCall->p < curCall->end);
-                    EXP_Node key = *(curCall->p++);
-                    const char* skey = EXP_tokCstr(space, key);
-                    assert(EXP_isTok(space, key));
-                    u32 nativeFun = EXP_evalGetNativeFun(ctx, EXP_tokCstr(space, key));
-                    if (nativeFun != -1)
+                    assert(n <= dataStack->length);
+                    u32 off = dataStack->length - n;
+                    for (u32 i = 0; i < n; ++i)
                     {
-                        assert(EXP_EvalPrimFun_VarDefEnd == nativeFun);
-                        assert(n <= dataStack->length);
-                        u32 off = dataStack->length - n;
-                        for (u32 i = 0; i < n; ++i)
-                        {
-                            EXP_EvalValue val = dataStack->data[off + i];
-                            vec_push(&ctx->varStack, val);
-                        }
-                        vec_resize(dataStack, off);
-                        goto next;
+                        EXP_EvalValue val = dataStack->data[off + i];
+                        vec_push(&ctx->varStack, val);
                     }
-                    ++n;
+                    vec_resize(dataStack, off);
+                    goto next;
                 }
+                else
+                {
+                    assert(EXP_EvalNodeType_None == enode->type);
+                }
+                ++n;
             }
-            case EXP_EvalPrimFun_Drop:
-            {
-                assert(dataStack->length > 0);
-                vec_pop(dataStack);
-                goto next;
-            }
-            default:
-                break;
-            }
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
+        }
+        if (EXP_EvalNodeType_Drop == enode->type)
+        {
+            assert(dataStack->length > 0);
+            vec_pop(dataStack);
+            goto next;
+        }
+        if (EXP_EvalNodeType_NativeFun == enode->type)
+        {
+            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + enode->nativeFun;
             assert(nativeFunInfo->call);
             assert(dataStack->length >= nativeFunInfo->numIns);
             EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
@@ -458,29 +431,14 @@ next:
             EXP_evalEnterBlock(ctx, bodyLen, body, funDef);
             goto next;
         }
-        else
+        if (EXP_EvalNodeType_Value == enode->type)
         {
-            bool isQuoted = EXP_tokQuoted(space, node);
-            if (!isQuoted)
-            {
-                for (u32 i = 0; i < ctx->valueTypeTable.length; ++i)
-                {
-                    u32 j = ctx->valueTypeTable.length - 1 - i;
-                    if (ctx->valueTypeTable.data[j].ctorBySym)
-                    {
-                        u32 l = EXP_tokSize(space, node);
-                        const char* s = EXP_tokCstr(space, node);
-                        EXP_EvalValue v = { 0 };
-                        if (ctx->valueTypeTable.data[j].ctorBySym(l, s, &v))
-                        {
-                            vec_push(dataStack, v);
-                            goto next;
-                        }
-                    }
-                }
-                assert(false);
-                return;
-            }
+            EXP_EvalValue v = enode->value;
+            vec_push(dataStack, v);
+            goto next;
+        }
+        if (EXP_EvalNodeType_String == enode->type)
+        {
             EXP_EvalValue v = { 0 };
             u32 l = EXP_tokSize(space, node);
             const char* s = EXP_tokCstr(space, node);
@@ -490,14 +448,11 @@ next:
             vec_push(dataStack, v);
             goto next;
         }
+        assert(false);
     }
-    else
-    {
-        assert(EXP_evalCheckCall(space, node));
-    }
+    assert(EXP_evalCheckCall(space, node));
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
-    const char* name = EXP_tokCstr(space, elms[0]);
     if (EXP_EvalNodeType_CallVar == enode->type)
     {
         // todo
@@ -510,7 +465,8 @@ next:
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
-    u32 nativeFun = EXP_evalGetNativeFun(ctx, name);
+    assert(EXP_EvalNodeType_CallNativeFun == enode->type);
+    u32 nativeFun = enode->nativeFun;
     switch (nativeFun)
     {
     case EXP_EvalPrimFun_Def:
@@ -541,7 +497,7 @@ next:
         assert(nativeFun != -1);
         EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
         assert(nativeFunInfo->call);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
