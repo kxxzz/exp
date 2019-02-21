@@ -471,6 +471,19 @@ next:
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
+    case EXP_EvalNodeType_CallNativeFun:
+    {
+        assert(EXP_evalCheckCall(space, node));
+        EXP_Node* elms = EXP_seqElm(space, node);
+        u32 len = EXP_seqLen(space, node);
+        u32 nativeFun = enode->nativeFun;
+        assert(nativeFun != -1);
+        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
+        assert(nativeFunInfo->call);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+        goto next;
+    }
     case EXP_EvalNodeType_Def:
     {
         assert(EXP_evalCheckCall(space, node));
@@ -491,19 +504,6 @@ next:
     {
         assert(EXP_evalCheckCall(space, node));
         // todo
-        goto next;
-    }
-    case EXP_EvalNodeType_CallNativeFun:
-    {
-        assert(EXP_evalCheckCall(space, node));
-        EXP_Node* elms = EXP_seqElm(space, node);
-        u32 len = EXP_seqLen(space, node);
-        u32 nativeFun = enode->nativeFun;
-        assert(nativeFun != -1);
-        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
-        assert(nativeFunInfo->call);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
-        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
     default:
