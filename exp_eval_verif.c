@@ -842,7 +842,7 @@ static bool EXP_evalVerifNode
             return true;
         }
     }
-    else if (!EXP_evalCheckCall(space, node))
+    if (!EXP_evalCheckCall(space, node))
     {
         EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
