@@ -79,7 +79,7 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_VarDefEnd,
     EXP_EvalPrimFun_If,
     EXP_EvalPrimFun_Drop,
-    EXP_EvalPrimFun_Blk,
+    EXP_EvalPrimFun_Block,
 
     EXP_EvalPrimFun_Not,
 

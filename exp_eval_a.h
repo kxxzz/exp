@@ -35,6 +35,10 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallFun,
     EXP_EvalNodeType_CallNativeFun,
+
+    EXP_EvalNodeType_Def,
+    EXP_EvalNodeType_If,
+    EXP_EvalNodeType_Block,
 } EXP_EvalNodeType;
 
 typedef struct EXP_EvalNodeVar

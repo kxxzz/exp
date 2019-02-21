@@ -871,16 +871,16 @@ static bool EXP_evalVerifNode
         EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
-    enode->type = EXP_EvalNodeType_CallNativeFun;
-    enode->nativeFun = nativeFun;
     switch (nativeFun)
     {
     case EXP_EvalPrimFun_Def:
     {
+        enode->type = EXP_EvalNodeType_Def;
         return true;
     }
     case EXP_EvalPrimFun_If:
     {
+        enode->type = EXP_EvalNodeType_If;
         if ((len != 3) && (len != 4))
         {
             EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
@@ -890,14 +890,16 @@ static bool EXP_evalVerifNode
         EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
         return true;
     }
-    case EXP_EvalPrimFun_Blk:
+    case EXP_EvalPrimFun_Block:
     {
+        enode->type = EXP_EvalNodeType_Block;
         // todo
         return true;
     }
     default:
     {
-        assert(nativeFun != -1);
+        enode->type = EXP_EvalNodeType_CallNativeFun;
+        enode->nativeFun = nativeFun;
         EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
         assert(nativeFunInfo->call);
         EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_NativeCall,.nativeFun = nativeFun };
