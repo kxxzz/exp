@@ -908,7 +908,7 @@ static bool EXP_evalVerifNode
         enode->nativeFun = nativeFun;
         EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
         assert(nativeFunInfo->call);
-        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_NativeCall, .nativeFun = nativeFun };
         EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         return true;
 
