@@ -710,7 +710,16 @@ static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 static bool EXP_evalUintFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     f64 f;
-    u32 r = NSTR_str2num(&f, str, len, NULL);
+    NSTR_StrType strType;
+    u32 r = NSTR_str2num(&f, str, len, &strType);
+    if (NSTR_StrType_FLT == strType)
+    {
+        return false;
+    }
+    if (f < 0)
+    {
+        return false;
+    }
     if (len == r)
     {
         pVal->u = (u64)f;
@@ -721,7 +730,12 @@ static bool EXP_evalUintFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 static bool EXP_evalIntFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     f64 f;
-    u32 r = NSTR_str2num(&f, str, len, NULL);
+    NSTR_StrType strType;
+    u32 r = NSTR_str2num(&f, str, len, &strType);
+    if (NSTR_StrType_FLT == strType)
+    {
+        return false;
+    }
     if (len == r)
     {
         pVal->i = (s64)f;
@@ -732,7 +746,12 @@ static bool EXP_evalIntFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     f64 f;
-    u32 r = NSTR_str2num(&f, str, len, NULL);
+    NSTR_StrType strType;
+    u32 r = NSTR_str2num(&f, str, len, &strType);
+    if (strType != NSTR_StrType_FLT)
+    {
+        return false;
+    }
     if (len == r)
     {
         pVal->f = f;
