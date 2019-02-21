@@ -236,14 +236,14 @@ static bool EXP_evalVerifGetMatched
 
 
 
-static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funName)
+static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* name)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->nativeFunTable->length; ++i)
     {
         u32 idx = ctx->nativeFunTable->length - 1 - i;
-        const char* name = ctx->nativeFunTable->data[idx].name;
-        if (0 == strcmp(funName, name))
+        const char* s = ctx->nativeFunTable->data[idx].name;
+        if (0 == strcmp(s, name))
         {
             return idx;
         }
@@ -254,15 +254,15 @@ static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* funN
 
 
 
-static EXP_EvalPrim EXP_evalVerifGetPrim(EXP_EvalVerifContext* ctx, const char* name)
+static EXP_EvalKey EXP_evalVerifGetKey(EXP_EvalVerifContext* ctx, const char* name)
 {
-    for (EXP_EvalPrim i = 0; i < EXP_NumEvalPrims; ++i)
+    for (EXP_EvalKey i = 0; i < EXP_NumEvalKeys; ++i)
     {
-        EXP_EvalPrim p = EXP_NumEvalPrims - 1 - i;
-        const char* name0 = EXP_EvalPrimNameTable[p];
-        if (0 == strcmp(name0, name))
+        EXP_EvalKey k = EXP_NumEvalKeys - 1 - i;
+        const char* s = EXP_EvalKeyNameTable[k];
+        if (0 == strcmp(s, name))
         {
-            return p;
+            return k;
         }
     }
     return -1;
@@ -292,8 +292,8 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
     }
     EXP_Node* defCall = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, defCall[0]);
-    u32 prim = EXP_evalVerifGetPrim(ctx, kDef);
-    if (prim != EXP_EvalPrim_Def)
+    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, kDef);
+    if (k != EXP_EvalKey_Def)
     {
         return;
     }
@@ -643,10 +643,10 @@ static bool EXP_evalVerifNode
     {
         const char* name = EXP_tokCstr(space, node);
 
-        EXP_EvalPrim prim = EXP_evalVerifGetPrim(ctx, name);
-        switch (prim)
+        EXP_EvalKey k = EXP_evalVerifGetKey(ctx, name);
+        switch (k)
         {
-        case EXP_EvalPrim_VarDefBegin:
+        case EXP_EvalKey_VarDefBegin:
         {
             enode->type = EXP_EvalNodeType_VarDefBegin;
             if (curCall->cb.type != EXP_EvalVerifBlockCallbackType_NONE)
@@ -670,10 +670,10 @@ static bool EXP_evalVerifNode
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return false;
                 }
-                EXP_EvalPrim prim = EXP_evalVerifGetPrim(ctx, EXP_tokCstr(space, node));
-                if (prim != -1)
+                EXP_EvalKey k = EXP_evalVerifGetKey(ctx, EXP_tokCstr(space, node));
+                if (k != -1)
                 {
-                    if (EXP_EvalPrim_VarDefEnd == prim)
+                    if (EXP_EvalKey_VarDefEnd == k)
                     {
                         enode->type = EXP_EvalNodeType_VarDefEnd;
                         if (n > dataStack->length)
@@ -723,7 +723,7 @@ static bool EXP_evalVerifNode
                 ++n;
             }
         }
-        case EXP_EvalPrim_Drop:
+        case EXP_EvalKey_Drop:
         {
             enode->type = EXP_EvalNodeType_Drop;
             if (!dataStack->length)
@@ -906,15 +906,15 @@ static bool EXP_evalVerifNode
         return true;
     }
 
-    EXP_EvalPrim prim = EXP_evalVerifGetPrim(ctx, name);
-    switch (prim)
+    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, name);
+    switch (k)
     {
-    case EXP_EvalPrim_Def:
+    case EXP_EvalKey_Def:
     {
         enode->type = EXP_EvalNodeType_Def;
         return true;
     }
-    case EXP_EvalPrim_If:
+    case EXP_EvalKey_If:
     {
         enode->type = EXP_EvalNodeType_If;
         if ((len != 3) && (len != 4))

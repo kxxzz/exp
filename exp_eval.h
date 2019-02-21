@@ -4,18 +4,18 @@
 #include "exp.h"
 
 
-typedef enum EXP_EvalPrim
+typedef enum EXP_EvalKey
 {
-    EXP_EvalPrim_Def,
-    EXP_EvalPrim_VarDefBegin,
-    EXP_EvalPrim_VarDefEnd,
-    EXP_EvalPrim_If,
-    EXP_EvalPrim_Drop,
+    EXP_EvalKey_Def,
+    EXP_EvalKey_VarDefBegin,
+    EXP_EvalKey_VarDefEnd,
+    EXP_EvalKey_If,
+    EXP_EvalKey_Drop,
 
-    EXP_NumEvalPrims
-} EXP_EvalPrim;
+    EXP_NumEvalKeys
+} EXP_EvalKey;
 
-const char* EXP_EvalPrimNameTable[EXP_NumEvalPrims];
+const char* EXP_EvalKeyNameTable[EXP_NumEvalKeys];
 
 
 

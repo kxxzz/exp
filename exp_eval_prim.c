@@ -4,7 +4,7 @@
 
 
 
-const char* EXP_EvalPrimNameTable[EXP_NumEvalPrims] =
+const char* EXP_EvalKeyNameTable[EXP_NumEvalKeys] =
 {
     "def",
     "->",
