@@ -13,8 +13,6 @@ a b +
 20 fib
 
 
-
-
 (def facttail -> n res :
     (if (< n 0)
         0
@@ -28,6 +26,10 @@ a b +
 (facttail 50000 2)
 
 50000 2 facttail
+
+
+//(def ere (ere))
+//(ere)
 
 
 //[1 2 3 4 5]

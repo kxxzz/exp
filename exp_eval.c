@@ -4,18 +4,6 @@
 
 
 
-typedef struct EXP_EvalVar
-{
-    EXP_Node key;
-    EXP_EvalValue val;
-} EXP_EvalVar;
-
-typedef vec_t(EXP_EvalVar) EXP_EvalVarStack;
-
-
-
-
-
 typedef enum EXP_EvalBlockCallbackType
 {
     EXP_EvalBlockCallbackType_NONE,
@@ -61,11 +49,10 @@ typedef struct EXP_EvalContext
     EXP_EvalValueTypeInfoTable valueTypeTable;
     EXP_EvalNativeFunInfoTable nativeFunTable;
     EXP_EvalNodeTable nodeTable;
-    EXP_EvalVarStack varStack;
     EXP_EvalCallStack callStack;
+    EXP_EvalValueVec varStack;
     vec_u32 typeStack;
     EXP_EvalValueVec dataStack;
-    EXP_NodeVec varKeyBuf;
     EXP_EvalError error;
     EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
 } EXP_EvalContext;
@@ -104,11 +91,10 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv)
 
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
-    vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->dataStack);
     vec_free(&ctx->typeStack);
-    vec_free(&ctx->callStack);
     vec_free(&ctx->varStack);
+    vec_free(&ctx->callStack);
     vec_free(&ctx->nodeTable);
     vec_free(&ctx->nativeFunTable);
     vec_free(&ctx->valueTypeTable);
@@ -222,16 +208,23 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_EvalVar* EXP_evalGetMatchedVar(EXP_EvalContext* ctx, const char* name)
+static EXP_EvalValue* EXP_evalGetVarValue(EXP_EvalContext* ctx, const EXP_EvalNodeVar* evar)
 {
     EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < ctx->varStack.length; ++i)
+    EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
+    EXP_EvalCallStack* callStack = &ctx->callStack;
+    EXP_EvalValueVec* varStack = &ctx->varStack;
+    u32 offset = varStack->length;
+    for (u32 i = 0; i < callStack->length; ++i)
     {
-        EXP_EvalVar* def = ctx->varStack.data + ctx->varStack.length - 1 - i;
-        const char* str = EXP_tokCstr(space, def->key);
-        if (0 == strcmp(str, name))
+        EXP_EvalCall* call = callStack->data + callStack->length - 1 - i;
+        EXP_EvalNode* blkEnode = nodeTable->data + call->srcNode.id;
+        assert(offset >= blkEnode->varsCount);
+        offset -= blkEnode->varsCount;
+        if (evar->block.id == call->srcNode.id)
         {
-            return def;
+            offset += evar->id;
+            return varStack->data + offset;
         }
     }
     return NULL;
@@ -412,7 +405,6 @@ next:
             case EXP_EvalPrimFun_VarDefBegin:
             {
                 assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
-                ctx->varKeyBuf.length = 0;
                 for (u32 n = 0;;)
                 {
                     assert(curCall->p < curCall->end);
@@ -428,14 +420,11 @@ next:
                         for (u32 i = 0; i < n; ++i)
                         {
                             EXP_EvalValue val = dataStack->data[off + i];
-                            EXP_EvalVar def = { ctx->varKeyBuf.data[i], val };
-                            vec_push(&ctx->varStack, def);
+                            vec_push(&ctx->varStack, val);
                         }
                         vec_resize(dataStack, off);
-                        ctx->varKeyBuf.length = 0;
                         goto next;
                     }
-                    vec_push(&ctx->varKeyBuf, key);
                     ++n;
                 }
             }
@@ -454,10 +443,10 @@ next:
             EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
             goto next;
         }
-        EXP_EvalVar* var = EXP_evalGetMatchedVar(ctx, name);
-        if (var)
+        if (EXP_EvalNodeType_Var == enode->type)
         {
-            vec_push(dataStack, var->val);
+            EXP_EvalValue* v = EXP_evalGetVarValue(ctx, &enode->var);
+            vec_push(dataStack, *v);
             goto next;
         }
         if (EXP_EvalNodeType_Fun == enode->type)
@@ -509,8 +498,7 @@ next:
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
     const char* name = EXP_tokCstr(space, elms[0]);
-    EXP_EvalVar* var = EXP_evalGetMatchedVar(ctx, name);
-    if (var)
+    if (EXP_EvalNodeType_CallVar == enode->type)
     {
         // todo
         assert(false);

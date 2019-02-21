@@ -327,20 +327,20 @@ static bool EXP_evalVerifEnterBlock
     EXP_EvalVerifCall call = { srcNode, dataStackP, seq, seq + len, cb };
     vec_push(&ctx->callStack, call);
 
-    EXP_EvalVerifBlock* blkInfo = ctx->blockTable.data + srcNode.id;
-    if (ctx->recheckFlag && (blkInfo->typeInferState != EXP_EvalVerifBlockTypeInferState_None))
+    EXP_EvalVerifBlock* blk = ctx->blockTable.data + srcNode.id;
+    if (ctx->recheckFlag && (blk->typeInferState != EXP_EvalVerifBlockTypeInferState_None))
     {
-        assert(blkInfo->parent.id == parent.id);
-        EXP_evalVerifBlockReset(blkInfo);
+        assert(blk->parent.id == parent.id);
+        EXP_evalVerifBlockReset(blk);
     }
-    assert(EXP_EvalVerifBlockTypeInferState_None == blkInfo->typeInferState);
-    blkInfo->typeInferState = EXP_EvalVerifBlockTypeInferState_Entered;
-    blkInfo->parent = parent;
+    assert(EXP_EvalVerifBlockTypeInferState_None == blk->typeInferState);
+    blk->typeInferState = EXP_EvalVerifBlockTypeInferState_Entered;
+    blk->parent = parent;
     if (isDefScope)
     {
         for (u32 i = 0; i < len; ++i)
         {
-            EXP_evalVerifLoadDef(ctx, seq[i], blkInfo);
+            EXP_evalVerifLoadDef(ctx, seq[i], blk);
             if (ctx->error.code)
             {
                 return false;
