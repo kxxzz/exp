@@ -4,6 +4,20 @@
 #include "exp.h"
 
 
+typedef enum EXP_EvalPrim
+{
+    EXP_EvalPrim_Def,
+    EXP_EvalPrim_VarDefBegin,
+    EXP_EvalPrim_VarDefEnd,
+    EXP_EvalPrim_If,
+    EXP_EvalPrim_Drop,
+
+    EXP_NumEvalPrims
+} EXP_EvalPrim;
+
+const char* EXP_EvalPrimNameTable[EXP_NumEvalPrims];
+
+
 
 typedef vec_t(union EXP_EvalValue) EXP_EvalValueVec;
 
@@ -74,13 +88,6 @@ const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueT
 
 typedef enum EXP_EvalPrimFun
 {
-    EXP_EvalPrimFun_Def,
-    EXP_EvalPrimFun_VarDefBegin,
-    EXP_EvalPrimFun_VarDefEnd,
-    EXP_EvalPrimFun_If,
-    EXP_EvalPrimFun_Drop,
-    EXP_EvalPrimFun_Block,
-
     EXP_EvalPrimFun_Not,
 
     EXP_EvalPrimFun_Add,

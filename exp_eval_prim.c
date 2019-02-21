@@ -4,6 +4,19 @@
 
 
 
+const char* EXP_EvalPrimNameTable[EXP_NumEvalPrims] =
+{
+    "def",
+    "->",
+    ":",
+    "if",
+    "drop",
+};
+
+
+
+
+
 
 static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
@@ -150,13 +163,6 @@ static void EXP_evalNativeFunCall_FloatLE(EXP_Space* space, EXP_EvalValue* ins, 
 
 const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
-    { "def" },
-    { "->" },
-    { ":" },
-    { "if" },
-    { "drop" },
-    { "blk" },
-
     {
         "!",
         EXP_evalNativeFunCall_Not,
