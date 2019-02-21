@@ -37,6 +37,12 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_CallNativeFun,
 } EXP_EvalNodeType;
 
+typedef struct EXP_EvalNodeVar
+{
+    EXP_Node block;
+    u32 id;
+} EXP_EvalNodeVar;
+
 typedef struct EXP_EvalNode
 {
     EXP_EvalNodeType type;
@@ -45,6 +51,7 @@ typedef struct EXP_EvalNode
         u32 nativeFun;
         EXP_Node funDef;
         EXP_EvalValue val;
+        EXP_EvalNodeVar var;
     };
     u32 varsCount;
 } EXP_EvalNode;

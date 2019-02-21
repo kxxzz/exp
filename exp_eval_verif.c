@@ -2,14 +2,21 @@
 
 
 
+typedef struct EXP_EvalVerifVar
+{
+    u32 valType;
+    EXP_Node block;
+    u32 id;
+} EXP_EvalVerifVar;
+
 typedef struct EXP_EvalVerifDef
 {
     EXP_Node key;
-    bool isVal;
+    bool isVar;
     union
     {
         EXP_Node fun;
-        u32 valType;
+        EXP_EvalVerifVar var;
     };
 } EXP_EvalVerifDef;
 
@@ -28,6 +35,7 @@ typedef struct EXP_EvalVerifBlock
 {
     EXP_Node parent;
     EXP_EvalVerifDefTable defs;
+    u32 varsCount;
 
     EXP_EvalVerifBlockTypeInferState typeInferState;
     u32 numIns;
@@ -665,8 +673,10 @@ static bool EXP_evalVerifNode
                             for (u32 i = 0; i < n; ++i)
                             {
                                 u32 vt = dataStack->data[off + i];
-                                EXP_EvalVerifDef def = { ctx->varKeyBuf.data[i], true, .valType = vt };
+                                EXP_EvalVerifVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
+                                EXP_EvalVerifDef def = { ctx->varKeyBuf.data[i], true, .var = var };
                                 vec_push(&curBlock->defs, def);
+                                ++curBlock->varsCount;
                             }
                             assert(n <= dataStack->length);
                             vec_resize(dataStack, off);
@@ -680,8 +690,8 @@ static bool EXP_evalVerifNode
                                 for (u32 i = 0; i < added; ++i)
                                 {
                                     EXP_EvalVerifDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
-                                    assert(def->isVal);
-                                    vec_insert(&curBlock->typeInOut, i, def->valType);
+                                    assert(def->isVar);
+                                    vec_insert(&curBlock->typeInOut, i, def->var.valType);
                                 }
                             }
                             return true;
@@ -744,11 +754,12 @@ static bool EXP_evalVerifNode
         EXP_EvalVerifDef def = { 0 };
         if (EXP_evalVerifGetMatched(ctx, funName, curCall->srcNode, &def))
         {
-            if (def.isVal)
+            if (def.isVar)
             {
                 enode->type = EXP_EvalNodeType_Var;
-                // todo
-                vec_push(dataStack, def.valType);
+                enode->var.block = def.var.block;
+                enode->var.id = def.var.id;
+                vec_push(dataStack, def.var.valType);
                 return true;
             }
             else
@@ -836,12 +847,12 @@ static bool EXP_evalVerifNode
     EXP_EvalVerifDef def = { 0 };
     if (EXP_evalVerifGetMatched(ctx, funName, curCall->srcNode, &def))
     {
-        if (def.isVal)
+        if (def.isVar)
         {
             enode->type = EXP_EvalNodeType_CallVar;
-            // todo
-            assert(false);
-            vec_push(dataStack, def.valType);
+            enode->var.block = def.var.block;
+            enode->var.id = def.var.id;
+            vec_push(dataStack, def.var.valType);
             return true;
         }
         else
@@ -1190,11 +1201,12 @@ EXP_EvalError EXP_evalVerif
             for (u32 i = 0; i < vb->defs.length; ++i)
             {
                 EXP_EvalVerifDef* vdef = vb->defs.data + i;
-                if (vdef->isVal)
+                if (vdef->isVar)
                 {
                     ++enode->varsCount;
                 }
             }
+            assert(enode->varsCount == vb->varsCount);
         }
     }
     error = ctx->error;
