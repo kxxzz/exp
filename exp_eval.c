@@ -480,7 +480,7 @@ next:
         assert(nativeFun != -1);
         EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
         assert(nativeFunInfo->call);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
