@@ -832,7 +832,7 @@ static bool EXP_evalVerifNode
                 return false;
             }
             enode->type = EXP_EvalNodeType_String;
-            vec_push(dataStack, EXP_EvalPrimValueType_STR);
+            vec_push(dataStack, EXP_EvalPrimValueType_STRING);
             return true;
         }
     }

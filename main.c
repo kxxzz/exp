@@ -68,12 +68,12 @@ void testEval(void)
             printf("%s\n", v.b ? "true" : "false");
             break;
         }
-        case EXP_EvalPrimValueType_NUM:
+        case EXP_EvalPrimValueType_FLOAT:
         {
             printf("%f\n", v.f);
             break;
         }
-        case EXP_EvalPrimValueType_STR:
+        case EXP_EvalPrimValueType_STRING:
         {
             const char* s = v.s->data;
             printf("%s\n", s);

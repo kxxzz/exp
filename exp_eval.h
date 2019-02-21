@@ -62,8 +62,8 @@ bool EXP_evalTypeUnify(u32 a, u32 b, u32* out);
 typedef enum EXP_EvalPrimValueType
 {
     EXP_EvalPrimValueType_BOOL,
-    EXP_EvalPrimValueType_NUM,
-    EXP_EvalPrimValueType_STR,
+    EXP_EvalPrimValueType_FLOAT,
+    EXP_EvalPrimValueType_STRING,
 
     EXP_NumEvalPrimValueTypes
 } EXP_EvalPrimValueType;

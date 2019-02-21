@@ -707,7 +707,7 @@ static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
     return false;
 }
 
-static bool EXP_evalNumFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     f64 f;
     u32 r = NSTR_str2num(&f, str, len, NULL);
@@ -727,8 +727,8 @@ static bool EXP_evalNumFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 const EXP_EvalValueTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes] =
 {
     { "bool", EXP_evalBoolFromSym },
-    { "num", EXP_evalNumFromSym },
-    { "str", NULL },
+    { "float", EXP_evalFloatFromSym },
+    { "string", NULL },
 };
 
 
@@ -751,28 +751,28 @@ static void EXP_evalNativeFunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
-static void EXP_evalNativeFunCall_Add(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a + b;
 }
 
-static void EXP_evalNativeFunCall_Sub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a - b;
 }
 
-static void EXP_evalNativeFunCall_Mul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a * b;
 }
 
-static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -781,7 +781,7 @@ static void EXP_evalNativeFunCall_Div(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
-static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     outs[0].f = -a;
@@ -790,42 +790,42 @@ static void EXP_evalNativeFunCall_Neg(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
-static void EXP_evalNativeFunCall_EQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a == b;
 }
 
-static void EXP_evalNativeFunCall_INEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a != b;
 }
 
-static void EXP_evalNativeFunCall_GT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a > b;
 }
 
-static void EXP_evalNativeFunCall_LT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a < b;
 }
 
-static void EXP_evalNativeFunCall_GE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a >= b;
 }
 
-static void EXP_evalNativeFunCall_LE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalNativeFunCall_FloatLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -853,71 +853,71 @@ const EXP_EvalNativeFunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 
     {
         "+",
-        EXP_evalNativeFunCall_Add,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
-        1, { EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatAdd,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "-",
-        EXP_evalNativeFunCall_Sub,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
-        1, { EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatSub,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "*",
-        EXP_evalNativeFunCall_Mul,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
-        1, { EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatMul,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
     {
         "/",
-        EXP_evalNativeFunCall_Div,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
-        1, { EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatDiv,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
 
     {
         "neg",
-        EXP_evalNativeFunCall_Neg,
-        1, { EXP_EvalPrimValueType_NUM },
-        1, { EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatNeg,
+        1, { EXP_EvalPrimValueType_FLOAT },
+        1, { EXP_EvalPrimValueType_FLOAT },
     },
 
     {
         "=",
-        EXP_evalNativeFunCall_EQ,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatEQ,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "!=",
-        EXP_evalNativeFunCall_INEQ,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatINEQ,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
 
     {
         ">",
-        EXP_evalNativeFunCall_GT,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatGT,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "<",
-        EXP_evalNativeFunCall_LT,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatLT,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         ">=",
-        EXP_evalNativeFunCall_GE,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatGE,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
     {
         "<=",
-        EXP_evalNativeFunCall_LE,
-        2, { EXP_EvalPrimValueType_NUM, EXP_EvalPrimValueType_NUM },
+        EXP_evalNativeFunCall_FloatLE,
+        2, { EXP_EvalPrimValueType_FLOAT, EXP_EvalPrimValueType_FLOAT },
         1, { EXP_EvalPrimValueType_BOOL },
     },
 };
