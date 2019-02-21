@@ -116,7 +116,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
-    u32 blockTableOffset;
+    u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
     bool dataStackShiftEnable;
@@ -149,11 +149,11 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->srcInfo = srcInfo;
 
     u32 n = EXP_spaceNodesTotal(space);
-    u32 nodeTableLen0 = nodeTable->length;
+    u32 nodeTableLength0 = nodeTable->length;
     vec_resize(nodeTable, n);
-    memset(nodeTable->data + nodeTableLen0, 0, sizeof(EXP_EvalNode)*n);
+    memset(nodeTable->data + nodeTableLength0, 0, sizeof(EXP_EvalNode)*n);
 
-    ctx->blockTableOffset = nodeTableLen0;
+    ctx->blockTableBase = nodeTableLength0;
     vec_resize(&ctx->blockTable, n);
     memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
     return *ctx;
@@ -200,8 +200,8 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 static EXP_EvalVerifBlock* EXP_evalVerifGetBlock(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
-    assert(node.id >= ctx->blockTableOffset);
-    EXP_EvalVerifBlock* b = ctx->blockTable.data + node.id - ctx->blockTableOffset;
+    assert(node.id >= ctx->blockTableBase);
+    EXP_EvalVerifBlock* b = ctx->blockTable.data + node.id - ctx->blockTableBase;
     return b;
 }
 
@@ -1206,7 +1206,7 @@ EXP_EvalError EXP_evalVerif
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
         {
             EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
-            EXP_EvalNode* enode = nodeTable->data + i + ctx->blockTableOffset;
+            EXP_EvalNode* enode = nodeTable->data + i + ctx->blockTableBase;
             for (u32 i = 0; i < vb->defs.length; ++i)
             {
                 EXP_EvalVerifDef* vdef = vb->defs.data + i;
