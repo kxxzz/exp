@@ -198,10 +198,10 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
-static EXP_EvalVerifBlock* EXP_evalVerifGetBlock(EXP_EvalVerifContext* ctx, u32 nodeId)
+static EXP_EvalVerifBlock* EXP_evalVerifGetBlock(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
-    assert(nodeId >= ctx->blockTableOffset);
-    EXP_EvalVerifBlock* b = ctx->blockTable.data + nodeId - ctx->blockTableOffset;
+    assert(node.id >= ctx->blockTableOffset);
+    EXP_EvalVerifBlock* b = ctx->blockTable.data + node.id - ctx->blockTableOffset;
     return b;
 }
 
@@ -217,7 +217,7 @@ static bool EXP_evalVerifGetMatched
     EXP_Space* space = ctx->space;
     while (blkNode.id != EXP_NodeId_Invalid)
     {
-        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, blkNode.id);
+        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, blkNode);
         for (u32 i = 0; i < blk->defs.length; ++i)
         {
             EXP_EvalVerifDef* def = blk->defs.data + blk->defs.length - 1 - i;
@@ -333,7 +333,7 @@ static bool EXP_evalVerifEnterBlock
     EXP_EvalVerifCall call = { srcNode, dataStackP, seq, seq + len, cb };
     vec_push(&ctx->callStack, call);
 
-    EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode.id);
+    EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
     if (ctx->recheckFlag && (blk->typeInferState != EXP_EvalVerifBlockTypeInferState_None))
     {
         assert(blk->parent.id == parent.id);
@@ -361,7 +361,7 @@ static bool EXP_evalVerifEnterBlock
 static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode.id);
+    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
     if (ctx->recheckFlag && (1 == ctx->callStack.length))
     {
@@ -389,7 +389,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 static void EXP_evalVerifBlockSaveInfo(EXP_EvalVerifContext* ctx, EXP_EvalVerifBlock* nodeInfo)
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode.id);
+    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
     assert(curBlock->typeInOut.length == curBlock->numIns);
     assert(ctx->dataStack.length + curBlock->numIns >= curCall->dataStackP);
 
@@ -416,7 +416,7 @@ static void EXP_evalVerifBlockSaveInfo(EXP_EvalVerifContext* ctx, EXP_EvalVerifB
 static void EXP_evalVerifBlockRebase(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode.id);
+    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
     assert(curBlock->typeInOut.length == curBlock->numIns);
     assert(0 == curBlock->numOuts);
 
@@ -433,7 +433,7 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     EXP_evalVerifBlockRebase(ctx);
 
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode.id);
+    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
     assert(EXP_EvalVerifBlockTypeInferState_Entered == curBlock->typeInferState);
     EXP_evalVerifBlockReset(curBlock);
 
@@ -472,7 +472,7 @@ static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const 
 static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOffset, const u32* funInTypes)
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode.id);
+    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
     assert(EXP_EvalVerifBlockTypeInferState_Entered == curBlock->typeInferState);
     assert(curCall->dataStackP >= curBlock->numIns);
     if (curCall->dataStackP > argsOffset + curBlock->numIns)
@@ -1147,7 +1147,7 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
     {
         ctx->dataStack.length = 0;
         EXP_Node* pNode = ctx->recheckNodes.data + i;
-        EXP_Node parent = EXP_evalVerifGetBlock(ctx, pNode->id)->parent;
+        EXP_Node parent = EXP_evalVerifGetBlock(ctx, *pNode)->parent;
         EXP_EvalVerifCall blk = { parent, 0, pNode, pNode + 1, EXP_EvalBlockCallback_NONE };
         vec_push(&ctx->callStack, blk);
         EXP_evalVerifCall(ctx);
