@@ -119,10 +119,10 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
-    bool dataStackShiftEnable;
     EXP_EvalVerifCallStack callStack;
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
+    bool dataStackShiftEnable;
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
 } EXP_EvalVerifContext;
