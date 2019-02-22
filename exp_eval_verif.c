@@ -682,7 +682,7 @@ static void EXP_evalVerifNode
                                 u32 a[] = { EXP_EvalValueType_Any };
                                 if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
                                 {
-                                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                                     return;
                                 }
                             }
@@ -730,7 +730,7 @@ static void EXP_evalVerifNode
                 u32 a[] = { EXP_EvalValueType_Any };
                 if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
                 {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
             }
@@ -767,7 +767,7 @@ static void EXP_evalVerifNode
                 u32 n = nativeFunInfo->numIns - dataStack->length;
                 if (!EXP_evalVerifShiftDataStack(ctx, n, nativeFunInfo->inType))
                 {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
             }
@@ -799,7 +799,7 @@ static void EXP_evalVerifNode
                         u32 n = funInfo->numIns - dataStack->length;
                         if (!EXP_evalVerifShiftDataStack(ctx, n, funInfo->typeInOut.data))
                         {
-                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalStack);
+                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                             return;
                         }
                     }
@@ -1067,7 +1067,7 @@ next:
                     u32 n = b0->numOuts - dataStack->length;
                     if (!EXP_evalVerifShiftDataStack(ctx, n, b0->typeInOut.data))
                     {
-                        EXP_evalVerifErrorAtNode(ctx, *EXP_evalIfBranch0(space, srcNode), EXP_EvalErrCode_EvalStack);
+                        EXP_evalVerifErrorAtNode(ctx, *EXP_evalIfBranch0(space, srcNode), EXP_EvalErrCode_EvalArgs);
                         goto next;
                     }
                 }
