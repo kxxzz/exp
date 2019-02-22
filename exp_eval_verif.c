@@ -750,7 +750,6 @@ static void EXP_evalVerifNode
             break;
         }
 
-
         u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, name);
         if (nativeFun != -1)
         {
@@ -980,8 +979,8 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            u32 numIns = dataStack->length - curCall->dataStackP;
             EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + cb->nativeFun;
+            u32 numIns = dataStack->length - curCall->dataStackP;
             if (numIns != nativeFunInfo->numIns)
             {
                 EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
