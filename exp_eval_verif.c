@@ -595,6 +595,7 @@ static void EXP_evalVerifRecurFun
         curCall = &vec_last(&ctx->callStack);
         EXP_Node srcNode = curCall->srcNode;
         EXP_EvalVerifBlockCallback* cb = &curCall->cb;
+        // quit this branch until recheck pass
         if (EXP_EvalVerifBlockCallbackType_Branch0 == cb->type)
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
