@@ -33,7 +33,7 @@ bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_Node a, EXP_Node b)
     }
     else if (EXP_isSeq(space, b))
     {
-        assert(EXP_isTok(space, a));
+        assert(EXP_isSeq(space, a));
 
 
     }
