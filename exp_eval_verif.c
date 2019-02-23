@@ -1123,20 +1123,36 @@ next:
             }
             for (u32 i = 0; i < b0->typeIn.length; ++i)
             {
-                //u32 t0 = b0->typeIn.data[i];
-                //u32 t1 = b1->typeIn.data[i];
-                //u32 vt;
-                // todo
-                //bool m = EXP_evalTypeUnify(b0->typeInOut.data[i], b1->typeInOut.data[i], &vt);
-                //if (!m)
-                //{
-                //    EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalBranchUneq);
-                //    goto next;
-                //}
-                //assert(b1->typeInOut.data[i] == curBlock->typeInOut.data[i]);
-                //b0->typeInOut.data[i] = vt;
-                //b1->typeInOut.data[i] = vt;
-                //curBlock->typeInOut.data[i] = vt;
+                u32 t0 = b0->typeIn.data[i];
+                u32 t1 = b1->typeIn.data[i];
+                u32 vt;
+                bool m = EXP_evalTypeUnify(t0, t1, &vt);
+                if (!m)
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalBranchUneq);
+                    goto next;
+                }
+                assert(b1->typeIn.data[i] == curBlock->typeIn.data[i]);
+                b0->typeIn.data[i] = vt;
+                b1->typeIn.data[i] = vt;
+                curBlock->typeIn.data[i] = vt;
+            }
+            // todo
+            for (u32 i = 0; i < b0->typeOut.length; ++i)
+            {
+                u32 t0 = b0->typeOut.data[i].id;
+                u32 t1 = b1->typeOut.data[i].id;
+                u32 vt;
+                bool m = EXP_evalTypeUnify(t0, t1, &vt);
+                if (!m)
+                {
+                    EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalBranchUneq);
+                    goto next;
+                }
+                assert(b1->typeOut.data[i].id == curBlock->typeOut.data[i].id);
+                b0->typeOut.data[i].id = vt;
+                b1->typeOut.data[i].id = vt;
+                curBlock->typeOut.data[i].id = vt;
             }
             goto next;
         }
