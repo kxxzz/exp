@@ -69,7 +69,7 @@ static void EXP_evalVerifBlockReset(EXP_EvalVerifBlock* info)
 typedef enum EXP_EvalVerifBlockCallbackType
 {
     EXP_EvalVerifBlockCallbackType_NONE,
-    EXP_EvalVerifBlockCallbackType_NativeCall,
+    EXP_EvalVerifBlockCallbackType_Ncall,
     EXP_EvalVerifBlockCallbackType_Call,
     EXP_EvalVerifBlockCallbackType_Cond,
     EXP_EvalVerifBlockCallbackType_Branch0,
@@ -82,7 +82,7 @@ typedef struct EXP_EvalVerifBlockCallback
     EXP_EvalVerifBlockCallbackType type;
     union
     {
-        u32 nativeFun;
+        u32 nfun;
         EXP_Node fun;
     };
 } EXP_EvalVerifBlockCallback;
@@ -112,7 +112,7 @@ typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
     EXP_EvalValueTypeInfoTable* valueTypeTable;
-    EXP_EvalNativeFunInfoTable* nativeFunTable;
+    EXP_EvalNfunInfoTable* nfunTable;
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
@@ -135,7 +135,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 (
     EXP_Space* space,
     EXP_EvalValueTypeInfoTable* valueTypeTable,
-    EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_EvalNfunInfoTable* nfunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_SpaceSrcInfo* srcInfo
 )
@@ -144,7 +144,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     EXP_EvalVerifContext* ctx = &_ctx;
     ctx->space = space;
     ctx->valueTypeTable = valueTypeTable;
-    ctx->nativeFunTable = nativeFunTable;
+    ctx->nfunTable = nfunTable;
     ctx->nodeTable = nodeTable;
     ctx->srcInfo = srcInfo;
 
@@ -236,13 +236,13 @@ static bool EXP_evalVerifGetMatched
 
 
 
-static u32 EXP_evalVerifGetNativeFun(EXP_EvalVerifContext* ctx, const char* name)
+static u32 EXP_evalVerifGetNfun(EXP_EvalVerifContext* ctx, const char* name)
 {
     EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < ctx->nativeFunTable->length; ++i)
+    for (u32 i = 0; i < ctx->nfunTable->length; ++i)
     {
-        u32 idx = ctx->nativeFunTable->length - 1 - i;
-        const char* s = ctx->nativeFunTable->data[idx].name;
+        u32 idx = ctx->nfunTable->length - 1 - i;
+        const char* s = ctx->nfunTable->data[idx].name;
         if (0 == strcmp(s, name))
         {
             return idx;
@@ -507,19 +507,19 @@ static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOf
 
 
 
-static void EXP_evalVerifNativeFunCall(EXP_EvalVerifContext* ctx, EXP_EvalNativeFunInfo* nativeFunInfo, EXP_Node srcNode)
+static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* nfunInfo, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
-    assert(dataStack->length >= nativeFunInfo->numIns);
-    u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
-    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, nativeFunInfo->inType);
+    assert(dataStack->length >= nfunInfo->numIns);
+    u32 argsOffset = dataStack->length - nfunInfo->numIns;
+    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, nfunInfo->inType);
 
-    for (u32 i = 0; i < nativeFunInfo->numIns; ++i)
+    for (u32 i = 0; i < nfunInfo->numIns; ++i)
     {
         u32 vt1 = dataStack->data[argsOffset + i];
-        u32 vt = nativeFunInfo->inType[i];
+        u32 vt = nfunInfo->inType[i];
         if (!EXP_evalTypeMatch(vt, vt1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
@@ -527,9 +527,9 @@ static void EXP_evalVerifNativeFunCall(EXP_EvalVerifContext* ctx, EXP_EvalNative
         }
     }
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < nativeFunInfo->numOuts; ++i)
+    for (u32 i = 0; i < nfunInfo->numOuts; ++i)
     {
-        vec_push(dataStack, nativeFunInfo->outType[i]);
+        vec_push(dataStack, nfunInfo->outType[i]);
     }
 }
 
@@ -750,27 +750,27 @@ static void EXP_evalVerifNode
             break;
         }
 
-        u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, name);
-        if (nativeFun != -1)
+        u32 nfun = EXP_evalVerifGetNfun(ctx, name);
+        if (nfun != -1)
         {
-            enode->type = EXP_EvalNodeType_NativeFun;
-            enode->nativeFun = nativeFun;
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
-            if (!nativeFunInfo->call)
+            enode->type = EXP_EvalNodeType_Nfun;
+            enode->nfun = nfun;
+            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
+            if (!nfunInfo->call)
             {
                 EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
-            if (dataStack->length < nativeFunInfo->numIns)
+            if (dataStack->length < nfunInfo->numIns)
             {
-                u32 n = nativeFunInfo->numIns - dataStack->length;
-                if (!EXP_evalVerifShiftDataStack(ctx, n, nativeFunInfo->inType))
+                u32 n = nfunInfo->numIns - dataStack->length;
+                if (!EXP_evalVerifShiftDataStack(ctx, n, nfunInfo->inType))
                 {
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
             }
-            EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, node);
+            EXP_evalVerifNfunCall(ctx, nfunInfo, node);
             return;
         }
 
@@ -894,14 +894,14 @@ static void EXP_evalVerifNode
         }
     }
 
-    u32 nativeFun = EXP_evalVerifGetNativeFun(ctx, name);
-    if (nativeFun != -1)
+    u32 nfun = EXP_evalVerifGetNfun(ctx, name);
+    if (nfun != -1)
     {
-        enode->type = EXP_EvalNodeType_CallNativeFun;
-        enode->nativeFun = nativeFun;
-        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + nativeFun;
-        assert(nativeFunInfo->call);
-        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_NativeCall,.nativeFun = nativeFun };
+        enode->type = EXP_EvalNodeType_CallNfun;
+        enode->nfun = nfun;
+        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
+        assert(nfunInfo->call);
+        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .nfun = nfun };
         EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         return;
     }
@@ -967,7 +967,7 @@ next:
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalVerifBlockCallbackType_NativeCall:
+        case EXP_EvalVerifBlockCallbackType_Ncall:
         {
             if (curBlock->numIns > 0)
             {
@@ -979,14 +979,14 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable->data + cb->nativeFun;
+            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + cb->nfun;
             u32 numIns = dataStack->length - curCall->dataStackP;
-            if (numIns != nativeFunInfo->numIns)
+            if (numIns != nfunInfo->numIns)
             {
                 EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_evalVerifNativeFunCall(ctx, nativeFunInfo, curCall->srcNode);
+            EXP_evalVerifNfunCall(ctx, nfunInfo, curCall->srcNode);
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
@@ -1178,7 +1178,7 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
-    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNfunInfoTable* nfunTable,
     EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
 )
 {
@@ -1188,7 +1188,7 @@ EXP_EvalError EXP_evalVerif
     {
         return error;
     }
-    EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nativeFunTable, nodeTable, srcInfo);
+    EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
 
     vec_dup(&ctx->dataStack, typeStack);

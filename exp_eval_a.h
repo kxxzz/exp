@@ -5,13 +5,13 @@
 #include "exp_a.h"
 
 #include <nstr.h>
+#include <dict.h>
 
 
 
 
-
-typedef vec_t(EXP_EvalValueTypeInfo) EXP_EvalValueTypeInfoTable;
-typedef vec_t(EXP_EvalNativeFunInfo) EXP_EvalNativeFunInfoTable;
+typedef vec_t(EXP_EvalNvalTypeInfo) EXP_EvalValueTypeInfoTable;
+typedef vec_t(EXP_EvalNfunInfo) EXP_EvalNfunInfoTable;
 
 
 
@@ -25,7 +25,7 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_VarDefBegin,
     EXP_EvalNodeType_VarDefEnd,
     EXP_EvalNodeType_Drop,
-    EXP_EvalNodeType_NativeFun,
+    EXP_EvalNodeType_Nfun,
 
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Fun,
@@ -34,7 +34,7 @@ typedef enum EXP_EvalNodeType
 
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallFun,
-    EXP_EvalNodeType_CallNativeFun,
+    EXP_EvalNodeType_CallNfun,
 
     EXP_EvalNodeType_Def,
     EXP_EvalNodeType_If,
@@ -52,7 +52,7 @@ typedef struct EXP_EvalNode
     EXP_EvalNodeType type;
     union
     {
-        u32 nativeFun;
+        u32 nfun;
         EXP_Node funDef;
         EXP_EvalValue value;
         EXP_EvalNodeVar var;

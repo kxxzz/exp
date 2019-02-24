@@ -7,7 +7,7 @@
 typedef enum EXP_EvalBlockCallbackType
 {
     EXP_EvalBlockCallbackType_NONE,
-    EXP_EvalBlockCallbackType_NativeCall,
+    EXP_EvalBlockCallbackType_Ncall,
     EXP_EvalBlockCallbackType_Call,
     EXP_EvalBlockCallbackType_Cond,
 } EXP_EvalBlockCallbackType;
@@ -17,7 +17,7 @@ typedef struct EXP_EvalBlockCallback
     EXP_EvalBlockCallbackType type;
     union
     {
-        u32 nativeFun;
+        u32 nfun;
         EXP_Node fun;
     };
 } EXP_EvalBlockCallback;
@@ -47,14 +47,14 @@ typedef struct EXP_EvalContext
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
     EXP_EvalValueTypeInfoTable valueTypeTable;
-    EXP_EvalNativeFunInfoTable nativeFunTable;
+    EXP_EvalNfunInfoTable nfunTable;
     EXP_EvalNodeTable nodeTable;
     EXP_EvalCallStack callStack;
     EXP_EvalValueVec varStack;
     vec_u32 typeStack;
     EXP_EvalValueVec dataStack;
     EXP_EvalError error;
-    EXP_EvalValue nativeCallOutBuf[EXP_EvalNativeFunOuts_MAX];
+    EXP_EvalValue ncallOutBuf[EXP_EvalNfunOuts_MAX];
 } EXP_EvalContext;
 
 
@@ -62,7 +62,7 @@ typedef struct EXP_EvalContext
 
 
 
-EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv)
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
@@ -72,17 +72,17 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nativeEnv)
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
-        vec_push(&ctx->nativeFunTable, EXP_EvalPrimFunInfoTable[i]);
+        vec_push(&ctx->nfunTable, EXP_EvalPrimFunInfoTable[i]);
     }
-    if (nativeEnv)
+    if (nenv)
     {
-        for (u32 i = 0; i < nativeEnv->numValueTypes; ++i)
+        for (u32 i = 0; i < nenv->numValueTypes; ++i)
         {
-            vec_push(&ctx->valueTypeTable, nativeEnv->valueTypes[i]);
+            vec_push(&ctx->valueTypeTable, nenv->valueTypes[i]);
         }
-        for (u32 i = 0; i < nativeEnv->numFuns; ++i)
+        for (u32 i = 0; i < nenv->numFuns; ++i)
         {
-            vec_push(&ctx->nativeFunTable, nativeEnv->funs[i]);
+            vec_push(&ctx->nfunTable, nenv->funs[i]);
         }
     }
     return ctx;
@@ -96,7 +96,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->varStack);
     vec_free(&ctx->callStack);
     vec_free(&ctx->nodeTable);
-    vec_free(&ctx->nativeFunTable);
+    vec_free(&ctx->nfunTable);
     vec_free(&ctx->valueTypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
     EXP_spaceFree(ctx->space);
@@ -267,19 +267,19 @@ static bool EXP_evalAtTail(EXP_EvalContext* ctx)
 
 
 
-static void EXP_evalNativeFunCall
+static void EXP_evalNfunCall
 (
-    EXP_EvalContext* ctx, EXP_EvalNativeFunInfo* nativeFunInfo, EXP_Node srcNode
+    EXP_EvalContext* ctx, EXP_EvalNfunInfo* nfunInfo, EXP_Node srcNode
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
-    u32 argsOffset = dataStack->length - nativeFunInfo->numIns;
-    nativeFunInfo->call(space, dataStack->data + argsOffset, ctx->nativeCallOutBuf);
+    u32 argsOffset = dataStack->length - nfunInfo->numIns;
+    nfunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < nativeFunInfo->numOuts; ++i)
+    for (u32 i = 0; i < nfunInfo->numOuts; ++i)
     {
-        EXP_EvalValue v = ctx->nativeCallOutBuf[i];
+        EXP_EvalValue v = ctx->ncallOutBuf[i];
         vec_push(dataStack, v);
     }
 }
@@ -312,11 +312,11 @@ next:
         {
             break;
         }
-        case EXP_EvalBlockCallbackType_NativeCall:
+        case EXP_EvalBlockCallbackType_Ncall:
         {
-            EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + cb->nativeFun;
-            u32 numIns = nativeFunInfo->numIns;
-            EXP_evalNativeFunCall(ctx, nativeFunInfo, curCall->srcNode);
+            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + cb->nfun;
+            u32 numIns = nfunInfo->numIns;
+            EXP_evalNfunCall(ctx, nfunInfo, curCall->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Call:
@@ -410,13 +410,13 @@ next:
         vec_pop(dataStack);
         goto next;
     }
-    case EXP_EvalNodeType_NativeFun:
+    case EXP_EvalNodeType_Nfun:
     {
         assert(EXP_isTok(space, node));
-        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + enode->nativeFun;
-        assert(nativeFunInfo->call);
-        assert(dataStack->length >= nativeFunInfo->numIns);
-        EXP_evalNativeFunCall(ctx, nativeFunInfo, node);
+        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + enode->nfun;
+        assert(nfunInfo->call);
+        assert(dataStack->length >= nfunInfo->numIns);
+        EXP_evalNfunCall(ctx, nfunInfo, node);
         goto next;
     }
     case EXP_EvalNodeType_Var:
@@ -471,16 +471,16 @@ next:
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
-    case EXP_EvalNodeType_CallNativeFun:
+    case EXP_EvalNodeType_CallNfun:
     {
         assert(EXP_evalCheckCall(space, node));
         EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
-        u32 nativeFun = enode->nativeFun;
-        assert(nativeFun != -1);
-        EXP_EvalNativeFunInfo* nativeFunInfo = ctx->nativeFunTable.data + nativeFun;
-        assert(nativeFunInfo->call);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_NativeCall, .nativeFun = nativeFun };
+        u32 nfun = enode->nfun;
+        assert(nfun != -1);
+        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + nfun;
+        assert(nfunInfo->call);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Ncall, .nfun = nfun };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
@@ -549,7 +549,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
-    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNativeFunInfoTable* nativeFunTable,
+    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNfunInfoTable* nfunTable,
     EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
 );
 
@@ -599,7 +599,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     }
     EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx->valueTypeTable, &ctx->nativeFunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
+        space, root, &ctx->valueTypeTable, &ctx->nfunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
     );
     if (error.code)
     {

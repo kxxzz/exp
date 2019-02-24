@@ -2,46 +2,50 @@
 
 
 
+typedef enum EXP_EvalTypeType
+{
+    EXP_EvalTypeType_Nval,
+    EXP_EvalTypeType_Fun,
+    EXP_EvalTypeType_Tuple,
+    EXP_EvalTypeType_Array,
+    EXP_EvalTypeType_Var,
+
+    EXP_NumEvalTypeTypes
+} EXP_EvalTypeType;
+
+typedef struct EXP_EvalTypeList
+{
+    u32 count;
+    u32 offset;
+} EXP_EvalTypeList;
+
+typedef struct EXP_EvalTypeFun
+{
+    u32 ins;
+    u32 outs;
+} EXP_EvalTypeFun;
+
+typedef struct EXP_EvalType
+{
+    bool hasVar;
+    EXP_EvalTypeType type;
+    union
+    {
+        EXP_EvalTypeFun fun;
+        EXP_EvalTypeList tuple;
+        u32 aryElm;
+        u32 varId;
+    };
+} EXP_EvalType;
+
+
 
 typedef struct EXP_EvalTypeContext
 {
-    EXP_Space* space;
+    Dict* listPool;
+    Dict* typePool;
 } EXP_EvalTypeContext;
 
-
-
-
-
-bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_Node a, EXP_Node b)
-{
-    EXP_Space* space = ctx->space;
-    if (EXP_isTok(space, a))
-    {
-        if (EXP_isTok(space, b))
-        {
-            const char* sa = EXP_tokCstr(space, a);
-            const char* sb = EXP_tokCstr(space, b);
-            if (0 == strcmp(sa, sb))
-            {
-                return true;
-            }
-        }
-        else
-        {
-            return EXP_evalTypeUnifyX(ctx, b, a);
-        }
-    }
-    else if (EXP_isSeq(space, b))
-    {
-        assert(EXP_isSeq(space, a));
-
-
-    }
-    else
-    {
-        assert(EXP_isTok(space, b));
-    }
-}
 
 
 

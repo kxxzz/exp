@@ -42,6 +42,8 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 include_directories (imp/vec)
 include_directories (imp/fileu)
 include_directories (imp/nstr)
+include_directories (imp/dict)
+include_directories (imp/dict/imp)
 file (GLOB IMP_SRC_FILES
         imp/vec/vec.h
         imp/vec/vec.c
@@ -49,6 +51,10 @@ file (GLOB IMP_SRC_FILES
         imp/fileu/fileu.c
         imp/nstr/nstr.h
         imp/nstr/nstr.c
+        imp/dict/dict.h
+        imp/dict/dict.c
+        imp/dict/imp/xxhash.h
+        imp/dict/imp/xxhash.c
         )
 source_group (imp FILES ${IMP_SRC_FILES})
 
