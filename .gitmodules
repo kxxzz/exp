@@ -7,4 +7,6 @@
 [submodule "imp/nstr"]
 	path = imp/nstr
 	url = git@github.com:kxxzz/nstr.git
-
+[submodule "imp/dict"]
+	path = imp/dict
+	url = git@github.com:kxxzz/dict.git

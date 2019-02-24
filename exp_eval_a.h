@@ -5,6 +5,7 @@
 #include "exp_a.h"
 
 #include <nstr.h>
+#include <dict.h>
 
 
 
