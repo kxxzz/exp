@@ -44,7 +44,7 @@ typedef vec_t(EXP_EvalTypeDesc) EXP_EvalTypeDescVec;
 
 typedef struct EXP_EvalTypeContext
 {
-    vec_u32 listBuf;
+    Upool* listPool;
     EXP_EvalTypeDescVec typeDescs;
 } EXP_EvalTypeContext;
 
