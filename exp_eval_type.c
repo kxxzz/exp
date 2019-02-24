@@ -5,10 +5,10 @@
 typedef enum EXP_EvalTypeType
 {
     EXP_EvalTypeType_Nval,
+    EXP_EvalTypeType_Var,
     EXP_EvalTypeType_Fun,
     EXP_EvalTypeType_Tuple,
     EXP_EvalTypeType_Array,
-    EXP_EvalTypeType_Var,
 
     EXP_NumEvalTypeTypes
 } EXP_EvalTypeType;
@@ -21,11 +21,11 @@ typedef struct EXP_EvalTypeList
 
 typedef struct EXP_EvalTypeFun
 {
-    u32 ins;
-    u32 outs;
+    EXP_EvalTypeList ins;
+    EXP_EvalTypeList outs;
 } EXP_EvalTypeFun;
 
-typedef struct EXP_EvalType
+typedef struct EXP_EvalTypeDesc
 {
     bool hasVar;
     EXP_EvalTypeType type;
@@ -34,17 +34,63 @@ typedef struct EXP_EvalType
         EXP_EvalTypeFun fun;
         EXP_EvalTypeList tuple;
         u32 aryElm;
-        u32 varId;
     };
-} EXP_EvalType;
+} EXP_EvalTypeDesc;
+
+typedef vec_t(EXP_EvalTypeDesc) EXP_EvalTypeDescVec;
+
 
 
 
 typedef struct EXP_EvalTypeContext
 {
-    Dict* listPool;
-    Dict* typePool;
+    vec_u32 listBuf;
+    EXP_EvalTypeDescVec typeDescs;
 } EXP_EvalTypeContext;
+
+
+EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
+{
+    EXP_EvalTypeContext* ctx = zalloc(sizeof(EXP_EvalTypeContext));
+    return ctx;
+}
+
+void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
+{
+    vec_free(&ctx->typeDescs);
+    free(ctx);
+}
+
+
+static u32 EXP_evalTypeAdd(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
+{
+    u32 id = ctx->typeDescs.length;
+    vec_push(&ctx->typeDescs, *desc);
+    return id;
+}
+
+static u32 EXP_evalTypeAddList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
+{
+}
+
+u32 EXP_evalTypeAddNval(EXP_EvalTypeContext* ctx)
+{
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Nval };
+    return EXP_evalTypeAdd(ctx, &desc);
+}
+
+u32 EXP_evalTypeAddVar(EXP_EvalTypeContext* ctx)
+{
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
+    return EXP_evalTypeAdd(ctx, &desc);
+}
+
+u32 EXP_evalTypeAddFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
+{
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
+    return EXP_evalTypeAdd(ctx, &desc);
+}
+
 
 
 
