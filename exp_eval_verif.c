@@ -1199,6 +1199,11 @@ EXP_EvalError EXP_evalVerif
 
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
+
+
+
+
+
     EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
     if (ctx->error.code)
     {
