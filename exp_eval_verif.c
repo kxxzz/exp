@@ -116,13 +116,17 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
+    EXP_NodeVec recheckNodes;
+    bool recheckFlag;
+
+    EXP_NodeVec funVerifStack;
+    bool dataStackShiftEnable;
+
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
     EXP_EvalVerifCallStack callStack;
-    EXP_NodeVec recheckNodes;
-    bool recheckFlag;
-    bool dataStackShiftEnable;
+
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
 } EXP_EvalVerifContext;
