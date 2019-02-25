@@ -123,6 +123,12 @@ u32 EXP_evalTypeAddArray(EXP_EvalTypeContext* ctx, u32 elm)
 
 
 
+const EXP_EvalTypeDesc* EXP_evalTypeGetDesc(EXP_EvalTypeContext* ctx, u32 id)
+{
+    return upoolElmData(ctx->typePool, id);
+}
+
+
 
 
 
@@ -132,15 +138,70 @@ u32 EXP_evalTypeAddArray(EXP_EvalTypeContext* ctx, u32 elm)
 typedef struct EXP_EvalTypeVarBinding
 {
     u32 var;
-    u32 type;
+    u32 value;
 } EXP_EvalTypeVarBinding;
 
 typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarEnv;
 
 
+EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarEnv* env, u32 var)
+{
+    for (u32 i = 0; i < env->length; ++i)
+    {
+        if (env->data[i].var == var)
+        {
+            return env->data + i;
+        }
+    }
+    return NULL;
+}
+
+void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarEnv* env, u32 var, u32 value)
+{
+    EXP_EvalTypeVarBinding b = { var, value };
+    vec_push(env, b);
+}
+
+
 bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarEnv* env, u32 a, u32 b)
 {
+enter:
+    if (a == b)
+    {
+        return true;
+    }
+    const EXP_EvalTypeDesc* descA = EXP_evalTypeGetDesc(ctx, a);
+    const EXP_EvalTypeDesc* descB = EXP_evalTypeGetDesc(ctx, b);
+    if (descA->type == descB->type)
+    {
 
+    }
+    else
+    {
+    swap:
+        if (EXP_EvalTypeType_Var == descB->type)
+        {
+            const EXP_EvalTypeDesc* t = descB;
+            descB = descA;
+            descA = t;
+            goto swap;
+        }
+        if (EXP_EvalTypeType_Var == descA->type)
+        {
+            EXP_EvalTypeVarBinding* binding = EXP_evalTypeGetVarBinding(env, descA->id);
+            if (binding)
+            {
+                a = binding->value;
+                goto enter;
+            }
+            EXP_evalTypeAddVarBinding(env, descA->id, binding->value);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     return true;
 }
 
