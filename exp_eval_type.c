@@ -141,29 +141,29 @@ typedef struct EXP_EvalTypeVarBinding
     u32 value;
 } EXP_EvalTypeVarBinding;
 
-typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarEnv;
+typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarTable;
 
 
-EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarEnv* env, u32 var)
+EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarTable* varTable, u32 var)
 {
-    for (u32 i = 0; i < env->length; ++i)
+    for (u32 i = 0; i < varTable->length; ++i)
     {
-        if (env->data[i].var == var)
+        if (varTable->data[i].var == var)
         {
-            return env->data + i;
+            return varTable->data + i;
         }
     }
     return NULL;
 }
 
-void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarEnv* env, u32 var, u32 value)
+void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
 {
     EXP_EvalTypeVarBinding b = { var, value };
-    vec_push(env, b);
+    vec_push(varTable, b);
 }
 
 
-bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarEnv* env, u32 a, u32 b)
+bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 a, u32 b)
 {
 enter:
     if (a == b)
@@ -181,20 +181,23 @@ enter:
     swap:
         if (EXP_EvalTypeType_Var == descB->type)
         {
-            const EXP_EvalTypeDesc* t = descB;
+            u32 t = b;
+            b = a;
+            a = t;
+            const EXP_EvalTypeDesc* descC = descB;
             descB = descA;
-            descA = t;
+            descA = descC;
             goto swap;
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            EXP_EvalTypeVarBinding* binding = EXP_evalTypeGetVarBinding(env, descA->id);
+            EXP_EvalTypeVarBinding* binding = EXP_evalTypeGetVarBinding(varTable, descA->id);
             if (binding)
             {
                 a = binding->value;
                 goto enter;
             }
-            EXP_evalTypeAddVarBinding(env, descA->id, binding->value);
+            EXP_evalTypeAddVarBinding(varTable, descA->id, binding->value);
             return true;
         }
         else
