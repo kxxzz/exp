@@ -1231,7 +1231,7 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
-
+    EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
 
     EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
@@ -1245,10 +1245,12 @@ EXP_EvalError EXP_evalVerif
 
         ctx->dataStackShiftEnable = true;
 
+        EXP_EvalVerifBlock* funInfo = blockTable->data + fun.id;
+
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
         EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-        EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+        EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, funInfo->parent, EXP_EvalBlockCallback_NONE, true);
         if (ctx->error.code)
         {
             error = ctx->error;
