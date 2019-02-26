@@ -117,7 +117,7 @@ typedef struct EXP_EvalVerifContext
     EXP_SpaceSrcInfo* srcInfo;
 
     bool dataStackShiftEnable;
-    EXP_NodeVec funOrdered;
+    EXP_NodeVec allFuns;
 
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
@@ -175,7 +175,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     }
     vec_free(&ctx->blockTable);
     vec_free(&ctx->recheckNodes);
-    vec_free(&ctx->funOrdered);
+    vec_free(&ctx->allFuns);
 }
 
 
@@ -332,7 +332,7 @@ static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Nod
     {
         return;
     }
-    vec_push(&ctx->funOrdered, node);
+    vec_push(&ctx->allFuns, node);
     u32 bodyLen = 0;
     EXP_Node* body = NULL;
     EXP_evalVerifDefGetBody(ctx, node, &bodyLen, &body);
@@ -1240,10 +1240,10 @@ EXP_EvalError EXP_evalVerif
     EXP_evalVerifAddFunBodies(ctx, seq, len);
 
 
-    for (u32 i = 0; i < ctx->funOrdered.length; ++i)
+    for (u32 i = 0; i < ctx->allFuns.length; ++i)
     {
-        u32 idx = ctx->funOrdered.length - 1 - i;
-        EXP_Node block = ctx->funOrdered.data[idx];
+        u32 idx = ctx->allFuns.length - 1 - i;
+        EXP_Node block = ctx->allFuns.data[idx];
 
         ctx->dataStackShiftEnable = true;
 
