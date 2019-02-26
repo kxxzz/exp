@@ -117,8 +117,6 @@ typedef struct EXP_EvalVerifContext
     EXP_SpaceSrcInfo* srcInfo;
 
     bool dataStackShiftEnable;
-    EXP_NodeVec funDefNodes;
-
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
 
@@ -175,7 +173,6 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     }
     vec_free(&ctx->blockTable);
     vec_free(&ctx->recheckNodes);
-    vec_free(&ctx->funDefNodes);
 }
 
 
@@ -321,35 +318,6 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 
 
 
-
-
-// todo : loop replace recur
-static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len);
-
-static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
-{
-    if (!EXP_evalVerifIsFunDef(ctx, node))
-    {
-        return;
-    }
-    vec_push(&ctx->funDefNodes, node);
-    u32 bodyLen = 0;
-    EXP_Node* body = NULL;
-    EXP_evalVerifDefGetBody(ctx, node, &bodyLen, &body);
-    EXP_evalVerifAddFunBodies(ctx, body, bodyLen);
-}
-
-static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
-{
-    for (u32 i = 0; i < len; ++i)
-    {
-        EXP_evalVerifAddFunBodiesByFunDef(ctx, seq[len - 1 - i]);
-        if (ctx->error.code)
-        {
-            return;
-        }
-    }
-}
 
 
 
@@ -1231,43 +1199,12 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
-    EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
-
-    EXP_Node* seq = EXP_seqElm(space, root);
-    u32 len = EXP_seqLen(space, root);
-
-    //EXP_evalVerifAddFunBodies(ctx, seq, len);
-
-    //for (u32 i = 0; i < ctx->funDefNodes.length; ++i)
-    //{
-    //    u32 idx = ctx->funDefNodes.length - 1 - i;
-    //    EXP_Node fun = ctx->funDefNodes.data[idx];
-
-    //    ctx->dataStackShiftEnable = true;
-
-    //    EXP_EvalVerifBlock* funInfo = blockTable->data + fun.id;
-
-    //    u32 bodyLen = 0;
-    //    EXP_Node* body = NULL;
-    //    EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-    //    EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, funInfo->parent, EXP_EvalBlockCallback_NONE, true);
-    //    if (ctx->error.code)
-    //    {
-    //        error = ctx->error;
-    //        EXP_evalVerifContextFree(ctx);
-    //        return error;
-    //    }
-    //    EXP_evalVerifCall(ctx);
-    //    if (!ctx->error.code)
-    //    {
-    //        EXP_evalVerifRecheck(ctx);
-    //    }
-    //}
-
 
     ctx->dataStackShiftEnable = false;
     vec_dup(&ctx->dataStack, typeStack);
 
+    EXP_Node* seq = EXP_seqElm(space, root);
+    u32 len = EXP_seqLen(space, root);
     EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
     if (ctx->error.code)
     {
