@@ -117,7 +117,7 @@ typedef struct EXP_EvalVerifContext
     EXP_SpaceSrcInfo* srcInfo;
 
     bool dataStackShiftEnable;
-    EXP_NodeVec allFuns;
+    EXP_NodeVec funDefNodes;
 
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
@@ -175,7 +175,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     }
     vec_free(&ctx->blockTable);
     vec_free(&ctx->recheckNodes);
-    vec_free(&ctx->allFuns);
+    vec_free(&ctx->funDefNodes);
 }
 
 
@@ -332,7 +332,7 @@ static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Nod
     {
         return;
     }
-    vec_push(&ctx->allFuns, node);
+    vec_push(&ctx->funDefNodes, node);
     u32 bodyLen = 0;
     EXP_Node* body = NULL;
     EXP_evalVerifDefGetBody(ctx, node, &bodyLen, &body);
@@ -1236,33 +1236,33 @@ EXP_EvalError EXP_evalVerif
     EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
 
-    EXP_evalVerifAddFunBodies(ctx, seq, len);
+    //EXP_evalVerifAddFunBodies(ctx, seq, len);
 
-    for (u32 i = 0; i < ctx->allFuns.length; ++i)
-    {
-        u32 idx = ctx->allFuns.length - 1 - i;
-        EXP_Node fun = ctx->allFuns.data[idx];
+    //for (u32 i = 0; i < ctx->funDefNodes.length; ++i)
+    //{
+    //    u32 idx = ctx->funDefNodes.length - 1 - i;
+    //    EXP_Node fun = ctx->funDefNodes.data[idx];
 
-        ctx->dataStackShiftEnable = true;
+    //    ctx->dataStackShiftEnable = true;
 
-        EXP_EvalVerifBlock* funInfo = blockTable->data + fun.id;
+    //    EXP_EvalVerifBlock* funInfo = blockTable->data + fun.id;
 
-        u32 bodyLen = 0;
-        EXP_Node* body = NULL;
-        EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-        EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, funInfo->parent, EXP_EvalBlockCallback_NONE, true);
-        if (ctx->error.code)
-        {
-            error = ctx->error;
-            EXP_evalVerifContextFree(ctx);
-            return error;
-        }
-        EXP_evalVerifCall(ctx);
-        if (!ctx->error.code)
-        {
-            EXP_evalVerifRecheck(ctx);
-        }
-    }
+    //    u32 bodyLen = 0;
+    //    EXP_Node* body = NULL;
+    //    EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
+    //    EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, funInfo->parent, EXP_EvalBlockCallback_NONE, true);
+    //    if (ctx->error.code)
+    //    {
+    //        error = ctx->error;
+    //        EXP_evalVerifContextFree(ctx);
+    //        return error;
+    //    }
+    //    EXP_evalVerifCall(ctx);
+    //    if (!ctx->error.code)
+    //    {
+    //        EXP_evalVerifRecheck(ctx);
+    //    }
+    //}
 
 
     ctx->dataStackShiftEnable = false;
