@@ -1232,24 +1232,23 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
 
-    vec_dup(&ctx->dataStack, typeStack);
-
 
     EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
-    EXP_evalVerifAddFunBodies(ctx, seq, len);
 
+    EXP_evalVerifAddFunBodies(ctx, seq, len);
 
     for (u32 i = 0; i < ctx->allFuns.length; ++i)
     {
         u32 idx = ctx->allFuns.length - 1 - i;
-        EXP_Node block = ctx->allFuns.data[idx];
+        EXP_Node fun = ctx->allFuns.data[idx];
 
         ctx->dataStackShiftEnable = true;
 
-        u32 len = EXP_seqLen(space, block);
-        EXP_Node* seq = EXP_seqElm(space, block);
-        EXP_evalVerifEnterBlock(ctx, seq, len, block, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+        u32 bodyLen = 0;
+        EXP_Node* body = NULL;
+        EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
+        EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
         if (ctx->error.code)
         {
             error = ctx->error;
@@ -1259,33 +1258,30 @@ EXP_EvalError EXP_evalVerif
         EXP_evalVerifCall(ctx);
         if (!ctx->error.code)
         {
-            vec_dup(typeStack, &ctx->dataStack);
-        }
-        if (!ctx->error.code)
-        {
             EXP_evalVerifRecheck(ctx);
         }
     }
 
 
-    //u32 len = EXP_seqLen(space, root);
-    //EXP_Node* seq = EXP_seqElm(space, root);
-    //EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
-    //if (ctx->error.code)
-    //{
-    //    error = ctx->error;
-    //    EXP_evalVerifContextFree(ctx);
-    //    return error;
-    //}
-    //EXP_evalVerifCall(ctx);
-    //if (!ctx->error.code)
-    //{
-    //    vec_dup(typeStack, &ctx->dataStack);
-    //}
-    //if (!ctx->error.code)
-    //{
-    //    EXP_evalVerifRecheck(ctx);
-    //}
+    ctx->dataStackShiftEnable = false;
+    vec_dup(&ctx->dataStack, typeStack);
+
+    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    if (ctx->error.code)
+    {
+        error = ctx->error;
+        EXP_evalVerifContextFree(ctx);
+        return error;
+    }
+    EXP_evalVerifCall(ctx);
+    if (!ctx->error.code)
+    {
+        vec_dup(typeStack, &ctx->dataStack);
+    }
+    if (!ctx->error.code)
+    {
+        EXP_evalVerifRecheck(ctx);
+    }
     if (!ctx->error.code)
     {
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
