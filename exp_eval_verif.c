@@ -338,6 +338,15 @@ static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u3
 
 
 
+static void EXP_evalVerifFuns(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
+{
+
+}
+
+
+
+
+
 
 
 
@@ -1201,7 +1210,7 @@ EXP_EvalError EXP_evalVerif
     EXP_Node* seq = EXP_seqElm(space, root);
 
 
-
+    EXP_evalVerifFuns(ctx, seq, len);
 
 
     EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
