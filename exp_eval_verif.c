@@ -326,7 +326,7 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 // todo : loop replace recur
 static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body);
 
-static void EXP_evalVerifAddFunBody(EXP_EvalVerifContext* ctx, EXP_Node node)
+static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
     if (!EXP_evalVerifIsFunDef(ctx, node))
     {
@@ -350,7 +350,7 @@ static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body)
     EXP_Node* seq = EXP_seqElm(space, body);
     for (u32 i = 0; i < len; ++i)
     {
-        EXP_evalVerifAddFunBody(ctx, seq[len - 1 - i]);
+        EXP_evalVerifAddFunBodiesByFunDef(ctx, seq[len - 1 - i]);
         if (ctx->error.code)
         {
             return;
