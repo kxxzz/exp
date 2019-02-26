@@ -117,7 +117,7 @@ typedef struct EXP_EvalVerifContext
     EXP_SpaceSrcInfo* srcInfo;
 
     bool dataStackShiftEnable;
-    EXP_NodeVec funBodies;
+    EXP_NodeVec funOrdered;
 
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
@@ -175,7 +175,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     }
     vec_free(&ctx->blockTable);
     vec_free(&ctx->recheckNodes);
-    vec_free(&ctx->funBodies);
+    vec_free(&ctx->funOrdered);
 }
 
 
@@ -324,7 +324,7 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 
 
 // todo : loop replace recur
-static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body);
+static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len);
 
 static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
@@ -332,22 +332,15 @@ static void EXP_evalVerifAddFunBodiesByFunDef(EXP_EvalVerifContext* ctx, EXP_Nod
     {
         return;
     }
-    EXP_Space* space = ctx->space;
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    EXP_Node body = defCall[2];
-    EXP_evalVerifAddFunBodies(ctx, body);
+    vec_push(&ctx->funOrdered, node);
+    u32 bodyLen = 0;
+    EXP_Node* body = NULL;
+    EXP_evalVerifDefGetBody(ctx, node, &bodyLen, &body);
+    EXP_evalVerifAddFunBodies(ctx, body, bodyLen);
 }
 
-static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body)
+static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
 {
-    EXP_Space* space = ctx->space;
-    if (!EXP_isSeq(space, body))
-    {
-        return;
-    }
-    vec_push(&ctx->funBodies, body);
-    u32 len = EXP_seqLen(space, body);
-    EXP_Node* seq = EXP_seqElm(space, body);
     for (u32 i = 0; i < len; ++i)
     {
         EXP_evalVerifAddFunBodiesByFunDef(ctx, seq[len - 1 - i]);
@@ -1212,6 +1205,7 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
             return;
         }
     }
+    ctx->recheckNodes.length = 0;
 }
 
 
@@ -1241,27 +1235,57 @@ EXP_EvalError EXP_evalVerif
     vec_dup(&ctx->dataStack, typeStack);
 
 
-    EXP_evalVerifAddFunBodies(ctx, root);
-
-
-    u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
-    if (ctx->error.code)
+    u32 len = EXP_seqLen(space, root);
+    EXP_evalVerifAddFunBodies(ctx, seq, len);
+
+
+    for (u32 i = 0; i < ctx->funOrdered.length; ++i)
     {
-        error = ctx->error;
-        EXP_evalVerifContextFree(ctx);
-        return error;
+        u32 idx = ctx->funOrdered.length - 1 - i;
+        EXP_Node block = ctx->funOrdered.data[idx];
+
+        ctx->dataStackShiftEnable = true;
+
+        u32 len = EXP_seqLen(space, block);
+        EXP_Node* seq = EXP_seqElm(space, block);
+        EXP_evalVerifEnterBlock(ctx, seq, len, block, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+        if (ctx->error.code)
+        {
+            error = ctx->error;
+            EXP_evalVerifContextFree(ctx);
+            return error;
+        }
+        EXP_evalVerifCall(ctx);
+        if (!ctx->error.code)
+        {
+            vec_dup(typeStack, &ctx->dataStack);
+        }
+        if (!ctx->error.code)
+        {
+            EXP_evalVerifRecheck(ctx);
+        }
     }
-    EXP_evalVerifCall(ctx);
-    if (!ctx->error.code)
-    {
-        vec_dup(typeStack, &ctx->dataStack);
-    }
-    if (!ctx->error.code)
-    {
-        EXP_evalVerifRecheck(ctx);
-    }
+
+
+    //u32 len = EXP_seqLen(space, root);
+    //EXP_Node* seq = EXP_seqElm(space, root);
+    //EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    //if (ctx->error.code)
+    //{
+    //    error = ctx->error;
+    //    EXP_evalVerifContextFree(ctx);
+    //    return error;
+    //}
+    //EXP_evalVerifCall(ctx);
+    //if (!ctx->error.code)
+    //{
+    //    vec_dup(typeStack, &ctx->dataStack);
+    //}
+    //if (!ctx->error.code)
+    //{
+    //    EXP_evalVerifRecheck(ctx);
+    //}
     if (!ctx->error.code)
     {
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
