@@ -116,11 +116,11 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
+    bool dataStackShiftEnable;
+    EXP_NodeVec funBodies;
+
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
-
-    EXP_NodeVec funVerifStack;
-    bool dataStackShiftEnable;
 
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
@@ -166,7 +166,6 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
-    vec_free(&ctx->recheckNodes);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
@@ -175,6 +174,8 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
         EXP_evalVerifBlockFree(b);
     }
     vec_free(&ctx->blockTable);
+    vec_free(&ctx->recheckNodes);
+    vec_free(&ctx->funBodies);
 }
 
 
@@ -276,53 +277,6 @@ static EXP_EvalKey EXP_evalVerifGetKey(EXP_EvalVerifContext* ctx, const char* na
 
 
 
-
-
-
-
-
-static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalVerifBlock* blk)
-{
-    EXP_Space* space = ctx->space;
-    EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
-    if (EXP_isTok(space, node))
-    {
-        return;
-    }
-    if (!EXP_evalCheckCall(space, node))
-    {
-        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return;
-    }
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    const char* kDef = EXP_tokCstr(space, defCall[0]);
-    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, kDef);
-    if (k != EXP_EvalKey_Def)
-    {
-        return;
-    }
-    EXP_Node name;
-    if (EXP_isTok(space, defCall[1]))
-    {
-        name = defCall[1];
-    }
-    else
-    {
-        EXP_evalVerifErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
-        return;
-    }
-    EXP_EvalVerifDef def = { name, false, .fun = node };
-    vec_push(&blk->defs, def);
-}
-
-
-
-
-
-
-
-
-
 static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
@@ -338,9 +292,81 @@ static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u3
 
 
 
-static void EXP_evalVerifFuns(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
+static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
+    EXP_Space* space = ctx->space;
+    if (EXP_isTok(space, node))
+    {
+        return false;
+    }
+    if (!EXP_evalCheckCall(space, node))
+    {
+        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        return false;
+    }
+    EXP_Node* defCall = EXP_seqElm(space, node);
+    const char* kDef = EXP_tokCstr(space, defCall[0]);
+    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, kDef);
+    if (k != EXP_EvalKey_Def)
+    {
+        return false;
+    }
+    if (!EXP_isTok(space, defCall[1]))
+    {
+        EXP_evalVerifErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
+        return false;
+    }
+    return true;
+}
 
+
+
+
+
+static void EXP_evalVerifFunBody(EXP_EvalVerifContext* ctx, EXP_Node node)
+{
+    if (!EXP_evalVerifIsFunDef(ctx, node))
+    {
+        return;
+    }
+    EXP_Space* space = ctx->space;
+    EXP_Node* defCall = EXP_seqElm(space, node);
+    EXP_Node body = defCall[2];
+    vec_push(&ctx->funBodies, body);
+}
+
+
+
+
+static void EXP_evalVerifBlockFuns(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
+{
+    for (u32 i = 0; i < len; ++i)
+    {
+        EXP_evalVerifFunBody(ctx, seq[len - 1 - i]);
+        if (ctx->error.code)
+        {
+            return;
+        }
+    }
+}
+
+
+
+
+
+
+
+static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalVerifBlock* blk)
+{
+    if (!EXP_evalVerifIsFunDef(ctx, node))
+    {
+        return;
+    }
+    EXP_Space* space = ctx->space;
+    EXP_Node* defCall = EXP_seqElm(space, node);
+    EXP_Node name = defCall[1];
+    EXP_EvalVerifDef def = { name, false, .fun = node };
+    vec_push(&blk->defs, def);
 }
 
 
@@ -1210,7 +1236,7 @@ EXP_EvalError EXP_evalVerif
     EXP_Node* seq = EXP_seqElm(space, root);
 
 
-    EXP_evalVerifFuns(ctx, seq, len);
+    EXP_evalVerifBlockFuns(ctx, seq, len);
 
 
     EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
