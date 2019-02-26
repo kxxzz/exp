@@ -323,7 +323,10 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalVerifFunBody(EXP_EvalVerifContext* ctx, EXP_Node node)
+// todo : loop replace recur
+static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body);
+
+static void EXP_evalVerifAddFunBody(EXP_EvalVerifContext* ctx, EXP_Node node)
 {
     if (!EXP_evalVerifIsFunDef(ctx, node))
     {
@@ -332,17 +335,22 @@ static void EXP_evalVerifFunBody(EXP_EvalVerifContext* ctx, EXP_Node node)
     EXP_Space* space = ctx->space;
     EXP_Node* defCall = EXP_seqElm(space, node);
     EXP_Node body = defCall[2];
-    vec_push(&ctx->funBodies, body);
+    EXP_evalVerifAddFunBodies(ctx, body);
 }
 
-
-
-
-static void EXP_evalVerifBlockFuns(EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len)
+static void EXP_evalVerifAddFunBodies(EXP_EvalVerifContext* ctx, EXP_Node body)
 {
+    EXP_Space* space = ctx->space;
+    if (!EXP_isSeq(space, body))
+    {
+        return;
+    }
+    vec_push(&ctx->funBodies, body);
+    u32 len = EXP_seqLen(space, body);
+    EXP_Node* seq = EXP_seqElm(space, body);
     for (u32 i = 0; i < len; ++i)
     {
-        EXP_evalVerifFunBody(ctx, seq[len - 1 - i]);
+        EXP_evalVerifAddFunBody(ctx, seq[len - 1 - i]);
         if (ctx->error.code)
         {
             return;
@@ -1232,13 +1240,12 @@ EXP_EvalError EXP_evalVerif
 
     vec_dup(&ctx->dataStack, typeStack);
 
+
+    EXP_evalVerifAddFunBodies(ctx, root);
+
+
     u32 len = EXP_seqLen(space, root);
     EXP_Node* seq = EXP_seqElm(space, root);
-
-
-    EXP_evalVerifBlockFuns(ctx, seq, len);
-
-
     EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
     if (ctx->error.code)
     {
