@@ -116,12 +116,13 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
+    u32 blockTableBase;
+    EXP_EvalVerifBlockTable blockTable;
+
     bool dataStackShiftEnable;
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
 
-    u32 blockTableBase;
-    EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
 
@@ -166,13 +167,13 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->varKeyBuf);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
+    vec_free(&ctx->recheckNodes);
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
         EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
         EXP_evalVerifBlockFree(b);
     }
     vec_free(&ctx->blockTable);
-    vec_free(&ctx->recheckNodes);
 }
 
 
