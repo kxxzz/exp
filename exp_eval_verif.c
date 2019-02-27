@@ -107,6 +107,17 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 
 
+typedef struct EXP_EvalVerifEvalState
+{
+    u32 dsOff;
+    u32 dsLen;
+    u32 csOff;
+    u32 csLen;
+} EXP_EvalVerifEvalState;
+
+typedef vec_t(EXP_EvalVerifEvalState) EXP_EvalVerifEvalStateVec;
+
+
 
 typedef struct EXP_EvalVerifContext
 {
@@ -122,6 +133,10 @@ typedef struct EXP_EvalVerifContext
     bool dataStackShiftEnable;
     EXP_NodeVec recheckNodes;
     bool recheckFlag;
+
+    vec_u32 dataStackBuf;
+    EXP_EvalVerifCallVec callStackBuf;
+    EXP_EvalVerifEvalStateVec states;
 
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
@@ -165,9 +180,16 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
+
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
+
+    vec_free(&ctx->states);
+    vec_free(&ctx->callStackBuf);
+    vec_free(&ctx->dataStackBuf);
+
     vec_free(&ctx->recheckNodes);
+
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
         EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
