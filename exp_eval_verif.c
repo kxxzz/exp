@@ -102,7 +102,7 @@ typedef struct EXP_EvalVerifCall
     EXP_EvalVerifBlockCallback cb;
 } EXP_EvalVerifCall;
 
-typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallStack;
+typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 
 
@@ -123,7 +123,7 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
     vec_u32 dataStack;
-    EXP_EvalVerifCallStack callStack;
+    EXP_EvalVerifCallVec callStack;
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
