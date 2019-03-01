@@ -113,6 +113,7 @@ typedef struct EXP_EvalVerifEvalWorld
     u32 dsLen;
     u32 csOff;
     u32 csLen;
+    bool allowDsShift;
 } EXP_EvalVerifEvalWorld;
 
 typedef vec_t(EXP_EvalVerifEvalWorld) EXP_EvalVerifEvalWorldVec;
@@ -205,18 +206,20 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 {
     EXP_EvalVerifEvalWorld save = { 0 };
     save.dsOff = ctx->dsWorldBuf.length;
     save.dsLen = ctx->dataStack.length;
     save.csOff = ctx->csWorldBuf.length;
     save.csLen = ctx->callStack.length;
+    save.allowDsShift = ctx->allowDsShift;
     vec_push(&ctx->worldStack, save);
     vec_concat(&ctx->dsWorldBuf, &ctx->dataStack);
     vec_concat(&ctx->csWorldBuf, &ctx->callStack);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
+    ctx->allowDsShift = allowDsShift;
 }
 
 
@@ -224,11 +227,12 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 {
     assert(ctx->worldStack.length > 0);
     EXP_EvalVerifEvalWorld save = vec_last(&ctx->worldStack);
+    vec_pop(&ctx->worldStack);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsWorldBuf.data + save.dsOff, save.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csWorldBuf.data + save.csOff, save.csLen);
-    vec_pop(&ctx->worldStack);
+    ctx->allowDsShift = save.allowDsShift;
 }
 
 
@@ -704,6 +708,17 @@ static void EXP_evalVerifRecurFun
 
 
 
+static void EXP_evalVerifEnterWorld
+(
+    EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len, EXP_Node src, EXP_Node parent, bool allowDsShift
+)
+{
+    EXP_evalVerifPushWorld(ctx, allowDsShift);
+    EXP_evalVerifEnterBlock(ctx, seq, len, src, parent, EXP_EvalBlockCallback_NONE, true);
+}
+
+
+
 
 
 
@@ -890,14 +905,16 @@ static void EXP_evalVerifNode
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
                     EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                    EXP_evalVerifEnterBlock
-                    (
-                        ctx, body, bodyLen, fun, curCall->srcNode, EXP_EvalBlockCallback_NONE, true
-                    );
-                    if (ctx->error.code)
-                    {
-                        return;
-                    }
+
+                    EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
+                    //EXP_evalVerifEnterBlock
+                    //(
+                    //    ctx, body, bodyLen, fun, curCall->srcNode, EXP_EvalBlockCallback_NONE, true
+                    //);
+                    //if (ctx->error.code)
+                    //{
+                    //    return;
+                    //}
                     return;
                 }
                 else
@@ -1109,7 +1126,9 @@ next:
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
                 curCall->cb.type = EXP_EvalVerifBlockCallbackType_NONE;
-                EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
+
+                EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
+                //EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
                 goto next;
             }
             else
@@ -1266,19 +1285,9 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 
 
 
-/*
-static void EXP_evalVerifBlock(EXP_EvalVerifContext* ctx, EXP_Node block)
-{
-    EXP_Space* space = ctx->space;
-    EXP_Node* seq = EXP_seqElm(space, block);
-    u32 len = EXP_seqLen(space, block);
-    EXP_evalVerifEnterBlock(ctx, seq, len, block, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
-    if (!ctx->error.code && !ctx->recheckFlag)
-    {
-        EXP_evalVerifRecheck(ctx);
-    }
-}
-*/
+
+
+
 
 
 
