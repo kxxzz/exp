@@ -906,15 +906,15 @@ static void EXP_evalVerifNode
                     EXP_Node* body = NULL;
                     EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
 
-                    EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
-                    //EXP_evalVerifEnterBlock
-                    //(
-                    //    ctx, body, bodyLen, fun, curCall->srcNode, EXP_EvalBlockCallback_NONE, true
-                    //);
-                    //if (ctx->error.code)
-                    //{
-                    //    return;
-                    //}
+                    //EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
+                    EXP_evalVerifEnterBlock
+                    (
+                        ctx, body, bodyLen, fun, curCall->srcNode, EXP_EvalBlockCallback_NONE, true
+                    );
+                    if (ctx->error.code)
+                    {
+                        return;
+                    }
                     return;
                 }
                 else
@@ -1127,8 +1127,8 @@ next:
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
                 curCall->cb.type = EXP_EvalVerifBlockCallbackType_NONE;
 
-                EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
-                //EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
+                //EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
+                EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
                 goto next;
             }
             else
