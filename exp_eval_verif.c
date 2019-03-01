@@ -222,11 +222,13 @@ static void EXP_evalVerifSavePush(EXP_EvalVerifContext* ctx)
 
 static void EXP_evalVerifSavePop(EXP_EvalVerifContext* ctx)
 {
+    assert(ctx->saves.length > 0);
     EXP_EvalVerifEvalSave save = vec_last(&ctx->saves);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsSaveBuf.data + save.dsOff, save.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csSaveBuf.data + save.csOff, save.csLen);
+    vec_pop(&ctx->saves);
 }
 
 
