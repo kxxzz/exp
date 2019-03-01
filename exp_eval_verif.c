@@ -203,6 +203,41 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 
 
+
+
+static void EXP_evalVerifSavePush(EXP_EvalVerifContext* ctx)
+{
+    EXP_EvalVerifEvalSave save = { 0 };
+    save.dsOff = ctx->dsSaveBuf.length;
+    save.dsLen = ctx->dataStack.length;
+    save.csOff = ctx->csSaveBuf.length;
+    save.csLen = ctx->callStack.length;
+    vec_push(&ctx->saves, save);
+    vec_concat(&ctx->dsSaveBuf, &ctx->dataStack);
+    vec_concat(&ctx->csSaveBuf, &ctx->callStack);
+    ctx->dataStack.length = 0;
+    ctx->callStack.length = 0;
+}
+
+
+static void EXP_evalVerifSavePop(EXP_EvalVerifContext* ctx)
+{
+    EXP_EvalVerifEvalSave save = vec_last(&ctx->saves);
+    ctx->dataStack.length = 0;
+    ctx->callStack.length = 0;
+    vec_pusharr(&ctx->dataStack, ctx->dsSaveBuf.data + save.dsOff, save.dsLen);
+    vec_pusharr(&ctx->callStack, ctx->csSaveBuf.data + save.csOff, save.csLen);
+}
+
+
+
+
+
+
+
+
+
+
 static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
 {
     ctx->error.code = errCode;
@@ -215,6 +250,8 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
         ctx->error.column = srcInfo->nodes.data[node.id].column;
     }
 }
+
+
 
 
 
