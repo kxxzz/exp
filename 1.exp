@@ -13,9 +13,10 @@
 
 (def fib -> x : (if (> x 2) (+ (fib (- x 1)) (fib (- x 2))) 1))
 
-(fib 20)
 
 20 fib
+
+(fib 20)
 
 
 (def facttail -> n res :

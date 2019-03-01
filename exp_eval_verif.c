@@ -1125,9 +1125,9 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                curCall->cb.type = EXP_EvalVerifBlockCallbackType_NONE;
 
                 //EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
+                curCall->cb.type = EXP_EvalVerifBlockCallbackType_NONE;
                 EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
                 goto next;
             }
