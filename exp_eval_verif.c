@@ -130,7 +130,7 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
-    bool dsShiftEnable;
+    bool allowDsShift;
     bool recheckFlag;
     EXP_NodeVec recheckNodes;
 
@@ -531,7 +531,7 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 
 static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
 {
-    if (!ctx->dsShiftEnable)
+    if (!ctx->allowDsShift)
     {
         return false;
     }
@@ -1220,11 +1220,12 @@ next:
 static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    ctx->dsShiftEnable = true;
+    ctx->allowDsShift = true;
     ctx->recheckFlag = true;
     for (u32 i = 0; i < ctx->recheckNodes.length; ++i)
     {
         ctx->dataStack.length = 0;
+        assert(0 == ctx->callStack.length);
         EXP_Node* pNode = ctx->recheckNodes.data + i;
         EXP_Node parent = EXP_evalVerifGetBlock(ctx, *pNode)->parent;
         EXP_EvalVerifCall blk = { parent, 0, pNode, pNode + 1, EXP_EvalBlockCallback_NONE };
@@ -1262,7 +1263,7 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
 
-    ctx->dsShiftEnable = false;
+    ctx->allowDsShift = false;
     vec_dup(&ctx->dataStack, typeStack);
 
     EXP_Node* seq = EXP_seqElm(space, root);
