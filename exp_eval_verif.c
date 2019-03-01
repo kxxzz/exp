@@ -107,15 +107,15 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 
 
-typedef struct EXP_EvalVerifEvalState
+typedef struct EXP_EvalVerifEvalSave
 {
     u32 dsOff;
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-} EXP_EvalVerifEvalState;
+} EXP_EvalVerifEvalSave;
 
-typedef vec_t(EXP_EvalVerifEvalState) EXP_EvalVerifEvalStateVec;
+typedef vec_t(EXP_EvalVerifEvalSave) EXP_EvalVerifEvalSaveVec;
 
 
 
@@ -130,13 +130,13 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
-    bool dataStackShiftEnable;
-    EXP_NodeVec recheckNodes;
+    bool dsShiftEnable;
     bool recheckFlag;
+    EXP_NodeVec recheckNodes;
 
-    vec_u32 dataStackBuf;
-    EXP_EvalVerifCallVec callStackBuf;
-    EXP_EvalVerifEvalStateVec states;
+    vec_u32 dsSaveBuf;
+    EXP_EvalVerifCallVec csSaveBuf;
+    EXP_EvalVerifEvalSaveVec saves;
 
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
@@ -184,9 +184,9 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
-    vec_free(&ctx->states);
-    vec_free(&ctx->callStackBuf);
-    vec_free(&ctx->dataStackBuf);
+    vec_free(&ctx->saves);
+    vec_free(&ctx->csSaveBuf);
+    vec_free(&ctx->dsSaveBuf);
 
     vec_free(&ctx->recheckNodes);
 
@@ -492,7 +492,7 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 
 static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
 {
-    if (!ctx->dataStackShiftEnable)
+    if (!ctx->dsShiftEnable)
     {
         return false;
     }
@@ -1181,7 +1181,7 @@ next:
 static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    ctx->dataStackShiftEnable = true;
+    ctx->dsShiftEnable = true;
     ctx->recheckFlag = true;
     for (u32 i = 0; i < ctx->recheckNodes.length; ++i)
     {
@@ -1223,7 +1223,7 @@ EXP_EvalError EXP_evalVerif
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext(space, valueTypeTable, nfunTable, nodeTable, srcInfo);
     EXP_EvalVerifContext* ctx = &_ctx;
 
-    ctx->dataStackShiftEnable = false;
+    ctx->dsShiftEnable = false;
     vec_dup(&ctx->dataStack, typeStack);
 
     EXP_Node* seq = EXP_seqElm(space, root);
