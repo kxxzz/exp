@@ -107,15 +107,15 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 
 
-typedef struct EXP_EvalVerifEvalSave
+typedef struct EXP_EvalVerifEvalWorld
 {
     u32 dsOff;
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-} EXP_EvalVerifEvalSave;
+} EXP_EvalVerifEvalWorld;
 
-typedef vec_t(EXP_EvalVerifEvalSave) EXP_EvalVerifEvalSaveVec;
+typedef vec_t(EXP_EvalVerifEvalWorld) EXP_EvalVerifEvalWorldVec;
 
 
 
@@ -134,9 +134,9 @@ typedef struct EXP_EvalVerifContext
     bool recheckFlag;
     EXP_NodeVec recheckNodes;
 
-    vec_u32 dsSaveBuf;
-    EXP_EvalVerifCallVec csSaveBuf;
-    EXP_EvalVerifEvalSaveVec saves;
+    vec_u32 dsWorldBuf;
+    EXP_EvalVerifCallVec csWorldBuf;
+    EXP_EvalVerifEvalWorldVec worldStack;
 
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
@@ -184,9 +184,9 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
-    vec_free(&ctx->saves);
-    vec_free(&ctx->csSaveBuf);
-    vec_free(&ctx->dsSaveBuf);
+    vec_free(&ctx->worldStack);
+    vec_free(&ctx->csWorldBuf);
+    vec_free(&ctx->dsWorldBuf);
 
     vec_free(&ctx->recheckNodes);
 
@@ -205,30 +205,30 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifSavePush(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx)
 {
-    EXP_EvalVerifEvalSave save = { 0 };
-    save.dsOff = ctx->dsSaveBuf.length;
+    EXP_EvalVerifEvalWorld save = { 0 };
+    save.dsOff = ctx->dsWorldBuf.length;
     save.dsLen = ctx->dataStack.length;
-    save.csOff = ctx->csSaveBuf.length;
+    save.csOff = ctx->csWorldBuf.length;
     save.csLen = ctx->callStack.length;
-    vec_push(&ctx->saves, save);
-    vec_concat(&ctx->dsSaveBuf, &ctx->dataStack);
-    vec_concat(&ctx->csSaveBuf, &ctx->callStack);
+    vec_push(&ctx->worldStack, save);
+    vec_concat(&ctx->dsWorldBuf, &ctx->dataStack);
+    vec_concat(&ctx->csWorldBuf, &ctx->callStack);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
 }
 
 
-static void EXP_evalVerifSavePop(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 {
-    assert(ctx->saves.length > 0);
-    EXP_EvalVerifEvalSave save = vec_last(&ctx->saves);
+    assert(ctx->worldStack.length > 0);
+    EXP_EvalVerifEvalWorld save = vec_last(&ctx->worldStack);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
-    vec_pusharr(&ctx->dataStack, ctx->dsSaveBuf.data + save.dsOff, save.dsLen);
-    vec_pusharr(&ctx->callStack, ctx->csSaveBuf.data + save.csOff, save.csLen);
-    vec_pop(&ctx->saves);
+    vec_pusharr(&ctx->dataStack, ctx->dsWorldBuf.data + save.dsOff, save.dsLen);
+    vec_pusharr(&ctx->callStack, ctx->csWorldBuf.data + save.csOff, save.csLen);
+    vec_pop(&ctx->worldStack);
 }
 
 
@@ -697,6 +697,16 @@ static void EXP_evalVerifRecurFun
 
 
 
+
+
+
+
+
+
+
+
+
+
 static void EXP_evalVerifNode
 (
     EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalVerifCall* curCall, EXP_EvalVerifBlock* curBlock
@@ -1009,6 +1019,8 @@ static void EXP_evalVerifNode
 
 
 
+
+
 static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
@@ -1023,6 +1035,11 @@ next:
     }
     if (0 == ctx->callStack.length)
     {
+        if (ctx->worldStack.length > 0)
+        {
+            EXP_evalVerifPopWorld(ctx);
+            goto next;
+        }
         return;
     }
     curCall = &vec_last(&ctx->callStack);
@@ -1217,6 +1234,13 @@ next:
 
 
 
+
+
+
+
+
+
+
 static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
@@ -1241,6 +1265,20 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 
 
 
+
+/*
+static void EXP_evalVerifBlock(EXP_EvalVerifContext* ctx, EXP_Node block)
+{
+    EXP_Space* space = ctx->space;
+    EXP_Node* seq = EXP_seqElm(space, block);
+    u32 len = EXP_seqLen(space, block);
+    EXP_evalVerifEnterBlock(ctx, seq, len, block, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    if (!ctx->error.code && !ctx->recheckFlag)
+    {
+        EXP_evalVerifRecheck(ctx);
+    }
+}
+*/
 
 
 
