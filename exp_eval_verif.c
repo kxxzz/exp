@@ -24,21 +24,19 @@ typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
 
 
 
-typedef enum EXP_EvalVerifBlockTypeInferState
-{
-    EXP_EvalVerifBlockTypeInferState_None = 0,
-    EXP_EvalVerifBlockTypeInferState_Entered,
-    EXP_EvalVerifBlockTypeInferState_Done,
-} EXP_EvalVerifBlockTypeInferState;
+
+
 
 typedef struct EXP_EvalVerifBlock
 {
+    bool entered;
+    bool completed;
+    EXP_EvalVerifDefTable defsBuf;
+    vec_u32 typeInBuf;
+
     EXP_Node parent;
     EXP_EvalVerifDefTable defs;
     u32 varsCount;
-
-    EXP_EvalVerifBlockTypeInferState typeInferState;
-    bool completed;
     u32 numIns;
     u32 numOuts;
     vec_u32 typeInOut;
@@ -46,21 +44,27 @@ typedef struct EXP_EvalVerifBlock
 
 typedef vec_t(EXP_EvalVerifBlock) EXP_EvalVerifBlockTable;
 
-static void EXP_evalVerifBlockFree(EXP_EvalVerifBlock* info)
+static void EXP_evalVerifBlockFree(EXP_EvalVerifBlock* blk)
 {
-    vec_free(&info->typeInOut);
-    vec_free(&info->defs);
+    vec_free(&blk->typeInOut);
+    vec_free(&blk->defs);
+    vec_free(&blk->typeInBuf);
+    vec_free(&blk->defsBuf);
 }
 
-static void EXP_evalVerifBlockReset(EXP_EvalVerifBlock* info)
+static void EXP_evalVerifBlockReset(EXP_EvalVerifBlock* blk)
 {
-    info->parent = EXP_Node_Invalid;
-    info->defs.length = 0;
+    blk->entered = false;
+    blk->completed = false;
+    blk->defsBuf.length = 0;
+    blk->typeInBuf.length = 0;
 
-    info->typeInferState = EXP_EvalVerifBlockTypeInferState_None;
-    info->numIns = 0;
-    info->numOuts = 0;
-    info->typeInOut.length = 0;
+    blk->parent = EXP_Node_Invalid;
+    blk->defs.length = 0;
+    blk->varsCount = 0;
+    blk->numIns = 0;
+    blk->numOuts = 0;
+    blk->typeInOut.length = 0;
 }
 
 
@@ -421,9 +425,18 @@ static void EXP_evalVerifEnterBlock
     vec_push(&ctx->callStack, call);
 
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
-    assert(EXP_EvalVerifBlockTypeInferState_None == blk->typeInferState);
-    blk->typeInferState = EXP_EvalVerifBlockTypeInferState_Entered;
+    assert(!blk->entered);
+    blk->entered = true;
+
+    if (EXP_NodeId_Invalid == blk->parent.id)
+    {
+        assert(blk->parent.id == parent.id);
+    }
     blk->parent = parent;
+
+    blk->typeInOut.length = 0;
+
+    blk->defsBuf.length = 0;
     if (isDefScope)
     {
         for (u32 i = 0; i < len; ++i)
@@ -444,20 +457,29 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
-    assert(curBlock->typeInOut.length == curBlock->numIns);
-    assert(ctx->dataStack.length + curBlock->numIns >= curCall->dataStackP);
-    curBlock->numOuts = ctx->dataStack.length + curBlock->numIns - curCall->dataStackP;
+    assert(ctx->dataStack.length + curBlock->typeInBuf.length >= curCall->dataStackP);
+    curBlock->numOuts = ctx->dataStack.length + curBlock->typeInBuf.length - curCall->dataStackP;
 
-    bool uncompleted = false;
-    for (u32 i = 0; i < curBlock->numOuts; ++i)
+    if (EXP_EvalVerifBlockTypeInferState_Entered == curBlock->typeInferState)
     {
-        u32 j = ctx->dataStack.length - curBlock->numOuts + i;
-        u32 t = ctx->dataStack.data[j];
-        if (!uncompleted && (-1 == t))
+        assert(0 == curBlock->numIns);
+        for (u32 i = 0; i < curBlock->typeInBuf.length; ++i)
         {
-            uncompleted = true;
+            u32 t = curBlock->typeInBuf.data[i];
+            vec_push(&curBlock->typeInOut, t);
         }
-        vec_push(&curBlock->typeInOut, t);
+
+        bool uncompleted = false;
+        for (u32 i = 0; i < curBlock->numOuts; ++i)
+        {
+            u32 j = ctx->dataStack.length - curBlock->numOuts + i;
+            u32 t = ctx->dataStack.data[j];
+            if (!uncompleted && (-1 == t))
+            {
+                uncompleted = true;
+            }
+            vec_push(&curBlock->typeInOut, t);
+        }
     }
 
     assert(EXP_EvalVerifBlockTypeInferState_Entered == curBlock->typeInferState);
@@ -472,8 +494,8 @@ static void EXP_evalVerifBlockSaveInfo(EXP_EvalVerifContext* ctx, EXP_EvalVerifB
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
-    assert(curBlock->typeInOut.length == curBlock->numIns);
-    assert(ctx->dataStack.length + curBlock->numIns >= curCall->dataStackP);
+
+    assert(ctx->dataStack.length + curBlock->typeInBuf.length >= curCall->dataStackP);
 
     if (EXP_EvalVerifBlockTypeInferState_Done == nodeInfo->typeInferState)
     {
@@ -635,7 +657,6 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifB
     for (u32 i = 0; i < funInfo->numOuts; ++i)
     {
         u32 vt = funInfo->typeInOut.data[funInfo->numIns + i];
-        assert(vt != -1);
         vec_push(dataStack, vt);
     }
 }
@@ -677,7 +698,6 @@ static void EXP_evalVerifRecurFun
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
                 cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-                //EXP_evalVerifAddRecheck(ctx, srcNode);
                 return;
             }
         }
@@ -687,7 +707,6 @@ static void EXP_evalVerifRecurFun
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
             cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-            //EXP_evalVerifAddRecheck(ctx, srcNode);
             return;
         }
         EXP_evalVerifCancelBlock(ctx);
@@ -1221,7 +1240,6 @@ next:
             {
                 u32 t;
                 bool m = EXP_evalTypeUnify(b0->typeInOut.data[i], b1->typeInOut.data[i], &t);
-                assert(t != -1);
                 if (!m)
                 {
                     EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalBranchUneq);
