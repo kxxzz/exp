@@ -114,8 +114,6 @@ typedef struct EXP_EvalVerifSnapshot
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-    //u32 rnOff;
-    //u32 rnLen;
     bool allowDsShift;
 } EXP_EvalVerifSnapshot;
 
@@ -139,16 +137,13 @@ typedef struct EXP_EvalVerifContext
 
     bool allowDsShift;
     bool recheckPassFlag;
-    //EXP_NodeVec recheckNodes;
 
     vec_u32 dsBuf;
     EXP_EvalVerifCallVec csBuf;
-    //EXP_NodeVec rnBuf;
     EXP_EvalVerifWorldStack worldStack;
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
-    EXP_Node recheckRoot;
 } EXP_EvalVerifContext;
 
 
@@ -188,11 +183,8 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->varKeyBuf);
 
     vec_free(&ctx->worldStack);
-    //vec_free(&ctx->rnBuf);
     vec_free(&ctx->csBuf);
     vec_free(&ctx->dsBuf);
-
-    //vec_free(&ctx->recheckNodes);
 
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
@@ -219,16 +211,12 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
-    //snapshot.rnOff = ctx->rnBuf.length;
-    //snapshot.rnLen = ctx->recheckNodes.length;
     snapshot.allowDsShift = ctx->allowDsShift;
     vec_push(&ctx->worldStack, snapshot);
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
-    //vec_concat(&ctx->rnBuf, &ctx->recheckNodes);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
-    //ctx->recheckNodes.length = 0;
     ctx->allowDsShift = allowDsShift;
 }
 
@@ -236,17 +224,13 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 {
     assert(0 == ctx->callStack.length);
-    //assert(0 == ctx->recheckNodes.length);
     assert(ctx->worldStack.length > 0);
     EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
     ctx->dataStack.length = 0;
-    //ctx->recheckNodes.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
-    //vec_pusharr(&ctx->recheckNodes, ctx->rnBuf.data + snapshot.rnOff, snapshot.rnLen);
     ctx->allowDsShift = snapshot.allowDsShift;
-    ctx->recheckPassFlag = false;
 }
 
 
@@ -437,12 +421,6 @@ static void EXP_evalVerifEnterBlock
     vec_push(&ctx->callStack, call);
 
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
-    if (EXP_EvalVerifBlockTypeInferState_Done == blk->typeInferState)
-    {
-        assert(ctx->recheckPassFlag);
-        assert(blk->parent.id == parent.id);
-        EXP_evalVerifBlockReset(blk);
-    }
     assert(EXP_EvalVerifBlockTypeInferState_None == blk->typeInferState);
     blk->typeInferState = EXP_EvalVerifBlockTypeInferState_Entered;
     blk->parent = parent;
@@ -466,13 +444,6 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
-    if (EXP_EvalVerifBlockTypeInferState_Done == curBlock->typeInferState)
-    {
-        assert(ctx->recheckPassFlag);
-        assert(1 == ctx->callStack.length);
-        vec_pop(&ctx->callStack);
-        return;
-    }
     assert(curBlock->typeInOut.length == curBlock->numIns);
     assert(ctx->dataStack.length + curBlock->numIns >= curCall->dataStackP);
     curBlock->numOuts = ctx->dataStack.length + curBlock->numIns - curCall->dataStackP;
@@ -664,7 +635,7 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifB
     for (u32 i = 0; i < funInfo->numOuts; ++i)
     {
         u32 vt = funInfo->typeInOut.data[funInfo->numIns + i];
-        //assert(vt != -1);
+        assert(vt != -1);
         vec_push(dataStack, vt);
     }
 }
@@ -678,10 +649,7 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifB
 
 
 
-static void EXP_evalVerifAddRecheck(EXP_EvalVerifContext* ctx, EXP_Node node)
-{
-    //vec_push(&ctx->recheckNodes, node);
-}
+
 
 
 static void EXP_evalVerifRecurFun
@@ -709,7 +677,7 @@ static void EXP_evalVerifRecurFun
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
                 cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-                EXP_evalVerifAddRecheck(ctx, srcNode);
+                //EXP_evalVerifAddRecheck(ctx, srcNode);
                 return;
             }
         }
@@ -719,7 +687,7 @@ static void EXP_evalVerifRecurFun
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
             cb->type = EXP_EvalVerifBlockCallbackType_NONE;
-            EXP_evalVerifAddRecheck(ctx, srcNode);
+            //EXP_evalVerifAddRecheck(ctx, srcNode);
             return;
         }
         EXP_evalVerifCancelBlock(ctx);
@@ -944,6 +912,7 @@ static void EXP_evalVerifNode
                 }
                 else
                 {
+                    assert(EXP_EvalVerifBlockTypeInferState_Entered == funInfo->typeInferState);
                     EXP_evalVerifRecurFun(ctx, curCall, funInfo);
                     if (ctx->error.code)
                     {
@@ -1062,20 +1031,7 @@ static void EXP_evalVerifNode
 
 
 
-/*
-static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
-{
-    ctx->dataStack.length = 0;
-    assert(0 == ctx->callStack.length);
-    assert(ctx->recheckNodes.length > 0);
-    EXP_Node node = vec_last(&ctx->recheckNodes);
-    vec_pop(&ctx->recheckNodes);
-    ctx->recheckRoot = node;
-    EXP_Node parent = EXP_evalVerifGetBlock(ctx, node)->parent;
-    EXP_EvalVerifCall blk = { parent, 0, &ctx->recheckRoot, &ctx->recheckRoot + 1, EXP_EvalBlockCallback_NONE };
-    vec_push(&ctx->callStack, blk);
-}
-*/
+
 
 
 
@@ -1095,21 +1051,6 @@ next:
     }
     if (0 == ctx->callStack.length)
     {
-        //if (ctx->recheckNodes.length > 0)
-        //{
-        //    if (!ctx->recheckPassFlag)
-        //    {
-        //        ctx->recheckPassFlag = true;
-        //        //for (u32 i = 0; i < ctx->recheckNodes.length / 2; ++i)
-        //        //{
-        //        //    EXP_Node temp = ctx->recheckNodes.data[i];
-        //        //    ctx->recheckNodes.data[i] = ctx->recheckNodes.data[ctx->recheckNodes.length - i];
-        //        //    ctx->recheckNodes.data[ctx->recheckNodes.length - i] = temp;
-        //        //}
-        //    }
-        //    EXP_evalVerifRecheck(ctx);
-        //    goto next;
-        //}
         if (ctx->worldStack.length > 0)
         {
             EXP_evalVerifPopWorld(ctx);
@@ -1189,6 +1130,7 @@ next:
             }
             else
             {
+                assert(EXP_EvalVerifBlockTypeInferState_Entered == funInfo->typeInferState);
                 EXP_evalVerifRecurFun(ctx, curCall, funInfo);
                 goto next;
             }
