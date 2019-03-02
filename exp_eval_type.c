@@ -235,13 +235,13 @@ enter:
 
 
 
-bool EXP_evalTypeMatch(u32 pat, u32 x)
+bool EXP_evalTypeMatch(u32 a, u32 b)
 {
-    if (EXP_EvalValueType_Any == pat)
+    if ((EXP_EvalValueType_Any == a) || (EXP_EvalValueType_Any == b))
     {
         return true;
     }
-    return pat == x;
+    return a == b;
 }
 
 

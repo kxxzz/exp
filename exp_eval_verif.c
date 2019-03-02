@@ -772,7 +772,8 @@ static void EXP_evalVerifNode
                         enode->type = EXP_EvalNodeType_VarDefEnd;
                         if (n > dataStack->length)
                         {
-                            for (u32 i = 0; i < n - dataStack->length; ++i)
+                            u32 shiftN = n - dataStack->length;
+                            for (u32 i = 0; i < shiftN; ++i)
                             {
                                 u32 a[] = { EXP_EvalValueType_Any };
                                 if (!EXP_evalVerifShiftDataStack(ctx, 1, a))
@@ -908,14 +909,6 @@ static void EXP_evalVerifNode
 
                     --curCall->p;
                     EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
-                    //EXP_evalVerifEnterBlock
-                    //(
-                    //    ctx, body, bodyLen, fun, curCall->srcNode, EXP_EvalBlockCallback_NONE, true
-                    //);
-                    //if (ctx->error.code)
-                    //{
-                    //    return;
-                    //}
                     return;
                 }
                 else
@@ -1127,9 +1120,7 @@ next:
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
 
-                //EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
-                curCall->cb.type = EXP_EvalVerifBlockCallbackType_NONE;
-                EXP_evalVerifEnterBlock(ctx, body, bodyLen, fun, srcNode, EXP_EvalBlockCallback_NONE, true);
+                EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
                 goto next;
             }
             else
@@ -1229,7 +1220,8 @@ next:
                     EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalBranchUneq);
                     goto next;
                 }
-                assert(b1->typeInOut.data[i] == curBlock->typeInOut.data[i]);
+                // todo
+                assert(EXP_evalTypeMatch(b1->typeInOut.data[i], curBlock->typeInOut.data[i]));
                 b0->typeInOut.data[i] = t;
                 b1->typeInOut.data[i] = t;
                 curBlock->typeInOut.data[i] = t;
