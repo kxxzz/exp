@@ -1051,6 +1051,7 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
     ctx->dataStack.length = 0;
     assert(0 == ctx->callStack.length);
+    assert(ctx->recheckNodes.length > 0);
     EXP_Node node = vec_last(&ctx->recheckNodes);
     vec_pop(&ctx->recheckNodes);
     ctx->recheckRoot = node;
