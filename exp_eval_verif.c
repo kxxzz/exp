@@ -107,16 +107,18 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 
 
-typedef struct EXP_EvalVerifEvalWorld
+typedef struct EXP_EvalVerifSnapshot
 {
     u32 dsOff;
     u32 dsLen;
     u32 csOff;
     u32 csLen;
+    u32 rnOff;
+    u32 rnLen;
     bool allowDsShift;
-} EXP_EvalVerifEvalWorld;
+} EXP_EvalVerifSnapshot;
 
-typedef vec_t(EXP_EvalVerifEvalWorld) EXP_EvalVerifEvalWorldVec;
+typedef vec_t(EXP_EvalVerifSnapshot) EXP_EvalVerifWorldStack;
 
 
 
@@ -131,16 +133,17 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
+    vec_u32 dataStack;
+    EXP_EvalVerifCallVec callStack;
+
     bool allowDsShift;
     bool recheckPassFlag;
     EXP_NodeVec recheckNodes;
 
-    vec_u32 dsWorldBuf;
-    EXP_EvalVerifCallVec csWorldBuf;
-    EXP_EvalVerifEvalWorldVec worldStack;
-
-    vec_u32 dataStack;
-    EXP_EvalVerifCallVec callStack;
+    vec_u32 dsBuf;
+    EXP_EvalVerifCallVec csBuf;
+    EXP_NodeVec rnBuf;
+    EXP_EvalVerifWorldStack worldStack;
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
@@ -183,14 +186,15 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
     vec_free(&ctx->varKeyBuf);
 
-    vec_free(&ctx->callStack);
-    vec_free(&ctx->dataStack);
-
     vec_free(&ctx->worldStack);
-    vec_free(&ctx->csWorldBuf);
-    vec_free(&ctx->dsWorldBuf);
+    vec_free(&ctx->rnBuf);
+    vec_free(&ctx->csBuf);
+    vec_free(&ctx->dsBuf);
 
     vec_free(&ctx->recheckNodes);
+
+    vec_free(&ctx->callStack);
+    vec_free(&ctx->dataStack);
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
@@ -209,17 +213,21 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 {
-    EXP_EvalVerifEvalWorld world = { 0 };
-    world.dsOff = ctx->dsWorldBuf.length;
-    world.dsLen = ctx->dataStack.length;
-    world.csOff = ctx->csWorldBuf.length;
-    world.csLen = ctx->callStack.length;
-    world.allowDsShift = ctx->allowDsShift;
-    vec_push(&ctx->worldStack, world);
-    vec_concat(&ctx->dsWorldBuf, &ctx->dataStack);
-    vec_concat(&ctx->csWorldBuf, &ctx->callStack);
+    EXP_EvalVerifSnapshot snapshot = { 0 };
+    snapshot.dsOff = ctx->dsBuf.length;
+    snapshot.dsLen = ctx->dataStack.length;
+    snapshot.csOff = ctx->csBuf.length;
+    snapshot.csLen = ctx->callStack.length;
+    snapshot.rnOff = ctx->rnBuf.length;
+    snapshot.rnLen = ctx->recheckNodes.length;
+    snapshot.allowDsShift = ctx->allowDsShift;
+    vec_push(&ctx->worldStack, snapshot);
+    vec_concat(&ctx->dsBuf, &ctx->dataStack);
+    vec_concat(&ctx->csBuf, &ctx->callStack);
+    vec_concat(&ctx->rnBuf, &ctx->recheckNodes);
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
+    ctx->recheckNodes.length = 0;
     ctx->allowDsShift = allowDsShift;
 }
 
@@ -227,13 +235,16 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 {
     assert(0 == ctx->callStack.length);
+    assert(0 == ctx->recheckNodes.length);
     assert(ctx->worldStack.length > 0);
-    EXP_EvalVerifEvalWorld world = vec_last(&ctx->worldStack);
+    EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
     ctx->dataStack.length = 0;
-    vec_pusharr(&ctx->dataStack, ctx->dsWorldBuf.data + world.dsOff, world.dsLen);
-    vec_pusharr(&ctx->callStack, ctx->csWorldBuf.data + world.csOff, world.csLen);
-    ctx->allowDsShift = world.allowDsShift;
+    ctx->recheckNodes.length = 0;
+    vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
+    vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
+    vec_pusharr(&ctx->recheckNodes, ctx->rnBuf.data + snapshot.rnOff, snapshot.rnLen);
+    ctx->allowDsShift = snapshot.allowDsShift;
     ctx->recheckPassFlag = false;
 }
 
@@ -1067,18 +1078,18 @@ next:
     }
     if (0 == ctx->callStack.length)
     {
+        if (ctx->recheckNodes.length > 0)
+        {
+            if (!ctx->recheckPassFlag)
+            {
+                ctx->recheckPassFlag = true;
+            }
+            EXP_evalVerifRecheck(ctx);
+            goto next;
+        }
         if (ctx->worldStack.length > 0)
         {
             EXP_evalVerifPopWorld(ctx);
-            goto next;
-        }
-        if (!ctx->recheckPassFlag)
-        {
-            ctx->recheckPassFlag = true;
-        }
-        if (ctx->recheckNodes.length > 0)
-        {
-            EXP_evalVerifRecheck(ctx);
             goto next;
         }
         return;
