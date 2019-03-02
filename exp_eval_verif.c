@@ -1310,13 +1310,14 @@ EXP_EvalError EXP_evalVerif
         return error;
     }
     EXP_evalVerifCall(ctx);
-    {
-        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, root);
-        assert(EXP_EvalVerifBlockTypeInferState_Done == blk->typeInferState);
-        assert(0 == blk->numIns);
-        typeStack->length = 0;
-        vec_pusharr(typeStack, blk->typeInOut.data + blk->numIns, blk->numOuts);
-    }
+    vec_dup(typeStack, &ctx->dataStack);
+    //{
+    //    EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, root);
+    //    assert(EXP_EvalVerifBlockTypeInferState_Done == blk->typeInferState);
+    //    assert(0 == blk->numIns);
+    //    typeStack->length = 0;
+    //    vec_pusharr(typeStack, blk->typeInOut.data + blk->numIns, blk->numOuts);
+    //}
     if (!ctx->error.code)
     {
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
