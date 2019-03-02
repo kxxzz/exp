@@ -28,7 +28,6 @@ typedef enum EXP_EvalVerifBlockTypeInferState
 {
     EXP_EvalVerifBlockTypeInferState_None = 0,
     EXP_EvalVerifBlockTypeInferState_Entered,
-    EXP_EvalVerifBlockTypeInferState_Undone,
     EXP_EvalVerifBlockTypeInferState_Done,
 } EXP_EvalVerifBlockTypeInferState;
 
@@ -39,6 +38,7 @@ typedef struct EXP_EvalVerifBlock
     u32 varsCount;
 
     EXP_EvalVerifBlockTypeInferState typeInferState;
+    bool completed;
     u32 numIns;
     u32 numOuts;
     vec_u32 typeInOut;
@@ -477,27 +477,21 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     assert(ctx->dataStack.length + curBlock->numIns >= curCall->dataStackP);
     curBlock->numOuts = ctx->dataStack.length + curBlock->numIns - curCall->dataStackP;
 
-    bool undone = false;
+    bool uncompleted = false;
     for (u32 i = 0; i < curBlock->numOuts; ++i)
     {
         u32 j = ctx->dataStack.length - curBlock->numOuts + i;
         u32 t = ctx->dataStack.data[j];
-        if (!undone && (-1 == t))
+        if (!uncompleted && (-1 == t))
         {
-            undone = true;
+            uncompleted = true;
         }
         vec_push(&curBlock->typeInOut, t);
     }
 
     assert(EXP_EvalVerifBlockTypeInferState_Entered == curBlock->typeInferState);
-    if (undone)
-    {
-        curBlock->typeInferState = EXP_EvalVerifBlockTypeInferState_Undone;
-    }
-    else
-    {
-        curBlock->typeInferState = EXP_EvalVerifBlockTypeInferState_Done;
-    }
+    curBlock->completed = !uncompleted;
+    curBlock->typeInferState = EXP_EvalVerifBlockTypeInferState_Done;
     vec_pop(&ctx->callStack);
 }
 
@@ -520,25 +514,19 @@ static void EXP_evalVerifBlockSaveInfo(EXP_EvalVerifContext* ctx, EXP_EvalVerifB
         vec_push(&nodeInfo->typeInOut, nodeInfo->typeInOut.data[i]);
     }
     nodeInfo->numOuts = ctx->dataStack.length + curBlock->numIns - curCall->dataStackP;
-    bool undone = false;
+    bool uncompleted = false;
     for (u32 i = 0; i < nodeInfo->numOuts; ++i)
     {
         u32 j = ctx->dataStack.length - nodeInfo->numOuts + i;
         u32 t = ctx->dataStack.data[j];
-        if (!undone && (-1 == t))
+        if (!uncompleted && (-1 == t))
         {
-            undone = true;
+            uncompleted = true;
         }
         vec_push(&nodeInfo->typeInOut, t);
     }
-    if (undone)
-    {
-        nodeInfo->typeInferState = EXP_EvalVerifBlockTypeInferState_Undone;
-    }
-    else
-    {
-        nodeInfo->typeInferState = EXP_EvalVerifBlockTypeInferState_Done;
-    }
+    nodeInfo->completed = !uncompleted;
+    nodeInfo->typeInferState = EXP_EvalVerifBlockTypeInferState_Done;
 }
 
 
