@@ -132,7 +132,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalVerifBlockTable blockTable;
 
     bool allowDsShift;
-    bool recheckFlag;
+    bool recheckPassFlag;
     EXP_NodeVec recheckNodes;
 
     vec_u32 dsWorldBuf;
@@ -233,6 +233,7 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     vec_pusharr(&ctx->dataStack, ctx->dsWorldBuf.data + world.dsOff, world.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csWorldBuf.data + world.csOff, world.csLen);
     ctx->allowDsShift = world.allowDsShift;
+    ctx->recheckPassFlag = false;
 }
 
 
@@ -423,8 +424,9 @@ static void EXP_evalVerifEnterBlock
     vec_push(&ctx->callStack, call);
 
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
-    if (ctx->recheckFlag && (blk->typeInferState != EXP_EvalVerifBlockTypeInferState_None))
+    if (EXP_EvalVerifBlockTypeInferState_Done == blk->typeInferState)
     {
+        assert(ctx->recheckPassFlag);
         assert(blk->parent.id == parent.id);
         EXP_evalVerifBlockReset(blk);
     }
@@ -451,9 +453,10 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
-    if (ctx->recheckFlag && (1 == ctx->callStack.length))
+    if (EXP_EvalVerifBlockTypeInferState_Done == curBlock->typeInferState)
     {
-        assert(EXP_EvalVerifBlockTypeInferState_Done == curBlock->typeInferState);
+        assert(ctx->recheckPassFlag);
+        assert(1 == ctx->callStack.length);
         vec_pop(&ctx->callStack);
         return;
     }
@@ -659,7 +662,7 @@ static void EXP_evalVerifRecurFun
 )
 {
     assert(EXP_EvalVerifBlockTypeInferState_Entered == funInfo->typeInferState);
-    assert(!ctx->recheckFlag);
+    assert(!ctx->recheckPassFlag);
     EXP_Space* space = ctx->space;
 
     EXP_Node lastSrcNode = EXP_Node_Invalid;
@@ -1257,7 +1260,7 @@ static void EXP_evalVerifRecheck(EXP_EvalVerifContext* ctx)
 {
     EXP_Space* space = ctx->space;
     ctx->allowDsShift = true;
-    ctx->recheckFlag = true;
+    ctx->recheckPassFlag = true;
     for (u32 i = 0; i < ctx->recheckNodes.length; ++i)
     {
         ctx->dataStack.length = 0;
