@@ -1020,8 +1020,16 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_CallFun;
             enode->funDef = def.fun;
 
-            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call, .fun = def.fun };
-            EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+            EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+            if (!nodeBlk->completed)
+            {
+                EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call,.fun = def.fun };
+                EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+            }
+            else
+            {
+                // todo
+            }
             return;
         }
     }
@@ -1031,10 +1039,20 @@ static void EXP_evalVerifNode
     {
         enode->type = EXP_EvalNodeType_CallNfun;
         enode->nfun = nfun;
+
         EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
         assert(nfunInfo->call);
-        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .nfun = nfun };
-        EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+
+        EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+        if (!nodeBlk->completed)
+        {
+            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall,.nfun = nfun };
+            EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+        }
+        else
+        {
+            // todo
+        }
         return;
     }
 
@@ -1054,8 +1072,16 @@ static void EXP_evalVerifNode
             EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Cond };
-        EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
+        EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+        if (!nodeBlk->completed)
+        {
+            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Cond };
+            EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
+        }
+        else
+        {
+            // todo
+        }
         return;
     }
     default:
