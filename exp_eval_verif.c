@@ -457,9 +457,6 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     assert(!curBlock->completed);
 
-    assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
-    curBlock->numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
-
     if (!curBlock->defsGot)
     {
         curBlock->defsGot = true;
@@ -536,6 +533,10 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             u32 t = curBlock->inBuf.data[i];
             vec_push(&curBlock->inout, t);
         }
+
+        assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
+        curBlock->numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
+
         for (u32 i = 0; i < curBlock->numOuts; ++i)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
@@ -564,6 +565,10 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             EXP_evalTypeUnify(t0, t1, &t);
             curBlock->inout.data[i] = t;
         }
+
+        assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
+        curBlock->numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
+
         for (u32 i = 0; i < curBlock->numOuts; ++i)
         {
             u32 t0 = curBlock->inout.data[curBlock->numIns + i];
@@ -609,22 +614,20 @@ static void EXP_evalVerifBlockEnteredRevert(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifBlockUnenteredRevert(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifBlockUnenteredRevert(EXP_EvalVerifContext* ctx, EXP_EvalVerifBlock* blk)
 {
     vec_u32* dataStack = &ctx->dataStack;
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
-    assert(!curBlock->entered);
+    assert(!blk->entered);
 
-    assert(dataStack->length >= curBlock->numOuts);
-    for (u32 i = 0; i < curBlock->numOuts; ++i)
+    assert(dataStack->length >= blk->numOuts);
+    for (u32 i = 0; i < blk->numOuts; ++i)
     {
         vec_pop(dataStack);
     }
-    for (u32 i = 0; i < curBlock->numIns; ++i)
+    for (u32 i = 0; i < blk->numIns; ++i)
     {
-        vec_push(dataStack, curBlock->inout.data[i]);
+        vec_push(dataStack, blk->inout.data[i]);
     }
 }
 
@@ -1278,7 +1281,7 @@ next:
 
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
-                EXP_evalVerifBlockUnenteredRevert(ctx);
+                EXP_evalVerifBlockUnenteredRevert(ctx, curBlock);
                 EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_BranchUnify };
                 EXP_evalVerifEnterBlock(ctx, EXP_evalIfBranch1(space, srcNode), 1, srcNode, parent, cb, false);
             }
