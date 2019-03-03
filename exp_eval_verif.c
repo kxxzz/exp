@@ -655,21 +655,21 @@ static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* n
 
 
 
-static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifBlock* funBlk, EXP_Node srcNode)
+static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifBlock* blk, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
-    assert(funBlk->haveInOut);
-    assert(dataStack->length >= funBlk->numIns);
-    u32 argsOffset = dataStack->length - funBlk->numIns;
-    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, funBlk->inout.data);
+    assert(blk->haveInOut);
+    assert(dataStack->length >= blk->numIns);
+    u32 argsOffset = dataStack->length - blk->numIns;
+    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
 
-    assert((funBlk->numIns + funBlk->numOuts) == funBlk->inout.length);
-    for (u32 i = 0; i < funBlk->numIns; ++i)
+    assert((blk->numIns + blk->numOuts) == blk->inout.length);
+    for (u32 i = 0; i < blk->numIns; ++i)
     {
         u32 vt1 = dataStack->data[argsOffset + i];
-        u32 vt = funBlk->inout.data[i];
+        u32 vt = blk->inout.data[i];
         if (!EXP_evalTypeMatch(vt, vt1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
@@ -677,9 +677,9 @@ static void EXP_evalVerifFunCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifB
         }
     }
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < funBlk->numOuts; ++i)
+    for (u32 i = 0; i < blk->numOuts; ++i)
     {
-        u32 vt = funBlk->inout.data[funBlk->numIns + i];
+        u32 vt = blk->inout.data[blk->numIns + i];
         vec_push(dataStack, vt);
     }
 }
@@ -938,7 +938,7 @@ static void EXP_evalVerifNode
                             return;
                         }
                     }
-                    EXP_evalVerifFunCall(ctx, funBlk, node);
+                    EXP_evalVerifBlockCall(ctx, funBlk, node);
                     return;
                 }
                 else if (!funBlk->entered)
@@ -1178,7 +1178,7 @@ next:
                     EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
-                EXP_evalVerifFunCall(ctx, funBlk, srcNode);
+                EXP_evalVerifBlockCall(ctx, funBlk, srcNode);
                 EXP_evalVerifLeaveBlock(ctx);
                 goto next;
             }
