@@ -129,6 +129,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_EvalArgs,
     EXP_EvalErrCode_EvalBranchUneq,
     EXP_EvalErrCode_EvalRecurNoBaseCase,
+    EXP_EvalErrCode_EvalUnification,
 
     EXP_NumEvalErrorCodes
 } EXP_EvalErrCode;
