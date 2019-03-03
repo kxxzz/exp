@@ -1325,6 +1325,7 @@ EXP_EvalError EXP_evalVerif
         }
         EXP_evalVerifCall(ctx);
     }
+    assert(rootBlk->completed);
     vec_dup(typeStack, &ctx->dataStack);
     if (!ctx->error.code)
     {
