@@ -31,9 +31,9 @@ typedef struct EXP_EvalVerifBlock
 {
     bool completed;
     bool haveInOut;
+    bool halfFlag;
 
     bool entered;
-    bool halfFlag;
     vec_u32 inBuf;
 
     EXP_Node parent;
@@ -402,6 +402,29 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 
 
 
+static void EXP_evalVerifBlockSetHalfFlag(EXP_EvalVerifContext* ctx)
+{
+    for (u32 i = 0; i < ctx->callStack.length; ++i)
+    {
+        u32 j = ctx->callStack.length - 1 - i;
+        EXP_EvalVerifCall* call = ctx->callStack.data + j;
+        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, call->srcNode);
+        if (blk->halfFlag)
+        {
+            break;
+        }
+        blk->halfFlag = true;
+    }
+}
+
+
+
+
+
+
+
+
+
 static void EXP_evalVerifEnterBlock
 (
     EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent, EXP_EvalVerifBlockCallback cb,
@@ -471,7 +494,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             u32 t = ctx->dataStack.data[j];
             if (!curBlock->halfFlag && (-1 == t))
             {
-                curBlock->halfFlag = true;
+                EXP_evalVerifBlockSetHalfFlag(ctx);
             }
             vec_push(&curBlock->inout, t);
         }
@@ -515,7 +538,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
             if (!curBlock->halfFlag && (-1 == t))
             {
-                curBlock->halfFlag = true;
+                EXP_evalVerifBlockSetHalfFlag(ctx);
             }
         }
     }
@@ -572,7 +595,6 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
     curBlock->entered = false;
-    curBlock->halfFlag = false;
     curBlock->inBuf.length = 0;
 
     vec_pop(&ctx->callStack);
@@ -737,7 +759,7 @@ static void EXP_evalVerifRecurFun
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
-                curBlock->halfFlag = true;
+                EXP_evalVerifBlockSetHalfFlag(ctx);
                 EXP_evalVerifBlockEnteredRevert(ctx);
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
@@ -747,7 +769,7 @@ static void EXP_evalVerifRecurFun
         }
         else if (EXP_EvalVerifBlockCallbackType_BranchUnify == cb->type)
         {
-            curBlock->halfFlag = true;
+            EXP_evalVerifBlockSetHalfFlag(ctx);
             EXP_evalVerifBlockEnteredRevert(ctx);
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
@@ -1175,6 +1197,9 @@ next:
         case EXP_EvalVerifBlockCallbackType_Call:
         {
             EXP_Node srcNode = curCall->srcNode;
+#ifndef NDEBUG
+            EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo->nodes.data + srcNode.id;
+#endif
             EXP_Node fun = cb->fun;
             EXP_EvalVerifBlock* funBlk = blockTable->data + fun.id;
             if (funBlk->completed)

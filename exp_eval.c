@@ -371,6 +371,9 @@ next:
         return;
     }
     EXP_Node node = *(curCall->p++);
+#ifndef NDEBUG
+    EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo.nodes.data + node.id;
+#endif
     EXP_EvalNode* enode = nodeTable->data + node.id;
     switch (enode->type)
     {
