@@ -29,14 +29,14 @@ typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
 
 typedef struct EXP_EvalVerifBlock
 {
-    bool entered;
     bool completed;
     bool haveInOut;
-    bool uncompleted;
+
+    bool entered;
+    bool halfFlag;
     vec_u32 inBuf;
 
     EXP_Node parent;
-
     u32 varsCount;
     EXP_EvalVerifDefTable defs;
 
@@ -415,7 +415,7 @@ static void EXP_evalVerifEnterBlock
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
     assert(!blk->entered);
     blk->entered = true;
-    blk->uncompleted = false;
+    blk->halfFlag = false;
 
     blk->parent = parent;
 
@@ -468,9 +468,9 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            if (!curBlock->uncompleted && (-1 == t))
+            if (!curBlock->halfFlag && (-1 == t))
             {
-                curBlock->uncompleted = true;
+                curBlock->halfFlag = true;
             }
             vec_push(&curBlock->inout, t);
         }
@@ -506,14 +506,14 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             EXP_evalTypeUnify(t0, t1, &t);
             curBlock->inout.data[curBlock->numIns + i] = t;
 
-            if (!curBlock->uncompleted && (-1 == t))
+            if (!curBlock->halfFlag && (-1 == t))
             {
-                curBlock->uncompleted = true;
+                curBlock->halfFlag = true;
             }
         }
     }
 
-    curBlock->completed = !curBlock->uncompleted;
+    curBlock->completed = !curBlock->halfFlag;
     vec_pop(&ctx->callStack);
 }
 
@@ -568,9 +568,9 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
     curBlock->entered = false;
+    curBlock->inBuf.length = 0;
     curBlock->varsCount = 0;
     curBlock->defs.length = 0;
-    curBlock->inBuf.length = 0;
 
     vec_pop(&ctx->callStack);
 }
