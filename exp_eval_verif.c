@@ -635,6 +635,21 @@ static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* n
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
+    if (!nfunInfo->call)
+    {
+        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        return;
+    }
+    if (dataStack->length < nfunInfo->numIns)
+    {
+        u32 n = nfunInfo->numIns - dataStack->length;
+        if (!EXP_evalVerifShiftDataStack(ctx, n, nfunInfo->inType))
+        {
+            EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            return;
+        }
+    }
+
     assert(dataStack->length >= nfunInfo->numIns);
     u32 argsOffset = dataStack->length - nfunInfo->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, nfunInfo->inType);
@@ -898,20 +913,6 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_Nfun;
             enode->nfun = nfun;
             EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
-            if (!nfunInfo->call)
-            {
-                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
-            if (dataStack->length < nfunInfo->numIns)
-            {
-                u32 n = nfunInfo->numIns - dataStack->length;
-                if (!EXP_evalVerifShiftDataStack(ctx, n, nfunInfo->inType))
-                {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                    return;
-                }
-            }
             EXP_evalVerifNfunCall(ctx, nfunInfo, node);
             return;
         }
