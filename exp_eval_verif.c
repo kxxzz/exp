@@ -454,6 +454,8 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
         assert(0 == curBlock->numOuts);
         assert(0 == curBlock->inout.length);
 
+        curBlock->numIns = curBlock->inBuf.length;
+
         for (u32 i = 0; i < curBlock->inBuf.length; ++i)
         {
             u32 t = curBlock->inBuf.data[i];
@@ -481,6 +483,12 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
         }
+        u32 numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
+        if (curBlock->numOuts != numOuts)
+        {
+            EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
+            return;
+        }
 
         for (u32 i = 0; i < curBlock->inBuf.length; ++i)
         {
@@ -493,7 +501,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
         }
 
         assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
-        curBlock->numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
+        curBlock->numOuts = numOuts;
 
         for (u32 i = 0; i < curBlock->numOuts; ++i)
         {
@@ -525,10 +533,7 @@ static void EXP_evalVerifBlockEnteredRevert(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
     assert(curBlock->entered);
-    assert(curBlock->inout.length == curBlock->inBuf.length);
     assert(curCall->dataStackP >= curBlock->inBuf.length);
-
-    curBlock->entered = false;
 
     ctx->dataStack.length = curCall->dataStackP - curBlock->inBuf.length;
     for (u32 i = 0; i < curBlock->inBuf.length; ++i)
