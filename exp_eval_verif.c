@@ -409,11 +409,27 @@ static void EXP_evalVerifBlockSetHalfFlag(EXP_EvalVerifContext* ctx)
         u32 j = ctx->callStack.length - 1 - i;
         EXP_EvalVerifCall* call = ctx->callStack.data + j;
         EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, call->srcNode);
-        if (blk->halfFlag)
+        if (blk->halfFlag && (i > 0))
         {
             break;
         }
         blk->halfFlag = true;
+    }
+    for (u32 i = 0; i < ctx->worldStack.length; ++i)
+    {
+        u32 j = ctx->worldStack.length - 1 - i;
+        EXP_EvalVerifSnapshot* snapshot = ctx->worldStack.data + j;
+        for (u32 i = 0; i < snapshot->csLen; ++i)
+        {
+            u32 j = snapshot->csLen - 1 - i;
+            EXP_EvalVerifCall* call = ctx->csBuf.data + snapshot->csOff + j;
+            EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, call->srcNode);
+            if (blk->halfFlag && (i > 0))
+            {
+                break;
+            }
+            blk->halfFlag = true;
+        }
     }
 }
 
