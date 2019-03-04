@@ -405,7 +405,7 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 static void EXP_evalVerifEnterBlock
 (
     EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent, EXP_EvalVerifBlockCallback cb,
-    bool isDefScope
+    bool isDefScope, bool halfFlag
 )
 {
     u32 dataStackP = ctx->dataStack.length;
@@ -415,7 +415,7 @@ static void EXP_evalVerifEnterBlock
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
     assert(!blk->entered);
     blk->entered = true;
-    blk->halfFlag = false;
+    blk->halfFlag = halfFlag;
     blk->inBuf.length = 0;
 
     blk->parent = parent;
@@ -757,7 +757,7 @@ static void EXP_evalVerifEnterWorld
 )
 {
     EXP_evalVerifPushWorld(ctx, allowDsShift);
-    EXP_evalVerifEnterBlock(ctx, seq, len, src, parent, EXP_EvalBlockCallback_NONE, true);
+    EXP_evalVerifEnterBlock(ctx, seq, len, src, parent, EXP_EvalBlockCallback_NONE, true, false);
 }
 
 
@@ -1026,7 +1026,7 @@ static void EXP_evalVerifNode
             if (!nodeBlk->completed)
             {
                 EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call, .fun = def.fun };
-                EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+                EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false, false);
             }
             else
             {
@@ -1051,7 +1051,7 @@ static void EXP_evalVerifNode
         if (!nodeBlk->completed)
         {
             EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .nfun = nfun };
-            EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+            EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false, false);
         }
         else
         {
@@ -1082,7 +1082,7 @@ static void EXP_evalVerifNode
         if (!nodeBlk->completed)
         {
             EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Cond };
-            EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
+            EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false, true);
         }
         else
         {
@@ -1241,7 +1241,7 @@ next:
             {
                 EXP_evalVerifBlockUnenteredRevert(ctx, curBlock);
                 EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_BranchUnify };
-                EXP_evalVerifEnterBlock(ctx, EXP_evalIfBranch1(space, srcNode), 1, srcNode, parent, cb, false);
+                EXP_evalVerifEnterBlock(ctx, EXP_evalIfBranch1(space, srcNode), 1, srcNode, parent, cb, false, true);
             }
             goto next;
         }
@@ -1310,7 +1310,7 @@ EXP_EvalError EXP_evalVerif
 
     EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
-    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true, false);
     if (ctx->error.code)
     {
         error = ctx->error;
@@ -1322,7 +1322,7 @@ EXP_EvalError EXP_evalVerif
     if (!rootBlk->completed)
     {
         ctx->recheckPassFlag = true;
-        EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+        EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true, false);
         if (ctx->error.code)
         {
             error = ctx->error;
