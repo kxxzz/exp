@@ -1271,14 +1271,16 @@ next:
         case EXP_EvalVerifBlockCallbackType_Branch0:
         {
             EXP_Node srcNode = curCall->srcNode;
-            EXP_evalVerifSaveBlock(ctx);
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
+                EXP_evalVerifSaveBlock(ctx);
                 EXP_evalVerifBlockRevert(ctx);
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
                 cb->type = EXP_EvalVerifBlockCallbackType_BranchUnify;
+                goto next;
             }
+            EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         case EXP_EvalVerifBlockCallbackType_BranchUnify:
