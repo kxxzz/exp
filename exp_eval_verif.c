@@ -1028,7 +1028,9 @@ static void EXP_evalVerifNode
             }
             else
             {
-                // todo
+                EXP_evalVerifBlockCall(ctx, nodeBlk, node);
+                EXP_EvalVerifBlock* funBlk = blockTable->data + def.fun.id;
+                EXP_evalVerifBlockCall(ctx, funBlk, node);
             }
             return;
         }
@@ -1051,7 +1053,9 @@ static void EXP_evalVerifNode
         }
         else
         {
-            // todo
+            EXP_evalVerifBlockCall(ctx, nodeBlk, node);
+            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
+            EXP_evalVerifNfunCall(ctx, nfunInfo, node);
         }
         return;
     }
@@ -1080,7 +1084,7 @@ static void EXP_evalVerifNode
         }
         else
         {
-            // todo
+            EXP_evalVerifBlockCall(ctx, nodeBlk, node);
         }
         return;
     }
