@@ -32,6 +32,7 @@ typedef struct EXP_EvalVerifBlock
     bool entered;
     bool completed;
     bool haveInOut;
+    bool uncompleted;
     vec_u32 inBuf;
 
     EXP_Node parent;
@@ -414,6 +415,7 @@ static void EXP_evalVerifEnterBlock
     EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
     assert(!blk->entered);
     blk->entered = true;
+    blk->uncompleted = false;
 
     blk->parent = parent;
 
@@ -444,7 +446,6 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
     curBlock->entered = false;
 
     assert(!curBlock->completed);
-    bool uncompleted = false;
 
     if (!curBlock->haveInOut)
     {
@@ -467,9 +468,9 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            if (!uncompleted && (-1 == t))
+            if (!curBlock->uncompleted && (-1 == t))
             {
-                uncompleted = true;
+                curBlock->uncompleted = true;
             }
             vec_push(&curBlock->inout, t);
         }
@@ -505,14 +506,14 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
             EXP_evalTypeUnify(t0, t1, &t);
             curBlock->inout.data[curBlock->numIns + i] = t;
 
-            if (!uncompleted && (-1 == t))
+            if (!curBlock->uncompleted && (-1 == t))
             {
-                uncompleted = true;
+                curBlock->uncompleted = true;
             }
         }
     }
 
-    curBlock->completed = !uncompleted;
+    curBlock->completed = !curBlock->uncompleted;
     vec_pop(&ctx->callStack);
 }
 
