@@ -416,6 +416,7 @@ static void EXP_evalVerifEnterBlock
     assert(!blk->entered);
     blk->entered = true;
     blk->halfFlag = false;
+    blk->inBuf.length = 0;
 
     blk->parent = parent;
 
@@ -431,8 +432,6 @@ static void EXP_evalVerifEnterBlock
             }
         }
     }
-
-    blk->inBuf.length = 0;
 }
 
 
@@ -568,9 +567,8 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
 
     curBlock->entered = false;
+    curBlock->halfFlag = false;
     curBlock->inBuf.length = 0;
-    curBlock->varsCount = 0;
-    curBlock->defs.length = 0;
 
     vec_pop(&ctx->callStack);
 }
