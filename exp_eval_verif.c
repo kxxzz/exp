@@ -709,6 +709,7 @@ static void EXP_evalVerifRecurFun
     {
         lastSrcNode = curCall->srcNode;
         curCall = &vec_last(&ctx->callStack);
+        EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
         EXP_Node srcNode = curCall->srcNode;
         EXP_EvalVerifBlockCallback* cb = &curCall->cb;
         // quit this branch until recheck pass
@@ -716,6 +717,7 @@ static void EXP_evalVerifRecurFun
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
+                curBlock->halfFlag = true;
                 EXP_evalVerifBlockEnteredRevert(ctx);
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
@@ -725,6 +727,7 @@ static void EXP_evalVerifRecurFun
         }
         else if (EXP_EvalVerifBlockCallbackType_BranchUnify == cb->type)
         {
+            curBlock->halfFlag = true;
             EXP_evalVerifBlockEnteredRevert(ctx);
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
