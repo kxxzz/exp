@@ -1023,7 +1023,7 @@ static void EXP_evalVerifNode
             EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
             if (!nodeBlk->completed)
             {
-                EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call,.fun = def.fun };
+                EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call, .fun = def.fun };
                 EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1046,7 +1046,7 @@ static void EXP_evalVerifNode
         EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
         if (!nodeBlk->completed)
         {
-            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall,.nfun = nfun };
+            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .nfun = nfun };
             EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         }
         else
