@@ -532,6 +532,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             u32 t;
             EXP_evalTypeUnify(t0, t1, &t);
             curBlock->inout.data[curBlock->numIns + i] = t;
+            ctx->dataStack.data[j] = t;
         }
     }
 }
@@ -715,7 +716,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        vt = dataStack->data[argsOffset + i];
+        dataStack->data[argsOffset + i] = vt;
     }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < blk->numOuts; ++i)
