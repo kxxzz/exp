@@ -235,14 +235,7 @@ enter:
 
 
 
-bool EXP_evalTypeMatch(u32 a, u32 b)
-{
-    if ((EXP_EvalValueType_Any == a) || (EXP_EvalValueType_Any == b))
-    {
-        return true;
-    }
-    return a == b;
-}
+
 
 
 bool EXP_evalTypeUnify(u32 a, u32 b, u32* out)

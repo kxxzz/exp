@@ -120,13 +120,12 @@ static EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
 
 
 
-
+// todo replace
 enum
 {
     EXP_EvalValueType_Any = -1,
 };
 
-bool EXP_evalTypeMatch(u32 pat, u32 x);
 bool EXP_evalTypeUnify(u32 a, u32 b, u32* out);
 
 

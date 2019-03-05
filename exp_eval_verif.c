@@ -675,12 +675,14 @@ static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* n
     for (u32 i = 0; i < nfunInfo->numIns; ++i)
     {
         u32 vt1 = dataStack->data[argsOffset + i];
-        u32 vt = nfunInfo->inType[i];
-        if (!EXP_evalTypeMatch(vt, vt1))
+        u32 vt0 = nfunInfo->inType[i];
+        u32 vt;
+        if (!EXP_evalTypeUnify(vt0, vt1, &vt))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
+        dataStack->data[argsOffset + i] = vt;
     }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < nfunInfo->numOuts; ++i)
@@ -706,12 +708,14 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numIns; ++i)
     {
         u32 vt1 = dataStack->data[argsOffset + i];
-        u32 vt = blk->inout.data[i];
-        if (!EXP_evalTypeMatch(vt, vt1))
+        u32 vt0 = blk->inout.data[i];
+        u32 vt;
+        if (!EXP_evalTypeUnify(vt0, vt1, &vt))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
+        vt = dataStack->data[argsOffset + i];
     }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < blk->numOuts; ++i)
@@ -1257,13 +1261,15 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            u32 vt = dataStack->data[curCall->dataStackP];
+            u32 vt1 = dataStack->data[curCall->dataStackP];
             vec_pop(dataStack);
-            if (!EXP_evalTypeMatch(EXP_EvalPrimValueType_BOOL, vt))
+            u32 vt;
+            if (!EXP_evalTypeUnify(EXP_EvalPrimValueType_BOOL, vt1, &vt))
             {
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
+            dataStack->data[curCall->dataStackP] = vt;
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
             cb->type = EXP_EvalVerifBlockCallbackType_Branch0;
