@@ -751,15 +751,12 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 
 
 
-static void EXP_evalVerifRecurFun
-(
-    EXP_EvalVerifContext* ctx, EXP_EvalVerifCall* curCall, const EXP_EvalVerifBlock* funBlk
-)
+static void EXP_evalVerifFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
 {
-    assert(funBlk->entered);
     assert(!ctx->recheckPassFlag);
     EXP_Space* space = ctx->space;
 
+    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_Node lastSrcNode = EXP_Node_Invalid;
     while (ctx->callStack.length > 0)
     {
@@ -768,7 +765,7 @@ static void EXP_evalVerifRecurFun
         EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
         EXP_Node srcNode = curCall->srcNode;
         EXP_EvalVerifBlockCallback* cb = &curCall->cb;
-        // quit this branch until recheck pass
+        // quit this branch until next enter
         if (EXP_EvalVerifBlockCallbackType_Branch0 == cb->type)
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
@@ -1004,7 +1001,7 @@ static void EXP_evalVerifNode
                     }
                     else
                     {
-                        EXP_evalVerifRecurFun(ctx, curCall, funBlk);
+                        EXP_evalVerifFallbackToOtherBranch(ctx);
                     }
                     return;
                 }
@@ -1265,7 +1262,7 @@ next:
                 }
                 else
                 {
-                    EXP_evalVerifRecurFun(ctx, curCall, funBlk);
+                    EXP_evalVerifFallbackToOtherBranch(ctx);
                 }
                 goto next;
             }
