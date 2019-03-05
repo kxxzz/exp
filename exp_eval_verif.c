@@ -503,6 +503,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
         }
+        assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
         u32 numOuts = ctx->dataStack.length + curBlock->inBuf.length - curCall->dataStackP;
         if (curBlock->numOuts != numOuts)
         {
@@ -520,7 +521,6 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             curBlock->inout.data[i] = t;
         }
 
-        assert(ctx->dataStack.length + curBlock->inBuf.length >= curCall->dataStackP);
         curBlock->numOuts = numOuts;
 
         for (u32 i = 0; i < curBlock->numOuts; ++i)
@@ -1158,6 +1158,10 @@ next:
     if (curCall->p == curCall->end)
     {
         EXP_EvalVerifBlockCallback* cb = &curCall->cb;
+        EXP_Node srcNode = curCall->srcNode;
+#ifndef NDEBUG
+        EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo->nodes.data + srcNode.id;
+#endif
         switch (cb->type)
         {
         case EXP_EvalVerifBlockCallbackType_NONE:
@@ -1169,31 +1173,27 @@ next:
         {
             if (curBlock->inBuf.length > 0)
             {
-                EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             if (dataStack->length < curCall->dataStackP)
             {
-                EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + cb->nfun;
             u32 numIns = dataStack->length - curCall->dataStackP;
             if (numIns != nfunInfo->numIns)
             {
-                EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_evalVerifNfunCall(ctx, nfunInfo, curCall->srcNode);
+            EXP_evalVerifNfunCall(ctx, nfunInfo, srcNode);
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
         case EXP_EvalVerifBlockCallbackType_Call:
         {
-            EXP_Node srcNode = curCall->srcNode;
-#ifndef NDEBUG
-            EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo->nodes.data + srcNode.id;
-#endif
             EXP_Node fun = cb->fun;
             EXP_EvalVerifBlock* funBlk = blockTable->data + fun.id;
             if (funBlk->completed)
@@ -1254,17 +1254,16 @@ next:
         }
         case EXP_EvalVerifBlockCallbackType_Cond:
         {
-            EXP_Node srcNode = curCall->srcNode;
             if (curCall->dataStackP + 1 != dataStack->length)
             {
-                EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             u32 vt = dataStack->data[curCall->dataStackP];
             vec_pop(dataStack);
             if (!EXP_evalTypeMatch(EXP_EvalPrimValueType_BOOL, vt))
             {
-                EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             curCall->p = EXP_evalIfBranch0(space, srcNode);
@@ -1274,7 +1273,6 @@ next:
         }
         case EXP_EvalVerifBlockCallbackType_Branch0:
         {
-            EXP_Node srcNode = curCall->srcNode;
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
                 EXP_evalVerifSaveBlock(ctx);
@@ -1289,7 +1287,6 @@ next:
         }
         case EXP_EvalVerifBlockCallbackType_BranchUnify:
         {
-            EXP_Node srcNode = curCall->srcNode;
             assert(EXP_evalIfHasBranch1(space, srcNode));
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
