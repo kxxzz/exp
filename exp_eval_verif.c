@@ -735,7 +735,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 
 
 
-static void EXP_evalVerifFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifRecurFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
 {
     assert(!ctx->recheckPassFlag);
     EXP_Space* space = ctx->space;
@@ -985,7 +985,7 @@ static void EXP_evalVerifNode
                     }
                     else
                     {
-                        EXP_evalVerifFallbackToOtherBranch(ctx);
+                        EXP_evalVerifRecurFallbackToOtherBranch(ctx);
                     }
                     return;
                 }
@@ -1246,7 +1246,7 @@ next:
                 }
                 else
                 {
-                    EXP_evalVerifFallbackToOtherBranch(ctx);
+                    EXP_evalVerifRecurFallbackToOtherBranch(ctx);
                 }
                 goto next;
             }

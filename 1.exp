@@ -11,11 +11,11 @@
 
 // (if (= (+ 1 3) 2) "a" "b")
 
-(def fib -> x : (if (> x 2) (+ (fib (- x 1)) (fib (- x 2))) 1))
+// (def fib -> x : (if (> x 2) (+ (fib (- x 1)) (fib (- x 2))) 1))
 
-20 fib
+// 20 fib
 
-(fib 20)
+// (fib 20)
 
 
 (def facttail -> n res :
@@ -28,13 +28,13 @@
                 (facttail (- n 1) (/ n res))))))
 
 
-//(facttail 50000 2)
+(facttail 50000 2)
 
 //50000 2 facttail
 
 
-//(def ere (ere))
-//(ere)
+// (def ere (ere))
+// (ere)
 
 
 //[1 2 3 4 5]
