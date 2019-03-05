@@ -222,6 +222,8 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     ctx->dataStack.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
+    vec_resize(&ctx->dsBuf, snapshot.dsOff);
+    vec_resize(&ctx->csBuf, snapshot.csOff);
     ctx->allowDsShift = snapshot.allowDsShift;
 }
 
