@@ -461,6 +461,7 @@ static void EXP_evalVerifEnterBlock
 
     blk->parent = parent;
 
+    blk->varsCount = 0;
     blk->defs.length = 0;
     if (isDefScope)
     {
@@ -1238,14 +1239,31 @@ next:
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
                 EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-
                 EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
                 goto next;
             }
             else
             {
                 assert(funBlk->entered);
-                EXP_evalVerifRecurFun(ctx, curCall, funBlk);
+                if (funBlk->haveInOut)
+                {
+                    if (curBlock->numIns > 0)
+                    {
+                        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                        goto next;
+                    }
+                    if (curCall->dataStackP != (dataStack->length - funBlk->numIns))
+                    {
+                        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                        goto next;
+                    }
+                    EXP_evalVerifBlockCall(ctx, funBlk, srcNode);
+                    EXP_evalVerifLeaveBlock(ctx);
+                }
+                else
+                {
+                    EXP_evalVerifRecurFun(ctx, curCall, funBlk);
+                }
                 goto next;
             }
             return;
