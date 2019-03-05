@@ -404,7 +404,7 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 
 
 
-static void EXP_evalVerifSetParentsIncomplete(EXP_EvalVerifContext* ctx)
+static void EXP_evalVerifSetCallersIncomplete(EXP_EvalVerifContext* ctx)
 {
     for (u32 i = 0; i < ctx->callStack.length; ++i)
     {
@@ -416,22 +416,6 @@ static void EXP_evalVerifSetParentsIncomplete(EXP_EvalVerifContext* ctx)
             break;
         }
         blk->incomplete = true;
-    }
-    for (u32 i = 0; i < ctx->worldStack.length; ++i)
-    {
-        u32 j = ctx->worldStack.length - 1 - i;
-        EXP_EvalVerifSnapshot* snapshot = ctx->worldStack.data + j;
-        for (u32 i = 0; i < snapshot->csLen; ++i)
-        {
-            u32 j = snapshot->csLen - 1 - i;
-            EXP_EvalVerifCall* call = ctx->csBuf.data + snapshot->csOff + j;
-            EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, call->srcNode);
-            if (blk->incomplete)
-            {
-                break;
-            }
-            blk->incomplete = true;
-        }
     }
 }
 
@@ -576,7 +560,7 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     if (curBlock->incomplete)
     {
-        EXP_evalVerifSetParentsIncomplete(ctx);
+        EXP_evalVerifSetCallersIncomplete(ctx);
     }
 }
 
@@ -1377,18 +1361,18 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_evalVerifCall(ctx);
     EXP_EvalVerifBlock* rootBlk = EXP_evalVerifGetBlock(ctx, root);
-    if (!rootBlk->completed)
-    {
-        ctx->recheckPassFlag = true;
-        EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
-        if (ctx->error.code)
-        {
-            error = ctx->error;
-            EXP_evalVerifContextFree(ctx);
-            return error;
-        }
-        EXP_evalVerifCall(ctx);
-    }
+    //if (!rootBlk->completed)
+    //{
+    //    ctx->recheckPassFlag = true;
+    //    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    //    if (ctx->error.code)
+    //    {
+    //        error = ctx->error;
+    //        EXP_evalVerifContextFree(ctx);
+    //        return error;
+    //    }
+    //    EXP_evalVerifCall(ctx);
+    //}
     assert(rootBlk->completed);
     vec_dup(typeStack, &ctx->dataStack);
     if (!ctx->error.code)
