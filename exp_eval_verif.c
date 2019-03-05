@@ -998,10 +998,13 @@ static void EXP_evalVerifNode
                 else
                 {
                     assert(funBlk->entered);
-                    EXP_evalVerifRecurFun(ctx, curCall, funBlk);
-                    if (ctx->error.code)
+                    if (funBlk->haveInOut)
                     {
-                        return;
+                        EXP_evalVerifBlockCall(ctx, funBlk, node);
+                    }
+                    else
+                    {
+                        EXP_evalVerifRecurFun(ctx, curCall, funBlk);
                     }
                     return;
                 }
