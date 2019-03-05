@@ -544,21 +544,19 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     EXP_evalVerifSaveBlock(ctx);
 
-    for (u32 i = 0; i < curBlock->numOuts; ++i)
-    {
-        u32 t = curBlock->inout.data[curBlock->numIns + i];
-        if (!curBlock->incomplete && (-1 == t))
-        {
-            curBlock->incomplete = true;
-            break;
-        }
-    }
-
     curBlock->entered = false;
     curBlock->completed = !curBlock->incomplete;
     vec_pop(&ctx->callStack);
 
-    if (curBlock->incomplete)
+    if (curBlock->completed)
+    {
+        for (u32 i = 0; i < curBlock->numOuts; ++i)
+        {
+            u32 t = curBlock->inout.data[curBlock->numIns + i];
+            assert(t != EXP_EvalValueType_Any);
+        }
+    }
+    else
     {
         EXP_evalVerifSetCallersIncomplete(ctx);
     }
