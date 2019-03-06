@@ -65,13 +65,13 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 
 
-static u32 EXP_evalTypeAdd(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
+static u32 EXP_evalTypeIdByDesc(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
 {
     u32 id = upoolAddElm(ctx->typePool, desc, sizeof(*desc), NULL);
     return id;
 }
 
-static u32 EXP_evalTypeAddList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
+static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     u32 id = upoolAddElm(ctx->listPool, elms, sizeof(*elms)*count, NULL);
     return id;
@@ -81,43 +81,43 @@ static u32 EXP_evalTypeAddList(EXP_EvalTypeContext* ctx, u32 count, const u32* e
 
 
 
-u32 EXP_evalTypeAddNval(EXP_EvalTypeContext* ctx, u32 nativeType)
+u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 nativeType)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Nval };
     desc.id = nativeType;
-    return EXP_evalTypeAdd(ctx, &desc);
+    return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeAddVar(EXP_EvalTypeContext* ctx, u32 varId)
+u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
     desc.id = varId;
-    return EXP_evalTypeAdd(ctx, &desc);
+    return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeAddFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
+u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
     desc.fun.ins.count = numIns;
     desc.fun.outs.count = numOuts;
-    desc.fun.ins.id = EXP_evalTypeAddList(ctx, numIns, ins);
-    desc.fun.outs.id = EXP_evalTypeAddList(ctx, numOuts, outs);
-    return EXP_evalTypeAdd(ctx, &desc);
+    desc.fun.ins.id = EXP_evalTypeList(ctx, numIns, ins);
+    desc.fun.outs.id = EXP_evalTypeList(ctx, numOuts, outs);
+    return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeAddTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
+u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Tuple };
     desc.tuple.count = count;
-    desc.tuple.id = EXP_evalTypeAddList(ctx, count, elms);
-    return EXP_evalTypeAdd(ctx, &desc);
+    desc.tuple.id = EXP_evalTypeList(ctx, count, elms);
+    return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeAddArray(EXP_EvalTypeContext* ctx, u32 elm)
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Array };
     desc.aryElm = elm;
-    return EXP_evalTypeAdd(ctx, &desc);
+    return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
 
@@ -188,13 +188,24 @@ bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable
 enter:
     if (a == b)
     {
+        *t = a;
         return true;
     }
     const EXP_EvalTypeDesc* descA = EXP_evalTypeGetDesc(ctx, a);
     const EXP_EvalTypeDesc* descB = EXP_evalTypeGetDesc(ctx, b);
     if (descA->type == descB->type)
     {
-        return true;
+        switch (descA->type)
+        {
+        case EXP_EvalTypeType_Nval:
+        {
+            assert(descA->id != descB->id);
+            return false;
+        }
+        default:
+            assert(false);
+            return false;
+        }
     }
     else
     {
