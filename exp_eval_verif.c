@@ -121,6 +121,8 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalNodeTable* nodeTable;
     EXP_SpaceSrcInfo* srcInfo;
 
+    EXP_EvalTypeContext* typeContext;
+
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
@@ -135,8 +137,6 @@ typedef struct EXP_EvalVerifContext
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
-
-    bool recheckPassFlag;
 } EXP_EvalVerifContext;
 
 
@@ -165,6 +165,8 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     vec_resize(nodeTable, n);
     memset(nodeTable->data + nodeTableLength0, 0, sizeof(EXP_EvalNode)*n);
 
+    ctx->typeContext = EXP_newEvalTypeContext();
+
     ctx->blockTableBase = nodeTableLength0;
     vec_resize(&ctx->blockTable, n);
     memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
@@ -188,6 +190,8 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
         EXP_evalVerifBlockFree(b);
     }
     vec_free(&ctx->blockTable);
+
+    EXP_evalTypeContextFree(ctx->typeContext);
 }
 
 
@@ -244,9 +248,10 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
     if (srcInfo)
     {
         assert(node.id < srcInfo->nodes.length);
-        ctx->error.file = srcInfo->nodes.data[node.id].file;
-        ctx->error.line = srcInfo->nodes.data[node.id].line;
-        ctx->error.column = srcInfo->nodes.data[node.id].column;
+        EXP_NodeSrcInfo* nodeSrcInfo = srcInfo->nodes.data + node.id;
+        ctx->error.file = nodeSrcInfo->file;
+        ctx->error.line = nodeSrcInfo->line;
+        ctx->error.column = nodeSrcInfo->column;
     }
 }
 
@@ -733,7 +738,6 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 
 static void EXP_evalVerifRecurFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
 {
-    assert(!ctx->recheckPassFlag);
     EXP_Space* space = ctx->space;
 
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
@@ -1357,18 +1361,6 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_evalVerifCall(ctx);
     EXP_EvalVerifBlock* rootBlk = EXP_evalVerifGetBlock(ctx, root);
-    //if (!rootBlk->completed)
-    //{
-    //    ctx->recheckPassFlag = true;
-    //    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
-    //    if (ctx->error.code)
-    //    {
-    //        error = ctx->error;
-    //        EXP_evalVerifContextFree(ctx);
-    //        return error;
-    //    }
-    //    EXP_evalVerifCall(ctx);
-    //}
     assert(rootBlk->completed);
     vec_dup(typeStack, &ctx->dataStack);
     if (!ctx->error.code)
