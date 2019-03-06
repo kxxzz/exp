@@ -51,6 +51,8 @@ typedef struct EXP_EvalTypeContext
 EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 {
     EXP_EvalTypeContext* ctx = zalloc(sizeof(EXP_EvalTypeContext));
+    ctx->listPool = newUpool(256);
+    ctx->typePool = newUpool(256);
     return ctx;
 }
 
