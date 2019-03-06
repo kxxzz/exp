@@ -10,7 +10,7 @@
 
 
 
-typedef vec_t(EXP_EvalNvalTypeInfo) EXP_EvalValueTypeInfoTable;
+typedef vec_t(EXP_EvalNvalTypeInfo) EXP_EvalNvalTypeInfoTable;
 typedef vec_t(EXP_EvalNfunInfo) EXP_EvalNfunInfoTable;
 
 
@@ -120,13 +120,12 @@ static EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
 
 
 
-// todo replace
-enum
-{
-    EXP_EvalValueType_Any = -1,
-};
 
-bool EXP_evalTypeUnify(u32 a, u32 b, u32* out);
+
+
+
+
+
 
 
 

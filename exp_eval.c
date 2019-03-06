@@ -46,7 +46,7 @@ typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
-    EXP_EvalValueTypeInfoTable valueTypeTable;
+    EXP_EvalNvalTypeInfoTable nvalTypeTable;
     EXP_EvalNfunInfoTable nfunTable;
     EXP_EvalNodeTable nodeTable;
     EXP_EvalCallStack callStack;
@@ -68,7 +68,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
     ctx->space = EXP_newSpace();
     for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
     {
-        vec_push(&ctx->valueTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
+        vec_push(&ctx->nvalTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
@@ -78,7 +78,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
     {
         for (u32 i = 0; i < nenv->numValueTypes; ++i)
         {
-            vec_push(&ctx->valueTypeTable, nenv->valueTypes[i]);
+            vec_push(&ctx->nvalTypeTable, nenv->valueTypes[i]);
         }
         for (u32 i = 0; i < nenv->numFuns; ++i)
         {
@@ -97,7 +97,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->nodeTable);
     vec_free(&ctx->nfunTable);
-    vec_free(&ctx->valueTypeTable);
+    vec_free(&ctx->nvalTypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
     EXP_spaceFree(ctx->space);
     free(ctx);
@@ -552,7 +552,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root,
-    EXP_EvalValueTypeInfoTable* valueTypeTable, EXP_EvalNfunInfoTable* nfunTable,
+    EXP_EvalNvalTypeInfoTable* nvalTypeTable, EXP_EvalNfunInfoTable* nfunTable,
     EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
 );
 
@@ -602,7 +602,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     }
     EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx->valueTypeTable, &ctx->nfunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
+        space, root, &ctx->nvalTypeTable, &ctx->nfunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
     );
     if (error.code)
     {

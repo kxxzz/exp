@@ -1,4 +1,5 @@
 #include "exp_eval_a.h"
+#include "exp_eval_type.h"
 
 
 
@@ -123,7 +124,7 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 
 
 
-const EXP_EvalTypeDesc* EXP_evalTypeGetDesc(EXP_EvalTypeContext* ctx, u32 id)
+static const EXP_EvalTypeDesc* EXP_evalTypeGetDesc(EXP_EvalTypeContext* ctx, u32 id)
 {
     return upoolElmData(ctx->typePool, id);
 }
@@ -141,25 +142,46 @@ typedef struct EXP_EvalTypeVarBinding
     u32 value;
 } EXP_EvalTypeVarBinding;
 
-typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarTable;
+typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarBindingVec;
 
 
-EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarTable* varTable, u32 varId)
+
+typedef struct EXP_EvalTypeVarTable
 {
-    for (u32 i = 0; i < varTable->length; ++i)
+    EXP_EvalTypeVarBindingVec vars;
+} EXP_EvalTypeVarTable;
+
+EXP_EvalTypeVarTable* EXP_newEvalTypeVarTable(void)
+{
+    EXP_EvalTypeVarTable* t = zalloc(sizeof(*t));
+    return t;
+}
+
+void EXP_evalTypeVarTableFree(EXP_EvalTypeVarTable* table)
+{
+    vec_free(&table->vars);
+    free(table);
+}
+
+
+
+
+u32* EXP_evalTypeGetVarValue(EXP_EvalTypeVarTable* varTable, u32 varId)
+{
+    for (u32 i = 0; i < varTable->vars.length; ++i)
     {
-        if (varTable->data[i].varId == varId)
+        if (varTable->vars.data[i].varId == varId)
         {
-            return varTable->data + i;
+            return &varTable->vars.data[i].value;
         }
     }
     return NULL;
 }
 
-void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value)
+void EXP_evalTypeAddVar(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value)
 {
     EXP_EvalTypeVarBinding b = { varId, value };
-    vec_push(varTable, b);
+    vec_push(&varTable->vars, b);
 }
 
 
@@ -222,13 +244,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            EXP_EvalTypeVarBinding* binding = EXP_evalTypeGetVarBinding(varTable, descA->id);
-            if (binding)
+            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->id);
+            if (pValue)
             {
-                a = binding->value;
+                a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeAddVarBinding(varTable, descA->id, b);
+            EXP_evalTypeAddVar(varTable, descA->id, b);
             *t = b;
             return true;
         }
