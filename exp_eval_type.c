@@ -137,18 +137,18 @@ const EXP_EvalTypeDesc* EXP_evalTypeGetDesc(EXP_EvalTypeContext* ctx, u32 id)
 
 typedef struct EXP_EvalTypeVarBinding
 {
-    u32 var;
+    u32 varId;
     u32 value;
 } EXP_EvalTypeVarBinding;
 
 typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarTable;
 
 
-EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarTable* varTable, u32 var)
+EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarTable* varTable, u32 varId)
 {
     for (u32 i = 0; i < varTable->length; ++i)
     {
-        if (varTable->data[i].var == var)
+        if (varTable->data[i].varId == varId)
         {
             return varTable->data + i;
         }
@@ -156,9 +156,9 @@ EXP_EvalTypeVarBinding* EXP_evalTypeGetVarBinding(EXP_EvalTypeVarTable* varTable
     return NULL;
 }
 
-void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
+void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value)
 {
-    EXP_EvalTypeVarBinding b = { var, value };
+    EXP_EvalTypeVarBinding b = { varId, value };
     vec_push(varTable, b);
 }
 
@@ -183,7 +183,7 @@ void EXP_evalTypeAddVarBinding(EXP_EvalTypeVarTable* varTable, u32 var, u32 valu
 
 
 
-bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 a, u32 b)
+bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 a, u32 b, u32* t)
 {
 enter:
     if (a == b)
@@ -194,7 +194,7 @@ enter:
     const EXP_EvalTypeDesc* descB = EXP_evalTypeGetDesc(ctx, b);
     if (descA->type == descB->type)
     {
-
+        return true;
     }
     else
     {
@@ -217,7 +217,8 @@ enter:
                 a = binding->value;
                 goto enter;
             }
-            EXP_evalTypeAddVarBinding(varTable, descA->id, binding->value);
+            EXP_evalTypeAddVarBinding(varTable, descA->id, b);
+            *t = b;
             return true;
         }
         else
@@ -225,7 +226,6 @@ enter:
             return false;
         }
     }
-    return true;
 }
 
 
