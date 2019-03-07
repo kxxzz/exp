@@ -50,7 +50,7 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
-const EXP_EvalNtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes] =
+const EXP_EvalAtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes] =
 {
     { "bool", EXP_evalBoolFromSym },
     { "float", EXP_evalFloatFromSym },
@@ -69,7 +69,7 @@ const EXP_EvalNtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes] =
 
 
 
-static void EXP_evalNfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     bool a = ins[0].b;
     outs[0].b = !a;
@@ -77,28 +77,28 @@ static void EXP_evalNfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 
 
 
-static void EXP_evalNfunCall_FloatAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a + b;
 }
 
-static void EXP_evalNfunCall_FloatSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a - b;
 }
 
-static void EXP_evalNfunCall_FloatMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a * b;
 }
 
-static void EXP_evalNfunCall_FloatDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -107,7 +107,7 @@ static void EXP_evalNfunCall_FloatDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
-static void EXP_evalNfunCall_FloatNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     outs[0].f = -a;
@@ -116,42 +116,42 @@ static void EXP_evalNfunCall_FloatNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_
 
 
 
-static void EXP_evalNfunCall_FloatEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a == b;
 }
 
-static void EXP_evalNfunCall_FloatINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a != b;
 }
 
-static void EXP_evalNfunCall_FloatGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a > b;
 }
 
-static void EXP_evalNfunCall_FloatLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a < b;
 }
 
-static void EXP_evalNfunCall_FloatGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a >= b;
 }
 
-static void EXP_evalNfunCall_FloatLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_FloatLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -161,81 +161,81 @@ static void EXP_evalNfunCall_FloatLE(EXP_Space* space, EXP_EvalValue* ins, EXP_E
 
 
 
-const EXP_EvalNfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
+const EXP_EvalAfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns] =
 {
     {
         "!",
-        EXP_evalNfunCall_Not,
+        EXP_evalAfunCall_Not,
         1, { EXP_EvalPrimType_BOOL },
         1, { EXP_EvalPrimType_BOOL },
     },
 
     {
         "+",
-        EXP_evalNfunCall_FloatAdd,
+        EXP_evalAfunCall_FloatAdd,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_FLOAT },
     },
     {
         "-",
-        EXP_evalNfunCall_FloatSub,
+        EXP_evalAfunCall_FloatSub,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_FLOAT },
     },
     {
         "*",
-        EXP_evalNfunCall_FloatMul,
+        EXP_evalAfunCall_FloatMul,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_FLOAT },
     },
     {
         "/",
-        EXP_evalNfunCall_FloatDiv,
+        EXP_evalAfunCall_FloatDiv,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_FLOAT },
     },
 
     {
         "neg",
-        EXP_evalNfunCall_FloatNeg,
+        EXP_evalAfunCall_FloatNeg,
         1, { EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_FLOAT },
     },
 
     {
         "=",
-        EXP_evalNfunCall_FloatEQ,
+        EXP_evalAfunCall_FloatEQ,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },
     {
         "!=",
-        EXP_evalNfunCall_FloatINEQ,
+        EXP_evalAfunCall_FloatINEQ,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },
 
     {
         ">",
-        EXP_evalNfunCall_FloatGT,
+        EXP_evalAfunCall_FloatGT,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },
     {
         "<",
-        EXP_evalNfunCall_FloatLT,
+        EXP_evalAfunCall_FloatLT,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },
     {
         ">=",
-        EXP_evalNfunCall_FloatGE,
+        EXP_evalAfunCall_FloatGE,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },
     {
         "<=",
-        EXP_evalNfunCall_FloatLE,
+        EXP_evalAfunCall_FloatLE,
         2, { EXP_EvalPrimType_FLOAT, EXP_EvalPrimType_FLOAT },
         1, { EXP_EvalPrimType_BOOL },
     },

@@ -36,35 +36,35 @@ typedef union EXP_EvalValue
 
 
 
-typedef bool(*EXP_EvalNvalCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
-typedef void(*EXP_EvalNvalDtor)(EXP_EvalValue* pVal);
+typedef bool(*EXP_EvalAtomCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef void(*EXP_EvalAtomDtor)(EXP_EvalValue* pVal);
 
-typedef struct EXP_EvalNtypeInfo
+typedef struct EXP_EvalAtypeInfo
 {
     const char* name;
-    EXP_EvalNvalCtorBySym ctorBySym;
-    EXP_EvalNvalDtor dtor;
-} EXP_EvalNtypeInfo;
+    EXP_EvalAtomCtorBySym ctorBySym;
+    EXP_EvalAtomDtor dtor;
+} EXP_EvalAtypeInfo;
 
 
 
 enum
 {
-    EXP_EvalNfunIns_MAX = 16,
-    EXP_EvalNfunOuts_MAX = 16,
+    EXP_EvalAfunIns_MAX = 16,
+    EXP_EvalAfunOuts_MAX = 16,
 };
 
-typedef void(*EXP_EvalNfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs);
+typedef void(*EXP_EvalAfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs);
 
-typedef struct EXP_EvalNfunInfo
+typedef struct EXP_EvalAfunInfo
 {
     const char* name;
-    EXP_EvalNfunCall call;
+    EXP_EvalAfunCall call;
     u32 numIns;
-    u32 inNtype[EXP_EvalNfunIns_MAX];
+    u32 inAtype[EXP_EvalAfunIns_MAX];
     u32 numOuts;
-    u32 outNtype[EXP_EvalNfunOuts_MAX];
-} EXP_EvalNfunInfo;
+    u32 outAtype[EXP_EvalAfunOuts_MAX];
+} EXP_EvalAfunInfo;
 
 
 
@@ -80,7 +80,7 @@ typedef enum EXP_EvalPrimType
     EXP_NumEvalPrimTypes
 } EXP_EvalPrimType;
 
-const EXP_EvalNtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes];
+const EXP_EvalAtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes];
 
 
 
@@ -106,17 +106,17 @@ typedef enum EXP_EvalPrimFun
     EXP_NumEvalPrimFuns
 } EXP_EvalPrimFun;
 
-const EXP_EvalNfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
+const EXP_EvalAfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
 
 
 
-typedef struct EXP_EvalNativeEnv
+typedef struct EXP_EvalAtomEnv
 {
-    u32 numValueTypes;
-    EXP_EvalNtypeInfo* types;
+    u32 numTypes;
+    EXP_EvalAtypeInfo* types;
     u32 numFuns;
-    EXP_EvalNfunInfo* funs;
-} EXP_EvalNativeEnv;
+    EXP_EvalAfunInfo* funs;
+} EXP_EvalAtomEnv;
 
 
 
@@ -153,7 +153,7 @@ typedef struct EXP_EvalError
 typedef struct EXP_EvalContext EXP_EvalContext;
 
 
-EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv);
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* nenv);
 void EXP_evalContextFree(EXP_EvalContext* ctx);
 
 

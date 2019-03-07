@@ -10,8 +10,8 @@
 
 
 
-typedef vec_t(EXP_EvalNtypeInfo) EXP_EvalNtypeInfoTable;
-typedef vec_t(EXP_EvalNfunInfo) EXP_EvalNfunInfoTable;
+typedef vec_t(EXP_EvalAtypeInfo) EXP_EvalAtypeInfoTable;
+typedef vec_t(EXP_EvalAfunInfo) EXP_EvalAfunInfoTable;
 
 
 
@@ -25,7 +25,7 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_VarDefBegin,
     EXP_EvalNodeType_VarDefEnd,
     EXP_EvalNodeType_Drop,
-    EXP_EvalNodeType_Nfun,
+    EXP_EvalNodeType_Afun,
 
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Fun,
@@ -34,7 +34,7 @@ typedef enum EXP_EvalNodeType
 
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallFun,
-    EXP_EvalNodeType_CallNfun,
+    EXP_EvalNodeType_CallAfun,
 
     EXP_EvalNodeType_Def,
     EXP_EvalNodeType_If,
@@ -52,7 +52,7 @@ typedef struct EXP_EvalNode
     EXP_EvalNodeType type;
     union
     {
-        u32 nfun;
+        u32 afun;
         EXP_Node funDef;
         EXP_EvalValue value;
         EXP_EvalNodeVar var;

@@ -48,10 +48,10 @@ static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms
 
 
 
-u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 ntype)
+u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Native };
-    desc.native = ntype;
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Atom };
+    desc.atom = atom;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -190,9 +190,9 @@ enter:
     {
         switch (descA->type)
         {
-        case EXP_EvalTypeType_Native:
+        case EXP_EvalTypeType_Atom:
         {
-            assert(descA->native != descB->native);
+            assert(descA->atom != descB->atom);
             return false;
         }
         default:
@@ -215,13 +215,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->native);
+            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->atom);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeAddVar(varTable, descA->native, b);
+            EXP_evalTypeAddVar(varTable, descA->atom, b);
             *t = b;
             return true;
         }

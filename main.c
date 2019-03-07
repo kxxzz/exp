@@ -64,9 +64,9 @@ void testEval(void)
         const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
         switch (desc->type)
         {
-        case EXP_EvalTypeType_Native:
+        case EXP_EvalTypeType_Atom:
         {
-            switch (desc->native)
+            switch (desc->atom)
             {
             case EXP_EvalPrimType_BOOL:
             {

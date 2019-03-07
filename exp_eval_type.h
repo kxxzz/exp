@@ -8,7 +8,7 @@
 
 typedef enum EXP_EvalTypeType
 {
-    EXP_EvalTypeType_Native,
+    EXP_EvalTypeType_Atom,
     EXP_EvalTypeType_Var,
     EXP_EvalTypeType_Fun,
     EXP_EvalTypeType_Tuple,
@@ -34,7 +34,7 @@ typedef struct EXP_EvalTypeDesc
     EXP_EvalTypeType type;
     union
     {
-        u32 native;
+        u32 atom;
         u32 var;
         EXP_EvalTypeDescFun fun;
         EXP_EvalTypeDescList tuple;
@@ -52,8 +52,8 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx);
 
 
 
-u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 nativeType);
-u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId);
+u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom);
+u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var);
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs);
 u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
 u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);

@@ -75,7 +75,7 @@ typedef struct EXP_EvalVerifBlockCallback
     EXP_EvalVerifBlockCallbackType type;
     union
     {
-        u32 nfun;
+        u32 afun;
         EXP_Node fun;
     };
 } EXP_EvalVerifBlockCallback;
@@ -117,8 +117,8 @@ typedef struct EXP_EvalVerifContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo* srcInfo;
-    EXP_EvalNtypeInfoTable* ntypeTable;
-    EXP_EvalNfunInfoTable* nfunTable;
+    EXP_EvalAtypeInfoTable* atypeTable;
+    EXP_EvalAfunInfoTable* afunTable;
     EXP_EvalNodeTable* nodeTable;
     EXP_EvalTypeContext* typeContext;
 
@@ -145,7 +145,7 @@ typedef struct EXP_EvalVerifContext
 static EXP_EvalVerifContext EXP_newEvalVerifContext
 (
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalNtypeInfoTable* ntypeTable, EXP_EvalNfunInfoTable* nfunTable,
+    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext
 )
@@ -154,8 +154,8 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     EXP_EvalVerifContext* ctx = &_ctx;
     ctx->space = space;
     ctx->srcInfo = srcInfo;
-    ctx->ntypeTable = ntypeTable;
-    ctx->nfunTable = nfunTable;
+    ctx->atypeTable = atypeTable;
+    ctx->afunTable = afunTable;
     ctx->nodeTable = nodeTable;
     ctx->typeContext = typeContext;
 
@@ -297,13 +297,13 @@ static bool EXP_evalVerifGetMatched
 
 
 
-static u32 EXP_evalVerifGetNfun(EXP_EvalVerifContext* ctx, const char* name)
+static u32 EXP_evalVerifGetAfun(EXP_EvalVerifContext* ctx, const char* name)
 {
     EXP_Space* space = ctx->space;
-    for (u32 i = 0; i < ctx->nfunTable->length; ++i)
+    for (u32 i = 0; i < ctx->afunTable->length; ++i)
     {
-        u32 idx = ctx->nfunTable->length - 1 - i;
-        const char* s = ctx->nfunTable->data[idx].name;
+        u32 idx = ctx->afunTable->length - 1 - i;
+        const char* s = ctx->afunTable->data[idx].name;
         if (0 == strcmp(s, name))
         {
             return idx;
@@ -642,26 +642,26 @@ static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOf
 
 
 
-static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* nfunInfo, EXP_Node srcNode)
+static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
-    if (!nfunInfo->call)
+    if (!afunInfo->call)
     {
         EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
         return;
     }
 
-    u32 inEvalType[EXP_EvalNfunIns_MAX];
-    for (u32 i = 0; i < nfunInfo->numIns; ++i)
+    u32 inEvalType[EXP_EvalAfunIns_MAX];
+    for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
-        inEvalType[i] = EXP_evalTypeNval(ctx->typeContext, nfunInfo->inNtype[i]);
+        inEvalType[i] = EXP_evalTypeAtom(ctx->typeContext, afunInfo->inAtype[i]);
     }
 
-    if (dataStack->length < nfunInfo->numIns)
+    if (dataStack->length < afunInfo->numIns)
     {
-        u32 n = nfunInfo->numIns - dataStack->length;
+        u32 n = afunInfo->numIns - dataStack->length;
         if (!EXP_evalVerifShiftDataStack(ctx, n, inEvalType))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
@@ -669,11 +669,11 @@ static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* n
         }
     }
 
-    assert(dataStack->length >= nfunInfo->numIns);
-    u32 argsOffset = dataStack->length - nfunInfo->numIns;
+    assert(dataStack->length >= afunInfo->numIns);
+    u32 argsOffset = dataStack->length - afunInfo->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, inEvalType);
 
-    for (u32 i = 0; i < nfunInfo->numIns; ++i)
+    for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
         u32 t1 = dataStack->data[argsOffset + i];
         u32 t0 = inEvalType[i];
@@ -686,9 +686,9 @@ static void EXP_evalVerifNfunCall(EXP_EvalVerifContext* ctx, EXP_EvalNfunInfo* n
         dataStack->data[argsOffset + i] = t;
     }
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < nfunInfo->numOuts; ++i)
+    for (u32 i = 0; i < afunInfo->numOuts; ++i)
     {
-        u32 t = EXP_evalTypeNval(ctx->typeContext, nfunInfo->outNtype[i]);
+        u32 t = EXP_evalTypeAtom(ctx->typeContext, afunInfo->outAtype[i]);
         vec_push(dataStack, t);
     }
 }
@@ -927,13 +927,13 @@ static void EXP_evalVerifNode
             break;
         }
 
-        u32 nfun = EXP_evalVerifGetNfun(ctx, name);
-        if (nfun != -1)
+        u32 afun = EXP_evalVerifGetAfun(ctx, name);
+        if (afun != -1)
         {
-            enode->type = EXP_EvalNodeType_Nfun;
-            enode->nfun = nfun;
-            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
-            EXP_evalVerifNfunCall(ctx, nfunInfo, node);
+            enode->type = EXP_EvalNodeType_Afun;
+            enode->afun = afun;
+            EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
+            EXP_evalVerifAfunCall(ctx, afunInfo, node);
             return;
         }
 
@@ -999,19 +999,19 @@ static void EXP_evalVerifNode
             bool isQuoted = EXP_tokQuoted(space, node);
             if (!isQuoted)
             {
-                for (u32 i = 0; i < ctx->ntypeTable->length; ++i)
+                for (u32 i = 0; i < ctx->atypeTable->length; ++i)
                 {
-                    u32 j = ctx->ntypeTable->length - 1 - i;
-                    if (ctx->ntypeTable->data[j].ctorBySym)
+                    u32 j = ctx->atypeTable->length - 1 - i;
+                    if (ctx->atypeTable->data[j].ctorBySym)
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
                         EXP_EvalValue v = { 0 };
-                        if (ctx->ntypeTable->data[j].ctorBySym(l, s, &v))
+                        if (ctx->atypeTable->data[j].ctorBySym(l, s, &v))
                         {
                             enode->type = EXP_EvalNodeType_Value;
                             enode->value = v;
-                            u32 t = EXP_evalTypeNval(ctx->typeContext, j);
+                            u32 t = EXP_evalTypeAtom(ctx->typeContext, j);
                             vec_push(dataStack, t);
                             return;
                         }
@@ -1021,7 +1021,7 @@ static void EXP_evalVerifNode
                 return;
             }
             enode->type = EXP_EvalNodeType_String;
-            u32 t = EXP_evalTypeNval(ctx->typeContext, EXP_EvalPrimType_STRING);
+            u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
             vec_push(dataStack, t);
             return;
         }
@@ -1067,19 +1067,19 @@ static void EXP_evalVerifNode
         }
     }
 
-    u32 nfun = EXP_evalVerifGetNfun(ctx, name);
-    if (nfun != -1)
+    u32 afun = EXP_evalVerifGetAfun(ctx, name);
+    if (afun != -1)
     {
-        enode->type = EXP_EvalNodeType_CallNfun;
-        enode->nfun = nfun;
+        enode->type = EXP_EvalNodeType_CallAfun;
+        enode->afun = afun;
 
-        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + nfun;
-        assert(nfunInfo->call);
+        EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
+        assert(afunInfo->call);
 
         EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
         if (!nodeBlk->completed)
         {
-            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .nfun = nfun };
+            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .afun = afun };
             EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         }
         else
@@ -1186,14 +1186,14 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable->data + cb->nfun;
+            EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + cb->afun;
             u32 numIns = dataStack->length - curCall->dataStackP;
-            if (numIns != nfunInfo->numIns)
+            if (numIns != afunInfo->numIns)
             {
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_evalVerifNfunCall(ctx, nfunInfo, srcNode);
+            EXP_evalVerifAfunCall(ctx, afunInfo, srcNode);
             EXP_evalVerifLeaveBlock(ctx);
             goto next;
         }
@@ -1338,7 +1338,7 @@ next:
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalNtypeInfoTable* ntypeTable, EXP_EvalNfunInfoTable* nfunTable,
+    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 )
@@ -1351,7 +1351,7 @@ EXP_EvalError EXP_evalVerif
     }
     EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext
     (
-        space, srcInfo, ntypeTable, nfunTable, nodeTable, typeContext
+        space, srcInfo, atypeTable, afunTable, nodeTable, typeContext
     );
     EXP_EvalVerifContext* ctx = &_ctx;
 

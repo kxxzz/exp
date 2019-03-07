@@ -17,7 +17,7 @@ typedef struct EXP_EvalBlockCallback
     EXP_EvalBlockCallbackType type;
     union
     {
-        u32 nfun;
+        u32 afun;
         EXP_Node fun;
     };
 } EXP_EvalBlockCallback;
@@ -46,8 +46,8 @@ typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
-    EXP_EvalNtypeInfoTable ntypeTable;
-    EXP_EvalNfunInfoTable nfunTable;
+    EXP_EvalAtypeInfoTable atypeTable;
+    EXP_EvalAfunInfoTable afunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
 
@@ -57,7 +57,7 @@ typedef struct EXP_EvalContext
     EXP_EvalValueVec dataStack;
 
     EXP_EvalError error;
-    EXP_EvalValue ncallOutBuf[EXP_EvalNfunOuts_MAX];
+    EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
 } EXP_EvalContext;
 
 
@@ -65,27 +65,27 @@ typedef struct EXP_EvalContext
 
 
 
-EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* aenv)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
-        vec_push(&ctx->ntypeTable, EXP_EvalPrimTypeInfoTable[i]);
+        vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable[i]);
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
-        vec_push(&ctx->nfunTable, EXP_EvalPrimFunInfoTable[i]);
+        vec_push(&ctx->afunTable, EXP_EvalPrimFunInfoTable[i]);
     }
-    if (nenv)
+    if (aenv)
     {
-        for (u32 i = 0; i < nenv->numValueTypes; ++i)
+        for (u32 i = 0; i < aenv->numTypes; ++i)
         {
-            vec_push(&ctx->ntypeTable, nenv->types[i]);
+            vec_push(&ctx->atypeTable, aenv->types[i]);
         }
-        for (u32 i = 0; i < nenv->numFuns; ++i)
+        for (u32 i = 0; i < aenv->numFuns; ++i)
         {
-            vec_push(&ctx->nfunTable, nenv->funs[i]);
+            vec_push(&ctx->afunTable, aenv->funs[i]);
         }
     }
     ctx->typeContext = EXP_newEvalTypeContext();
@@ -102,8 +102,8 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 
     vec_free(&ctx->nodeTable);
     EXP_evalTypeContextFree(ctx->typeContext);
-    vec_free(&ctx->nfunTable);
-    vec_free(&ctx->ntypeTable);
+    vec_free(&ctx->afunTable);
+    vec_free(&ctx->atypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
     EXP_spaceFree(ctx->space);
     free(ctx);
@@ -278,17 +278,17 @@ static bool EXP_evalAtTail(EXP_EvalContext* ctx)
 
 
 
-static void EXP_evalNfunCall
+static void EXP_evalAfunCall
 (
-    EXP_EvalContext* ctx, EXP_EvalNfunInfo* nfunInfo, EXP_Node srcNode
+    EXP_EvalContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
-    u32 argsOffset = dataStack->length - nfunInfo->numIns;
-    nfunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
+    u32 argsOffset = dataStack->length - afunInfo->numIns;
+    afunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < nfunInfo->numOuts; ++i)
+    for (u32 i = 0; i < afunInfo->numOuts; ++i)
     {
         EXP_EvalValue v = ctx->ncallOutBuf[i];
         vec_push(dataStack, v);
@@ -325,9 +325,9 @@ next:
         }
         case EXP_EvalBlockCallbackType_Ncall:
         {
-            EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + cb->nfun;
-            u32 numIns = nfunInfo->numIns;
-            EXP_evalNfunCall(ctx, nfunInfo, curCall->srcNode);
+            EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + cb->afun;
+            u32 numIns = afunInfo->numIns;
+            EXP_evalAfunCall(ctx, afunInfo, curCall->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Call:
@@ -424,13 +424,13 @@ next:
         vec_pop(dataStack);
         goto next;
     }
-    case EXP_EvalNodeType_Nfun:
+    case EXP_EvalNodeType_Afun:
     {
         assert(EXP_isTok(space, node));
-        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + enode->nfun;
-        assert(nfunInfo->call);
-        assert(dataStack->length >= nfunInfo->numIns);
-        EXP_evalNfunCall(ctx, nfunInfo, node);
+        EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + enode->afun;
+        assert(afunInfo->call);
+        assert(dataStack->length >= afunInfo->numIns);
+        EXP_evalAfunCall(ctx, afunInfo, node);
         goto next;
     }
     case EXP_EvalNodeType_Var:
@@ -485,16 +485,16 @@ next:
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
-    case EXP_EvalNodeType_CallNfun:
+    case EXP_EvalNodeType_CallAfun:
     {
         assert(EXP_evalCheckCall(space, node));
         EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
-        u32 nfun = enode->nfun;
-        assert(nfun != -1);
-        EXP_EvalNfunInfo* nfunInfo = ctx->nfunTable.data + nfun;
-        assert(nfunInfo->call);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Ncall, .nfun = nfun };
+        u32 afun = enode->afun;
+        assert(afun != -1);
+        EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + afun;
+        assert(afunInfo->call);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Ncall, .afun = afun };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
@@ -563,7 +563,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalNtypeInfoTable* ntypeTable, EXP_EvalNfunInfoTable* nfunTable,
+    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 );
@@ -615,7 +615,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     EXP_EvalError error = EXP_evalVerif
     (
         space, root, &ctx->srcInfo,
-        &ctx->ntypeTable, &ctx->nfunTable,
+        &ctx->atypeTable, &ctx->afunTable,
         &ctx->nodeTable,
         ctx->typeContext, &ctx->typeStack
     );
