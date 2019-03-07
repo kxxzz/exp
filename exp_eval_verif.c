@@ -102,12 +102,13 @@ typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
 
 typedef struct EXP_EvalVerifSnapshot
 {
+    bool allowDsShift;
     u32 dsOff;
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-    u32 tvBegin;
-    bool allowDsShift;
+    u32 tvTableBase;
+    u32 typeVarCount;
 } EXP_EvalVerifSnapshot;
 
 typedef vec_t(EXP_EvalVerifSnapshot) EXP_EvalVerifWorldStack;
@@ -126,12 +127,14 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
-    vec_u32 dataStack;
-    EXP_EvalVerifCallVec callStack;
+    u32 typeVarTableBase;
     EXP_EvalTypeVarTable typeVarTable;
 
-    u32 tvBegin;
     bool allowDsShift;
+
+    vec_u32 dataStack;
+    EXP_EvalVerifCallVec callStack;
+    u32 typeVarCount;
 
     vec_u32 dsBuf;
     EXP_EvalVerifCallVec csBuf;
@@ -181,9 +184,10 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->csBuf);
     vec_free(&ctx->dsBuf);
 
-    vec_free(&ctx->typeVarTable);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
+
+    vec_free(&ctx->typeVarTable);
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
@@ -203,18 +207,21 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 {
     EXP_EvalVerifSnapshot snapshot = { 0 };
+    snapshot.tvTableBase = ctx->typeVarTableBase;
+    snapshot.allowDsShift = ctx->allowDsShift;
     snapshot.dsOff = ctx->dsBuf.length;
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
-    snapshot.tvBegin = ctx->tvBegin;
-    snapshot.allowDsShift = ctx->allowDsShift;
+    snapshot.typeVarCount = ctx->typeVarCount;
     vec_push(&ctx->worldStack, snapshot);
+
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
+    ctx->allowDsShift = allowDsShift;
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
-    ctx->allowDsShift = allowDsShift;
+    ctx->typeVarCount = 0;
 }
 
 
@@ -224,14 +231,17 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     assert(ctx->worldStack.length > 0);
     EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
+
+    vec_resize(&ctx->typeVarTable, ctx->typeVarTableBase);
+    ctx->typeVarTableBase = snapshot.tvTableBase;
+
+    ctx->allowDsShift = snapshot.allowDsShift;
     ctx->dataStack.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
-    vec_resize(&ctx->typeVarTable, ctx->tvBegin);
-    ctx->tvBegin = snapshot.tvBegin;
-    ctx->allowDsShift = snapshot.allowDsShift;
+    ctx->typeVarCount = snapshot.typeVarCount;
 }
 
 
