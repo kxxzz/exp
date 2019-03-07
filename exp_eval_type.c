@@ -156,7 +156,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
 
 bool EXP_evalTypeUnifyX
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 begin,
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 varBegin,
     u32 a, u32 b, u32* t
 )
 {
@@ -197,7 +197,7 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarTableGet(varTable, begin, descA->atom);
+            u32* pValue = EXP_evalTypeVarTableGet(varTable, varBegin, descA->atom);
             if (pValue)
             {
                 a = *pValue;
