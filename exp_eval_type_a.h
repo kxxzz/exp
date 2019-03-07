@@ -3,23 +3,27 @@
 
 
 
+typedef struct EXP_EvalTypeVarBinding
+{
+    u32 id;
+    u32 val;
+} EXP_EvalTypeVarBinding;
 
-typedef struct EXP_EvalTypeVarTable EXP_EvalTypeVarTable;
-
-EXP_EvalTypeVarTable* EXP_newEvalTypeVarTable(void);
-void EXP_evalTypeVarTableFree(EXP_EvalTypeVarTable* table);
-
-
-
-u32* EXP_evalTypeGetVarValue(EXP_EvalTypeVarTable* varTable, u32 varId);
-void EXP_evalTypeAddVar(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value);
+typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarTable;
 
 
 
 
+u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 offset, u32 var);
+void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value);
 
 
-bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 a, u32 b, u32* t);
+
+bool EXP_evalTypeUnifyX
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 offset,
+    u32 a, u32 b, u32* t
+);
 
 
 

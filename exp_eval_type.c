@@ -107,52 +107,30 @@ const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 
 
 
-typedef struct EXP_EvalTypeVarBinding
+
+
+
+
+
+
+
+u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 offset, u32 var)
 {
-    u32 varId;
-    u32 value;
-} EXP_EvalTypeVarBinding;
-
-typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarBindingVec;
-
-
-
-typedef struct EXP_EvalTypeVarTable
-{
-    EXP_EvalTypeVarBindingVec vars;
-} EXP_EvalTypeVarTable;
-
-EXP_EvalTypeVarTable* EXP_newEvalTypeVarTable(void)
-{
-    EXP_EvalTypeVarTable* t = zalloc(sizeof(*t));
-    return t;
-}
-
-void EXP_evalTypeVarTableFree(EXP_EvalTypeVarTable* table)
-{
-    vec_free(&table->vars);
-    free(table);
-}
-
-
-
-
-u32* EXP_evalTypeGetVarValue(EXP_EvalTypeVarTable* varTable, u32 varId)
-{
-    for (u32 i = 0; i < varTable->vars.length; ++i)
+    assert(offset <= varTable->length);
+    for (u32 i = offset; i < varTable->length; ++i)
     {
-        if (varTable->vars.data[i].varId == varId)
+        if (varTable->data[i].id == var)
         {
-            return &varTable->vars.data[i].value;
+            return &varTable->data[i].val;
         }
     }
     return NULL;
 }
 
-void EXP_evalTypeAddVar(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value)
+void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
 {
-    EXP_EvalTypeVarBinding b = { varId, value };
-    vec_push(&varTable->vars, b);
+    EXP_EvalTypeVarBinding b = { var, value };
+    vec_push(varTable, b);
 }
 
 
@@ -176,7 +154,11 @@ void EXP_evalTypeAddVar(EXP_EvalTypeVarTable* varTable, u32 varId, u32 value)
 
 
 
-bool EXP_evalTypeUnifyX(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 a, u32 b, u32* t)
+bool EXP_evalTypeUnifyX
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 offset,
+    u32 a, u32 b, u32* t
+)
 {
 enter:
     if (a == b)
@@ -215,13 +197,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->atom);
+            u32* pValue = EXP_evalTypeVarTableGet(varTable, offset, descA->atom);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeAddVar(varTable, descA->atom, b);
+            EXP_evalTypeVarTableAdd(varTable, descA->atom, b);
             *t = b;
             return true;
         }
