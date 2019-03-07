@@ -65,7 +65,7 @@ typedef struct EXP_EvalContext
 
 
 
-EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* aenv)
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* atomEnv)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
@@ -77,15 +77,15 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* aenv)
     {
         vec_push(&ctx->afunTable, EXP_EvalPrimFunInfoTable[i]);
     }
-    if (aenv)
+    if (atomEnv)
     {
-        for (u32 i = 0; i < aenv->numTypes; ++i)
+        for (u32 i = 0; i < atomEnv->numTypes; ++i)
         {
-            vec_push(&ctx->atypeTable, aenv->types[i]);
+            vec_push(&ctx->atypeTable, atomEnv->types[i]);
         }
-        for (u32 i = 0; i < aenv->numFuns; ++i)
+        for (u32 i = 0; i < atomEnv->numFuns; ++i)
         {
-            vec_push(&ctx->afunTable, aenv->funs[i]);
+            vec_push(&ctx->afunTable, atomEnv->funs[i]);
         }
     }
     ctx->typeContext = EXP_newEvalTypeContext();
