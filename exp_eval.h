@@ -110,13 +110,14 @@ const EXP_EvalAfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
 
 
 
-typedef struct EXP_EvalAtomEnv
+
+typedef struct EXP_EvalAtomTable
 {
     u32 numTypes;
     EXP_EvalAtypeInfo* types;
     u32 numFuns;
     EXP_EvalAfunInfo* funs;
-} EXP_EvalAtomEnv;
+} EXP_EvalAtomTable;
 
 
 
@@ -153,7 +154,7 @@ typedef struct EXP_EvalError
 typedef struct EXP_EvalContext EXP_EvalContext;
 
 
-EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* nenv);
+EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable);
 void EXP_evalContextFree(EXP_EvalContext* ctx);
 
 
