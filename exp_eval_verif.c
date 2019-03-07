@@ -106,7 +106,7 @@ typedef struct EXP_EvalVerifSnapshot
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-    u32 tvtOff;
+    u32 tvtBegin;
     bool allowDsShift;
 } EXP_EvalVerifSnapshot;
 
@@ -130,6 +130,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalVerifCallVec callStack;
     EXP_EvalTypeVarTable typeVarTable;
 
+    u32 tvtBegin;
     bool allowDsShift;
 
     vec_u32 dsBuf;
@@ -180,6 +181,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->csBuf);
     vec_free(&ctx->dsBuf);
 
+    vec_free(&ctx->typeVarTable);
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
@@ -205,7 +207,7 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
-    snapshot.tvtOff = ctx->typeVarTable.length;
+    snapshot.tvtBegin = ctx->tvtBegin;
     snapshot.allowDsShift = ctx->allowDsShift;
     vec_push(&ctx->worldStack, snapshot);
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
@@ -227,7 +229,8 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
-    vec_resize(&ctx->typeVarTable, snapshot.tvtOff);
+    vec_resize(&ctx->typeVarTable, ctx->tvtBegin);
+    ctx->tvtBegin = snapshot.tvtBegin;
     ctx->allowDsShift = snapshot.allowDsShift;
 }
 

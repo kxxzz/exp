@@ -14,7 +14,7 @@ typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarTable;
 
 
 
-u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 offset, u32 var);
+u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 begin, u32 var);
 void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value);
 
 

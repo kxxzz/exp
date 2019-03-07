@@ -114,10 +114,10 @@ const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 
 
 
-u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 offset, u32 var)
+u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* varTable, u32 begin, u32 var)
 {
-    assert(offset <= varTable->length);
-    for (u32 i = offset; i < varTable->length; ++i)
+    assert(begin <= varTable->length);
+    for (u32 i = begin; i < varTable->length; ++i)
     {
         if (varTable->data[i].id == var)
         {
@@ -156,7 +156,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
 
 bool EXP_evalTypeUnifyX
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 offset,
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 begin,
     u32 a, u32 b, u32* t
 )
 {
@@ -197,7 +197,7 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarTableGet(varTable, offset, descA->atom);
+            u32* pValue = EXP_evalTypeVarTableGet(varTable, begin, descA->atom);
             if (pValue)
             {
                 a = *pValue;
