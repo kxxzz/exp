@@ -69,6 +69,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomEnv* atomEnv)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
+    // todo
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
         vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable[i]);
