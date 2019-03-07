@@ -1,7 +1,11 @@
 #pragma once
 
 
-#include "exp.h"
+
+
+#include "exp_eval_type.h"
+
+
 
 
 typedef enum EXP_EvalKey
@@ -57,9 +61,9 @@ typedef struct EXP_EvalNfunInfo
     const char* name;
     EXP_EvalNfunCall call;
     u32 numIns;
-    u32 inType[EXP_EvalNfunIns_MAX];
+    u32 inNvalType[EXP_EvalNfunIns_MAX];
     u32 numOuts;
-    u32 outType[EXP_EvalNfunOuts_MAX];
+    u32 outNvalType[EXP_EvalNfunOuts_MAX];
 } EXP_EvalNfunInfo;
 
 
@@ -156,6 +160,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx);
 
 
 EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx);
+EXP_EvalTypeContext* EXP_evalDataTypeContext(EXP_EvalContext* ctx);
 vec_u32* EXP_evalDataTypeStack(EXP_EvalContext* ctx);
 EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx);
 

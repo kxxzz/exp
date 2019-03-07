@@ -60,31 +60,42 @@ void testEval(void)
     for (u32 i = 0; i < dataStack->length; ++i)
     {
         EXP_EvalValue v = dataStack->data[i];
-        u32 vt = typeStack->data[i];
-        switch (vt)
+        u32 t = typeStack->data[i];
+        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
+        switch (desc->type)
         {
-        case EXP_EvalPrimValueType_BOOL:
+        case EXP_EvalTypeType_Nval:
         {
-            printf("%s\n", v.b ? "true" : "false");
-            break;
-        }
-        case EXP_EvalPrimValueType_FLOAT:
-        {
-            printf("%f\n", v.f);
-            break;
-        }
-        case EXP_EvalPrimValueType_STRING:
-        {
-            const char* s = v.s->data;
-            printf("%s\n", s);
+            switch (desc->nvalTypeId)
+            {
+            case EXP_EvalPrimValueType_BOOL:
+            {
+                printf("%s\n", v.b ? "true" : "false");
+                break;
+            }
+            case EXP_EvalPrimValueType_FLOAT:
+            {
+                printf("%f\n", v.f);
+                break;
+            }
+            case EXP_EvalPrimValueType_STRING:
+            {
+                const char* s = v.s->data;
+                printf("%s\n", s);
+                break;
+            }
+            default:
+            {
+                const char* s = EXP_EvalPrimValueTypeInfoTable[t].name;
+                printf("TYPE: %s\n", s);
+                break;
+            }
+            }
             break;
         }
         default:
-        {
-            const char* s = EXP_EvalPrimValueTypeInfoTable[vt].name;
-            printf("TYPE: %s\n", s);
+            assert(false);
             break;
-        }
         }
     }
     EXP_evalContextFree(ctx);

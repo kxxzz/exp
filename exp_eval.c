@@ -1,5 +1,5 @@
 #include "exp_eval_a.h"
-
+#include "exp_eval_type_a.h"
 
 
 
@@ -48,11 +48,14 @@ typedef struct EXP_EvalContext
     EXP_SpaceSrcInfo srcInfo;
     EXP_EvalNvalTypeInfoTable nvalTypeTable;
     EXP_EvalNfunInfoTable nfunTable;
+    EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
+
+    vec_u32 typeStack;
     EXP_EvalCallStack callStack;
     EXP_EvalValueVec varStack;
-    vec_u32 typeStack;
     EXP_EvalValueVec dataStack;
+
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalNfunOuts_MAX];
 } EXP_EvalContext;
@@ -85,6 +88,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
             vec_push(&ctx->nfunTable, nenv->funs[i]);
         }
     }
+    ctx->typeContext = EXP_newEvalTypeContext();
     return ctx;
 }
 
@@ -92,10 +96,12 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->dataStack);
-    vec_free(&ctx->typeStack);
     vec_free(&ctx->varStack);
     vec_free(&ctx->callStack);
+    vec_free(&ctx->typeStack);
+
     vec_free(&ctx->nodeTable);
+    EXP_evalTypeContextFree(ctx->typeContext);
     vec_free(&ctx->nfunTable);
     vec_free(&ctx->nvalTypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
@@ -117,6 +123,11 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx)
 {
     return ctx->error;
+}
+
+EXP_EvalTypeContext* EXP_evalDataTypeContext(EXP_EvalContext* ctx)
+{
+    return ctx->typeContext;
 }
 
 vec_u32* EXP_evalDataTypeStack(EXP_EvalContext* ctx)
@@ -551,9 +562,10 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 
 EXP_EvalError EXP_evalVerif
 (
-    EXP_Space* space, EXP_Node root,
+    EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalNvalTypeInfoTable* nvalTypeTable, EXP_EvalNfunInfoTable* nfunTable,
-    EXP_EvalNodeTable* nodeTable, vec_u32* typeStack, EXP_SpaceSrcInfo* srcInfo
+    EXP_EvalNodeTable* nodeTable,
+    EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 );
 
 
@@ -602,7 +614,10 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     }
     EXP_EvalError error = EXP_evalVerif
     (
-        space, root, &ctx->nvalTypeTable, &ctx->nfunTable, &ctx->nodeTable, &ctx->typeStack, &ctx->srcInfo
+        space, root, &ctx->srcInfo,
+        &ctx->nvalTypeTable, &ctx->nfunTable,
+        &ctx->nodeTable,
+        ctx->typeContext, &ctx->typeStack
     );
     if (error.code)
     {

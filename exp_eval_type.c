@@ -1,42 +1,6 @@
 #include "exp_eval_a.h"
-#include "exp_eval_type.h"
+#include "exp_eval_type_a.h"
 
-
-
-typedef enum EXP_EvalTypeType
-{
-    EXP_EvalTypeType_Nval,
-    EXP_EvalTypeType_Var,
-    EXP_EvalTypeType_Fun,
-    EXP_EvalTypeType_Tuple,
-    EXP_EvalTypeType_Array,
-
-    EXP_NumEvalTypeTypes
-} EXP_EvalTypeType;
-
-typedef struct EXP_EvalTypeDescList
-{
-    u32 count;
-    u32 id;
-} EXP_EvalTypeDescList;
-
-typedef struct EXP_EvalTypeDescFun
-{
-    EXP_EvalTypeDescList ins;
-    EXP_EvalTypeDescList outs;
-} EXP_EvalTypeDescFun;
-
-typedef struct EXP_EvalTypeDesc
-{
-    EXP_EvalTypeType type;
-    union
-    {
-        u32 id;
-        EXP_EvalTypeDescFun fun;
-        EXP_EvalTypeDescList tuple;
-        u32 aryElm;
-    };
-} EXP_EvalTypeDesc;
 
 
 
@@ -84,17 +48,17 @@ static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms
 
 
 
-u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 nativeType)
+u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 nvalType)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Nval };
-    desc.id = nativeType;
+    desc.nvalTypeId = nvalType;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
-    desc.id = varId;
+    desc.nvalTypeId = varId;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -103,8 +67,8 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 nu
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
     desc.fun.ins.count = numIns;
     desc.fun.outs.count = numOuts;
-    desc.fun.ins.id = EXP_evalTypeList(ctx, numIns, ins);
-    desc.fun.outs.id = EXP_evalTypeList(ctx, numOuts, outs);
+    desc.fun.ins.listId = EXP_evalTypeList(ctx, numIns, ins);
+    desc.fun.outs.listId = EXP_evalTypeList(ctx, numOuts, outs);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -112,7 +76,7 @@ u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Tuple };
     desc.tuple.count = count;
-    desc.tuple.id = EXP_evalTypeList(ctx, count, elms);
+    desc.tuple.listId = EXP_evalTypeList(ctx, count, elms);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -126,12 +90,17 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 
 
 
-static const EXP_EvalTypeDesc* EXP_evalTypeGetDesc(EXP_EvalTypeContext* ctx, u32 id)
+
+
+const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId)
 {
-    return upoolElmData(ctx->typePool, id);
+    return upoolElmData(ctx->typePool, typeId);
 }
 
-
+const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
+{
+    return upoolElmData(ctx->listPool, listId);
+}
 
 
 
@@ -215,15 +184,15 @@ enter:
         *t = a;
         return true;
     }
-    const EXP_EvalTypeDesc* descA = EXP_evalTypeGetDesc(ctx, a);
-    const EXP_EvalTypeDesc* descB = EXP_evalTypeGetDesc(ctx, b);
+    const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
+    const EXP_EvalTypeDesc* descB = EXP_evalTypeDescById(ctx, b);
     if (descA->type == descB->type)
     {
         switch (descA->type)
         {
         case EXP_EvalTypeType_Nval:
         {
-            assert(descA->id != descB->id);
+            assert(descA->nvalTypeId != descB->nvalTypeId);
             return false;
         }
         default:
@@ -246,13 +215,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->id);
+            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->nvalTypeId);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeAddVar(varTable, descA->id, b);
+            EXP_evalTypeAddVar(varTable, descA->nvalTypeId, b);
             *t = b;
             return true;
         }
