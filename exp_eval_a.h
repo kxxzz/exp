@@ -10,7 +10,7 @@
 
 
 
-typedef vec_t(EXP_EvalNvalTypeInfo) EXP_EvalNvalTypeInfoTable;
+typedef vec_t(EXP_EvalNtypeInfo) EXP_EvalNtypeInfoTable;
 typedef vec_t(EXP_EvalNfunInfo) EXP_EvalNfunInfoTable;
 
 

@@ -39,12 +39,12 @@ typedef union EXP_EvalValue
 typedef bool(*EXP_EvalNvalCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
 typedef void(*EXP_EvalNvalDtor)(EXP_EvalValue* pVal);
 
-typedef struct EXP_EvalNvalTypeInfo
+typedef struct EXP_EvalNtypeInfo
 {
     const char* name;
     EXP_EvalNvalCtorBySym ctorBySym;
     EXP_EvalNvalDtor dtor;
-} EXP_EvalNvalTypeInfo;
+} EXP_EvalNtypeInfo;
 
 
 
@@ -61,9 +61,9 @@ typedef struct EXP_EvalNfunInfo
     const char* name;
     EXP_EvalNfunCall call;
     u32 numIns;
-    u32 inNvalType[EXP_EvalNfunIns_MAX];
+    u32 inNtype[EXP_EvalNfunIns_MAX];
     u32 numOuts;
-    u32 outNvalType[EXP_EvalNfunOuts_MAX];
+    u32 outNtype[EXP_EvalNfunOuts_MAX];
 } EXP_EvalNfunInfo;
 
 
@@ -71,16 +71,16 @@ typedef struct EXP_EvalNfunInfo
 
 
 
-typedef enum EXP_EvalPrimValueType
+typedef enum EXP_EvalPrimType
 {
-    EXP_EvalPrimValueType_BOOL,
-    EXP_EvalPrimValueType_FLOAT,
-    EXP_EvalPrimValueType_STRING,
+    EXP_EvalPrimType_BOOL,
+    EXP_EvalPrimType_FLOAT,
+    EXP_EvalPrimType_STRING,
 
-    EXP_NumEvalPrimValueTypes
-} EXP_EvalPrimValueType;
+    EXP_NumEvalPrimTypes
+} EXP_EvalPrimType;
 
-const EXP_EvalNvalTypeInfo EXP_EvalPrimValueTypeInfoTable[EXP_NumEvalPrimValueTypes];
+const EXP_EvalNtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes];
 
 
 
@@ -113,7 +113,7 @@ const EXP_EvalNfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
 typedef struct EXP_EvalNativeEnv
 {
     u32 numValueTypes;
-    EXP_EvalNvalTypeInfo* valueTypes;
+    EXP_EvalNtypeInfo* types;
     u32 numFuns;
     EXP_EvalNfunInfo* funs;
 } EXP_EvalNativeEnv;

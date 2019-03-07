@@ -46,7 +46,7 @@ typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
-    EXP_EvalNvalTypeInfoTable nvalTypeTable;
+    EXP_EvalNtypeInfoTable ntypeTable;
     EXP_EvalNfunInfoTable nfunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
@@ -69,9 +69,9 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
-    for (u32 i = 0; i < EXP_NumEvalPrimValueTypes; ++i)
+    for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
-        vec_push(&ctx->nvalTypeTable, EXP_EvalPrimValueTypeInfoTable[i]);
+        vec_push(&ctx->ntypeTable, EXP_EvalPrimTypeInfoTable[i]);
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
@@ -81,7 +81,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalNativeEnv* nenv)
     {
         for (u32 i = 0; i < nenv->numValueTypes; ++i)
         {
-            vec_push(&ctx->nvalTypeTable, nenv->valueTypes[i]);
+            vec_push(&ctx->ntypeTable, nenv->types[i]);
         }
         for (u32 i = 0; i < nenv->numFuns; ++i)
         {
@@ -103,7 +103,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->nodeTable);
     EXP_evalTypeContextFree(ctx->typeContext);
     vec_free(&ctx->nfunTable);
-    vec_free(&ctx->nvalTypeTable);
+    vec_free(&ctx->ntypeTable);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
     EXP_spaceFree(ctx->space);
     free(ctx);
@@ -563,7 +563,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 EXP_EvalError EXP_evalVerif
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalNvalTypeInfoTable* nvalTypeTable, EXP_EvalNfunInfoTable* nfunTable,
+    EXP_EvalNtypeInfoTable* ntypeTable, EXP_EvalNfunInfoTable* nfunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 );
@@ -615,7 +615,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
     EXP_EvalError error = EXP_evalVerif
     (
         space, root, &ctx->srcInfo,
-        &ctx->nvalTypeTable, &ctx->nfunTable,
+        &ctx->ntypeTable, &ctx->nfunTable,
         &ctx->nodeTable,
         ctx->typeContext, &ctx->typeStack
     );

@@ -8,7 +8,7 @@
 
 typedef enum EXP_EvalTypeType
 {
-    EXP_EvalTypeType_Nval,
+    EXP_EvalTypeType_Native,
     EXP_EvalTypeType_Var,
     EXP_EvalTypeType_Fun,
     EXP_EvalTypeType_Tuple,
@@ -20,7 +20,7 @@ typedef enum EXP_EvalTypeType
 typedef struct EXP_EvalTypeDescList
 {
     u32 count;
-    u32 listId;
+    u32 list;
 } EXP_EvalTypeDescList;
 
 typedef struct EXP_EvalTypeDescFun
@@ -34,7 +34,8 @@ typedef struct EXP_EvalTypeDesc
     EXP_EvalTypeType type;
     union
     {
-        u32 nvalTypeId;
+        u32 native;
+        u32 var;
         EXP_EvalTypeDescFun fun;
         EXP_EvalTypeDescList tuple;
         u32 aryElm;

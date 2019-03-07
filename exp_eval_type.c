@@ -48,17 +48,17 @@ static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms
 
 
 
-u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 nvalType)
+u32 EXP_evalTypeNval(EXP_EvalTypeContext* ctx, u32 ntype)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Nval };
-    desc.nvalTypeId = nvalType;
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Native };
+    desc.native = ntype;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
+u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
-    desc.nvalTypeId = varId;
+    desc.var = var;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -67,8 +67,8 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 nu
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
     desc.fun.ins.count = numIns;
     desc.fun.outs.count = numOuts;
-    desc.fun.ins.listId = EXP_evalTypeList(ctx, numIns, ins);
-    desc.fun.outs.listId = EXP_evalTypeList(ctx, numOuts, outs);
+    desc.fun.ins.list = EXP_evalTypeList(ctx, numIns, ins);
+    desc.fun.outs.list = EXP_evalTypeList(ctx, numOuts, outs);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -76,7 +76,7 @@ u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Tuple };
     desc.tuple.count = count;
-    desc.tuple.listId = EXP_evalTypeList(ctx, count, elms);
+    desc.tuple.list = EXP_evalTypeList(ctx, count, elms);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -190,9 +190,9 @@ enter:
     {
         switch (descA->type)
         {
-        case EXP_EvalTypeType_Nval:
+        case EXP_EvalTypeType_Native:
         {
-            assert(descA->nvalTypeId != descB->nvalTypeId);
+            assert(descA->native != descB->native);
             return false;
         }
         default:
@@ -215,13 +215,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->nvalTypeId);
+            u32* pValue = EXP_evalTypeGetVarValue(varTable, descA->native);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeAddVar(varTable, descA->nvalTypeId, b);
+            EXP_evalTypeAddVar(varTable, descA->native, b);
             *t = b;
             return true;
         }

@@ -64,21 +64,21 @@ void testEval(void)
         const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
         switch (desc->type)
         {
-        case EXP_EvalTypeType_Nval:
+        case EXP_EvalTypeType_Native:
         {
-            switch (desc->nvalTypeId)
+            switch (desc->native)
             {
-            case EXP_EvalPrimValueType_BOOL:
+            case EXP_EvalPrimType_BOOL:
             {
                 printf("%s\n", v.b ? "true" : "false");
                 break;
             }
-            case EXP_EvalPrimValueType_FLOAT:
+            case EXP_EvalPrimType_FLOAT:
             {
                 printf("%f\n", v.f);
                 break;
             }
-            case EXP_EvalPrimValueType_STRING:
+            case EXP_EvalPrimType_STRING:
             {
                 const char* s = v.s->data;
                 printf("%s\n", s);
@@ -86,8 +86,8 @@ void testEval(void)
             }
             default:
             {
-                const char* s = EXP_EvalPrimValueTypeInfoTable[t].name;
-                printf("TYPE: %s\n", s);
+                const char* s = EXP_EvalPrimTypeInfoTable[t].name;
+                printf("<TYPE: %s>\n", s);
                 break;
             }
             }
