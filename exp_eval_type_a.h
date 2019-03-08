@@ -18,6 +18,10 @@ u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 v
 void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value);
 
 
+u32 EXP_evalTypePureValueForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x);
+
+
+
 
 bool EXP_evalTypeUnify
 (

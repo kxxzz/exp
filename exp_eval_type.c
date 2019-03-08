@@ -151,6 +151,49 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
 
 
 
+u32 EXP_evalTypePureValueForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
+{
+    const EXP_EvalTypeDesc* desc = NULL;
+enter:
+    desc = EXP_evalTypeDescById(ctx, x);
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        return x;
+    }
+    case EXP_EvalTypeType_Var:
+    {
+        u32* pValue = EXP_evalTypeVarTableGet(vtable, vtableBase, desc->var);
+        if (pValue)
+        {
+            x = *pValue;
+            goto enter;
+        }
+        return x;
+    }
+    default:
+        assert(false);
+        return x;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -197,13 +240,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarTableGet(vtable, vtableBase, descA->atom);
+            u32* pValue = EXP_evalTypeVarTableGet(vtable, vtableBase, descA->var);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeVarTableAdd(vtable, descA->atom, b);
+            EXP_evalTypeVarTableAdd(vtable, descA->var, b);
             *u = b;
             return true;
         }
@@ -213,6 +256,19 @@ enter:
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
