@@ -30,12 +30,7 @@ bool EXP_evalTypeUnify
 );
 
 
-bool EXP_evalTypeMatch
-(
-    EXP_EvalTypeContext* ctx,
-    EXP_EvalTypeVarTable* patVtable, u32 pat,
-    EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
-);
+bool EXP_evalTypeMatch(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 nf);
 
 
 

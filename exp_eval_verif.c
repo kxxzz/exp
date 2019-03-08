@@ -265,6 +265,10 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 
 static bool EXP_evalVerifTypeMatch(EXP_EvalVerifContext* ctx, u32 pat, u32 x)
 {
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarTable* tvarTable = &ctx->tvarTable;
+    u32 tvarTableBase = ctx->tvarTableBase;
+    u32 nf = EXP_evalTypeNormForm(typeContext, tvarTable, tvarTableBase, x);
     return true;
 }
 
