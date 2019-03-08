@@ -263,6 +263,14 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 
 
 
+static bool EXP_evalVerifTypeMatch(EXP_EvalVerifContext* ctx, u32 pat, u32 x)
+{
+    return true;
+}
+
+
+
+
 
 
 
@@ -708,15 +716,13 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
-        u32 t1 = dataStack->data[argsOffset + i];
-        u32 t0 = inEvalType[i];
-        u32 t;
-        if (!EXP_evalVerifTypeUnify(ctx, t0, t1, &t))
+        u32 pat = inEvalType[i];
+        u32 x = dataStack->data[argsOffset + i];
+        if (!EXP_evalVerifTypeMatch(ctx, pat, x))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        dataStack->data[argsOffset + i] = t;
     }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < afunInfo->numOuts; ++i)
@@ -744,21 +750,19 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
     {
-        u32 t0 = blk->inout.data[i];
-        u32 t1 = dataStack->data[argsOffset + i];
-        u32 t;
-        if (!EXP_evalVerifTypeUnify(ctx, t0, t1, &t))
+        u32 pat = blk->inout.data[i];
+        u32 x = dataStack->data[argsOffset + i];
+        if (!EXP_evalVerifTypeMatch(ctx, pat, x))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        dataStack->data[argsOffset + i] = t;
     }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
-        u32 vt = blk->inout.data[blk->numIns + i];
-        vec_push(dataStack, vt);
+        u32 t = blk->inout.data[blk->numIns + i];
+        vec_push(dataStack, t);
     }
 }
 
