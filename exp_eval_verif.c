@@ -251,6 +251,17 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 
 
 
+static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* u)
+{
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarTable* tvarTable = &ctx->tvarTable;
+    u32 tvarTableBase = ctx->tvarTableBase;
+    bool r = EXP_evalTypeUnify(typeContext, tvarTable, tvarTableBase, a, b, u);
+    return r;
+}
+
+
+
 
 
 
@@ -539,7 +550,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             u32 t0 = curBlock->inout.data[i];
             u32 t1 = curBlock->inBuf.data[i];
             u32 t;
-            EXP_evalTypeUnify(typeContext, tvarTable, ctx->tvarTableBase, t0, t1, &t);
+            EXP_evalVerifTypeUnify(ctx, t0, t1, &t);
             curBlock->inout.data[i] = t;
         }
 
@@ -551,7 +562,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t1 = ctx->dataStack.data[j];
             u32 t;
-            EXP_evalTypeUnify(typeContext, tvarTable, ctx->tvarTableBase, t0, t1, &t);
+            EXP_evalVerifTypeUnify(ctx, t0, t1, &t);
             curBlock->inout.data[curBlock->numIns + i] = t;
             ctx->dataStack.data[j] = t;
         }
@@ -700,7 +711,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
         u32 t1 = dataStack->data[argsOffset + i];
         u32 t0 = inEvalType[i];
         u32 t;
-        if (!EXP_evalTypeUnify(typeContext, tvarTable, ctx->tvarTableBase, t0, t1, &t))
+        if (!EXP_evalVerifTypeUnify(ctx, t0, t1, &t))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -736,7 +747,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
         u32 t0 = blk->inout.data[i];
         u32 t1 = dataStack->data[argsOffset + i];
         u32 t;
-        if (!EXP_evalTypeUnify(typeContext, tvarTable, ctx->tvarTableBase, t0, t1, &t))
+        if (!EXP_evalVerifTypeUnify(ctx, t0, t1, &t))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -1298,7 +1309,7 @@ next:
             u32 t1 = dataStack->data[curCall->dataStackP];
             vec_pop(dataStack);
             u32 t;
-            if (!EXP_evalTypeUnify(typeContext, tvarTable, ctx->tvarTableBase, EXP_EvalPrimType_BOOL, t1, &t))
+            if (!EXP_evalVerifTypeUnify(ctx, EXP_EvalPrimType_BOOL, t1, &t))
             {
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
