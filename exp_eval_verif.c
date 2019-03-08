@@ -128,10 +128,9 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalVerifBlockTable blockTable;
 
     u32 tvarTableBase;
-    EXP_EvalTypeVarTable typeVarTable;
+    EXP_EvalTypeVarTable tvarTable;
 
     bool allowDsShift;
-
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
     u32 tvarCount;
@@ -187,7 +186,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
-    vec_free(&ctx->typeVarTable);
+    vec_free(&ctx->tvarTable);
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
@@ -216,6 +215,8 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.tvarCount = ctx->tvarCount;
     vec_push(&ctx->worldStack, snapshot);
 
+    ctx->tvarTableBase = ctx->tvarTable.length;
+
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
     ctx->allowDsShift = allowDsShift;
@@ -232,7 +233,7 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
 
-    vec_resize(&ctx->typeVarTable, ctx->tvarTableBase);
+    vec_resize(&ctx->tvarTable, ctx->tvarTableBase);
     ctx->tvarTableBase = snapshot.tvarTableBase;
 
     ctx->allowDsShift = snapshot.allowDsShift;
