@@ -899,7 +899,7 @@ static void EXP_evalVerifNode
                                 u32 t = EXP_evalTypeVar(typeContext, ctx->tvarCount++);
                                 vec_push(&ctx->typeBuf, t);
                             }
-                            if (!EXP_evalVerifShiftDataStack(ctx, 1, ctx->typeBuf.data))
+                            if (!EXP_evalVerifShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
                             {
                                 EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                                 return;
