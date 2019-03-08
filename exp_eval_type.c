@@ -151,7 +151,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
 
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
+u32 EXP_evalTypeNonvarForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
 {
     const EXP_EvalTypeDesc* desc = NULL;
 enter:
