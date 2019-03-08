@@ -154,16 +154,16 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
 
 
 
-bool EXP_evalTypeUnifyX
+bool EXP_evalTypeUnify
 (
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase,
-    u32 a, u32 b, u32* t
+    u32 a, u32 b, u32* u
 )
 {
 enter:
     if (a == b)
     {
-        *t = a;
+        *u = a;
         return true;
     }
     const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
@@ -204,7 +204,7 @@ enter:
                 goto enter;
             }
             EXP_evalTypeVarTableAdd(vtable, descA->atom, b);
-            *t = b;
+            *u = b;
             return true;
         }
         else
@@ -224,25 +224,7 @@ enter:
 
 
 
-bool EXP_evalTypeUnify(u32 a, u32 b, u32* out)
-{
-    if (EXP_EvalValueType_Any == a)
-    {
-        *out = b;
-        return true;
-    }
-    if (EXP_EvalValueType_Any == b)
-    {
-        *out = a;
-        return true;
-    }
-    if (a != b)
-    {
-        return false;
-    }
-    *out = a;
-    return true;
-}
+
 
 
 

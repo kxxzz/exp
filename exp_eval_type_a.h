@@ -19,7 +19,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* varTable, u32 var, u32 value)
 
 
 
-bool EXP_evalTypeUnifyX
+bool EXP_evalTypeUnify
 (
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* varTable, u32 vtableBase,
     u32 a, u32 b, u32* t
@@ -27,13 +27,7 @@ bool EXP_evalTypeUnifyX
 
 
 
-// todo replace
-enum
-{
-    EXP_EvalValueType_Any = -1,
-};
 
-bool EXP_evalTypeUnify(u32 a, u32 b, u32* out);
 
 
 
