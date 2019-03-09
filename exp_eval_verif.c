@@ -269,7 +269,9 @@ static bool EXP_evalVerifTypePatBindUnify(EXP_EvalVerifContext* ctx, u32 pat, u3
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarTable* patVarTable = &ctx->patVarTable;
-    return EXP_evalTypePatBindUnify(typeContext, patVarTable, pat, x);
+    EXP_EvalTypeVarTable* tvarTable = &ctx->tvarTable;
+    u32 tvarTableBase = ctx->tvarTableBase;
+    return EXP_evalTypePatBindUnify(typeContext, patVarTable, pat, tvarTable, tvarTableBase, x);
 }
 
 static u32 EXP_evalVerifTypePatSubst(EXP_EvalVerifContext* ctx, u32 pat)

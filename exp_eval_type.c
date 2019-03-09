@@ -278,7 +278,11 @@ enter:
 
 
 
-bool EXP_evalTypePatBindUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x)
+bool EXP_evalTypePatBindUnify
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat,
+    EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
+)
 {
     const EXP_EvalTypeDesc* descPat = EXP_evalTypeDescById(ctx, pat);
     const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
