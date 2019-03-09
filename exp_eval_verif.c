@@ -179,6 +179,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
+    vec_free(&ctx->patVarTable);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varKeyBuf);
 
