@@ -142,6 +142,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
     vec_u32 typeBuf;
+    EXP_EvalTypeVarTable patVarTable;
 } EXP_EvalVerifContext;
 
 
@@ -214,6 +215,7 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
+    snapshot.tvarCount = ctx->tvarCount;
     vec_push(&ctx->worldStack, snapshot);
 
     ctx->tvarTableBase = ctx->tvarTable.length;
@@ -223,6 +225,7 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     ctx->allowDsShift = allowDsShift;
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
+    ctx->tvarCount = 0;
 }
 
 
@@ -242,6 +245,7 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
+    ctx->tvarCount = snapshot.tvarCount;
 }
 
 
@@ -260,18 +264,18 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 
 
 
-static bool EXP_evalVerifTypePatBind(EXP_EvalVerifContext* ctx, u32 pat, u32 x)
+static bool EXP_evalVerifTypePatBindUnify(EXP_EvalVerifContext* ctx, u32 pat, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarTable* tvarTable = &ctx->tvarTable;
-    u32 tvarTableBase = ctx->tvarTableBase;
-    return true;
+    EXP_EvalTypeVarTable* patVarTable = &ctx->patVarTable;
+    return EXP_evalTypePatBindUnify(typeContext, patVarTable, pat, x);
 }
 
 static u32 EXP_evalVerifTypePatSubst(EXP_EvalVerifContext* ctx, u32 pat)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    return EXP_evalTypePatSubst(typeContext, NULL, pat);
+    EXP_EvalTypeVarTable* patVarTable = &ctx->patVarTable;
+    return EXP_evalTypePatSubst(typeContext, patVarTable, pat);
 }
 
 
@@ -722,7 +726,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     {
         u32 pat = inEvalType[i];
         u32 x = dataStack->data[argsOffset + i];
-        if (!EXP_evalVerifTypePatBind(ctx, pat, x))
+        if (!EXP_evalVerifTypePatBindUnify(ctx, pat, x))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -757,7 +761,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     {
         u32 pat = blk->inout.data[i];
         u32 x = dataStack->data[argsOffset + i];
-        if (!EXP_evalVerifTypePatBind(ctx, pat, x))
+        if (!EXP_evalVerifTypePatBindUnify(ctx, pat, x))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;

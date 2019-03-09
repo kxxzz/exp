@@ -30,7 +30,7 @@ bool EXP_evalTypeUnify
 );
 
 
-bool EXP_evalTypePatBind(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x);
+bool EXP_evalTypePatBindUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x);
 u32 EXP_evalTypePatSubst(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat);
 
 

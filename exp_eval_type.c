@@ -278,8 +278,32 @@ enter:
 
 
 
-bool EXP_evalTypePatBind(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x)
+bool EXP_evalTypePatBindUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x)
 {
+    const EXP_EvalTypeDesc* descPat = EXP_evalTypeDescById(ctx, pat);
+    const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
+    u32* pValue = NULL;
+    if (EXP_EvalTypeType_Var == descPat->type)
+    {
+        pValue = EXP_evalTypeVarTableGet(patVtable, 0, descPat->var);
+    }
+    if (pValue)
+    {
+        u32 v = *pValue;
+        if (EXP_EvalTypeType_Var == descX->type)
+        {
+            return true;
+        }
+        else
+        {
+            return v == x;
+        }
+    }
+    else
+    {
+        EXP_evalTypeVarTableAdd(patVtable, descPat->var, x);
+        return true;
+    }
     return true;
 }
 
