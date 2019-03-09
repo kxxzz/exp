@@ -151,7 +151,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
 
 
 
-u32 EXP_evalTypeValue(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
+u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
 {
     const EXP_EvalTypeDesc* desc = NULL;
 enter:
@@ -278,11 +278,7 @@ enter:
 
 
 
-bool EXP_evalTypeMatch
-(
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat,
-    EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
-)
+bool EXP_evalTypePatBind(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 x)
 {
     return true;
 }
@@ -291,7 +287,11 @@ bool EXP_evalTypeMatch
 
 
 
-
+u32 EXP_evalTypePatSubst(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat)
+{
+    u32 x = EXP_evalTypeNormForm(ctx, patVtable, 0, pat);
+    return x;
+}
 
 
 
