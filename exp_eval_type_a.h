@@ -18,7 +18,7 @@ u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 v
 void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value);
 
 
-u32 EXP_evalTypeNonvarForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x);
+u32 EXP_evalTypeValue(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x);
 
 
 
@@ -30,7 +30,11 @@ bool EXP_evalTypeUnify
 );
 
 
-bool EXP_evalTypeMatch(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat, u32 nf);
+bool EXP_evalTypeMatch
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat,
+    EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
+);
 
 
 
