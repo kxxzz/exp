@@ -55,13 +55,6 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
-{
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
-    desc.var = var;
-    return EXP_evalTypeIdByDesc(ctx, &desc);
-}
-
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
@@ -84,6 +77,20 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Array };
     desc.aryElm = elm;
+    return EXP_evalTypeIdByDesc(ctx, &desc);
+}
+
+u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
+{
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
+    desc.var = var;
+    return EXP_evalTypeIdByDesc(ctx, &desc);
+}
+
+u32 EXP_evalTypeVar1(EXP_EvalTypeContext* ctx, u32 var)
+{
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var1 };
+    desc.var = var;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -278,7 +285,7 @@ enter:
 
 
 
-bool EXP_evalTypePatBindUnify
+bool EXP_evalTypeLambdaBindUnify
 (
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat,
     EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
@@ -315,7 +322,7 @@ bool EXP_evalTypePatBindUnify
 
 
 
-u32 EXP_evalTypePatSubst(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat)
+u32 EXP_evalTypeLambdaSubst(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat)
 {
     u32 x = EXP_evalTypeNormForm(ctx, patVtable, 0, pat);
     return x;

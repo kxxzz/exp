@@ -9,10 +9,11 @@
 typedef enum EXP_EvalTypeType
 {
     EXP_EvalTypeType_Atom,
-    EXP_EvalTypeType_Var,
     EXP_EvalTypeType_Fun,
     EXP_EvalTypeType_Tuple,
     EXP_EvalTypeType_Array,
+    EXP_EvalTypeType_Var,
+    EXP_EvalTypeType_Var1,
 
     EXP_NumEvalTypeTypes
 } EXP_EvalTypeType;
@@ -35,10 +36,10 @@ typedef struct EXP_EvalTypeDesc
     union
     {
         u32 atom;
-        u32 var;
         EXP_EvalTypeDescFun fun;
         EXP_EvalTypeDescList tuple;
         u32 aryElm;
+        u32 var;
     };
 } EXP_EvalTypeDesc;
 
