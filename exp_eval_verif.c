@@ -35,6 +35,7 @@ typedef struct EXP_EvalVerifBlock
     bool incomplete;
 
     bool entered;
+    // todo move
     vec_u32 inBuf;
 
     EXP_Node parent;
@@ -107,8 +108,9 @@ typedef struct EXP_EvalVerifSnapshot
     u32 dsLen;
     u32 csOff;
     u32 csLen;
-    u32 tvarTableBase;
-    u32 tvarCount;
+    u32 tvsOff;
+    u32 tvsLen;
+    u32 tvCount;
 } EXP_EvalVerifSnapshot;
 
 typedef vec_t(EXP_EvalVerifSnapshot) EXP_EvalVerifWorldStack;
@@ -127,22 +129,22 @@ typedef struct EXP_EvalVerifContext
     u32 blockTableBase;
     EXP_EvalVerifBlockTable blockTable;
 
-    u32 varSpaceBase;
-    EXP_EvalTypeVarSpace varSpace;
+    EXP_EvalTypeVarSpace typeVarSpace;
 
     bool allowDsShift;
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
-    u32 tvarCount;
+    u32 tvCount;
 
     vec_u32 dsBuf;
     EXP_EvalVerifCallVec csBuf;
+    EXP_EvalTypeVarSpace tvsBuf;
     EXP_EvalVerifWorldStack worldStack;
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
     vec_u32 typeBuf;
-    EXP_EvalTypeVarSpace var1Space;
+    EXP_EvalTypeVarSpace typeVarSpace1;
 } EXP_EvalVerifContext;
 
 
@@ -179,7 +181,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
-    vec_free(&ctx->var1Space);
+    vec_free(&ctx->typeVarSpace1);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varKeyBuf);
 
@@ -190,7 +192,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
-    vec_free(&ctx->varSpace);
+    vec_free(&ctx->typeVarSpace);
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
@@ -210,23 +212,24 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 {
     EXP_EvalVerifSnapshot snapshot = { 0 };
-    snapshot.tvarTableBase = ctx->varSpaceBase;
     snapshot.allowDsShift = ctx->allowDsShift;
     snapshot.dsOff = ctx->dsBuf.length;
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
-    snapshot.tvarCount = ctx->tvarCount;
+    snapshot.tvsOff = ctx->tvsBuf.length;
+    snapshot.tvsLen = ctx->typeVarSpace.length;
+    snapshot.tvCount = ctx->tvCount;
     vec_push(&ctx->worldStack, snapshot);
-
-    ctx->varSpaceBase = ctx->varSpace.length;
 
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
+    vec_concat(&ctx->tvsBuf, &ctx->typeVarSpace);
     ctx->allowDsShift = allowDsShift;
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
-    ctx->tvarCount = 0;
+    ctx->typeVarSpace.length = 0;
+    ctx->tvCount = 0;
 }
 
 
@@ -237,16 +240,16 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
 
-    vec_resize(&ctx->varSpace, ctx->varSpaceBase);
-    ctx->varSpaceBase = snapshot.tvarTableBase;
-
     ctx->allowDsShift = snapshot.allowDsShift;
     ctx->dataStack.length = 0;
+    ctx->typeVarSpace.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
+    vec_pusharr(&ctx->typeVarSpace, ctx->tvsBuf.data + snapshot.tvsOff, snapshot.tvsLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
-    ctx->tvarCount = snapshot.tvarCount;
+    vec_resize(&ctx->tvsBuf, snapshot.tvsOff);
+    ctx->tvCount = snapshot.tvCount;
 }
 
 
@@ -256,9 +259,8 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* u)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* varSpace = &ctx->varSpace;
-    u32 varSpaceBase = ctx->varSpaceBase;
-    bool r = EXP_evalTypeUnify(typeContext, varSpace, varSpaceBase, a, b, u);
+    EXP_EvalTypeVarSpace* varSpace = &ctx->typeVarSpace;
+    bool r = EXP_evalTypeUnify(typeContext, varSpace, a, b, u);
     return r;
 }
 
@@ -268,16 +270,15 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 static bool EXP_evalVerifTypeUnifyVar1(EXP_EvalVerifContext* ctx, u32 x1, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* var1Space = &ctx->var1Space;
-    EXP_EvalTypeVarSpace* varSpace = &ctx->varSpace;
-    u32 varSpaceBase = ctx->varSpaceBase;
-    return EXP_evalTypeUnifyVar1(typeContext, var1Space, x1, varSpace, varSpaceBase, x);
+    EXP_EvalTypeVarSpace* varSpace1 = &ctx->typeVarSpace1;
+    EXP_EvalTypeVarSpace* varSpace = &ctx->typeVarSpace;
+    return EXP_evalTypeUnifyVarS1(typeContext, varSpace, x, varSpace1, x1);
 }
 
 static u32 EXP_evalVerifTypeVar1Value(EXP_EvalVerifContext* ctx, u32 pat)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* var1Space = &ctx->var1Space;
+    EXP_EvalTypeVarSpace* varSpace1 = &ctx->typeVarSpace1;
     // todo
     return -1;
 }
@@ -910,7 +911,7 @@ static void EXP_evalVerifNode
                             ctx->typeBuf.length = 0;
                             for (u32 i = 0; i < shiftN; ++i)
                             {
-                                u32 t = EXP_evalTypeVar(typeContext, ctx->tvarCount++);
+                                u32 t = EXP_evalTypeVar(typeContext, ctx->tvCount++);
                                 vec_push(&ctx->typeBuf, t);
                             }
                             if (!EXP_evalVerifShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
@@ -958,7 +959,7 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_Drop;
             if (!dataStack->length)
             {
-                u32 t = EXP_evalTypeVar(typeContext, ctx->tvarCount++);
+                u32 t = EXP_evalTypeVar(typeContext, ctx->tvCount++);
                 if (!EXP_evalVerifShiftDataStack(ctx, 1, &t))
                 {
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);

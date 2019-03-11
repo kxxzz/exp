@@ -87,9 +87,9 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeVar1(EXP_EvalTypeContext* ctx, u32 var)
+u32 EXP_evalTypeVarS1(EXP_EvalTypeContext* ctx, u32 var)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var1 };
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_VarS1 };
     desc.var = var;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
@@ -121,10 +121,9 @@ const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 
 
 
-u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 base, u32 var)
+u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 var)
 {
-    assert(base <= space->length);
-    for (u32 i = base; i < space->length; ++i)
+    for (u32 i = 0; i < space->length; ++i)
     {
         if (space->data[i].id == var)
         {
@@ -158,7 +157,7 @@ void EXP_evalTypeVarAdd(EXP_EvalTypeVarSpace* space, u32 var, u32 value)
 
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 base, u32 x)
+u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x)
 {
     const EXP_EvalTypeDesc* desc = NULL;
 enter:
@@ -171,7 +170,7 @@ enter:
     }
     case EXP_EvalTypeType_Var:
     {
-        u32* pValue = EXP_evalTypeVarValue(space, base, desc->var);
+        u32* pValue = EXP_evalTypeVarValue(space, desc->var);
         if (pValue)
         {
             x = *pValue;
@@ -204,11 +203,7 @@ enter:
 
 
 
-bool EXP_evalTypeUnify
-(
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 base,
-    u32 a, u32 b, u32* u
-)
+bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 a, u32 b, u32* u)
 {
 enter:
     if (a == b)
@@ -247,7 +242,7 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarValue(space, base, descA->var);
+            u32* pValue = EXP_evalTypeVarValue(space, descA->var);
             if (pValue)
             {
                 a = *pValue;
@@ -285,18 +280,17 @@ enter:
 
 
 
-bool EXP_evalTypeUnifyVar1
+bool EXP_evalTypeUnifyVarS1
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space0, u32 x0,
-    EXP_EvalTypeVarSpace* space, u32 base, u32 x
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x, EXP_EvalTypeVarSpace* space1, u32 x1
 )
 {
-    const EXP_EvalTypeDesc* descPat = EXP_evalTypeDescById(ctx, x0);
     const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
+    const EXP_EvalTypeDesc* descX1 = EXP_evalTypeDescById(ctx, x1);
     u32* pValue = NULL;
-    if (EXP_EvalTypeType_Var == descPat->type)
+    if (EXP_EvalTypeType_Var == descX1->type)
     {
-        pValue = EXP_evalTypeVarValue(space0, 0, descPat->var);
+        pValue = EXP_evalTypeVarValue(space1, descX1->var);
     }
     if (pValue)
     {
@@ -312,7 +306,7 @@ bool EXP_evalTypeUnifyVar1
     }
     else
     {
-        EXP_evalTypeVarAdd(space0, descPat->var, x);
+        EXP_evalTypeVarAdd(space1, descX1->var, x);
         return true;
     }
     return true;
