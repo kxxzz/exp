@@ -121,23 +121,23 @@ const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 
 
 
-u32* EXP_evalTypeVarTableGet(EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 var)
+u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 base, u32 var)
 {
-    assert(vtableBase <= vtable->length);
-    for (u32 i = vtableBase; i < vtable->length; ++i)
+    assert(base <= space->length);
+    for (u32 i = base; i < space->length; ++i)
     {
-        if (vtable->data[i].id == var)
+        if (space->data[i].id == var)
         {
-            return &vtable->data[i].val;
+            return &space->data[i].val;
         }
     }
     return NULL;
 }
 
-void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
+void EXP_evalTypeVarAdd(EXP_EvalTypeVarSpace* space, u32 var, u32 value)
 {
     EXP_EvalTypeVarBinding b = { var, value };
-    vec_push(vtable, b);
+    vec_push(space, b);
 }
 
 
@@ -158,7 +158,7 @@ void EXP_evalTypeVarTableAdd(EXP_EvalTypeVarTable* vtable, u32 var, u32 value)
 
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x)
+u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 base, u32 x)
 {
     const EXP_EvalTypeDesc* desc = NULL;
 enter:
@@ -171,7 +171,7 @@ enter:
     }
     case EXP_EvalTypeType_Var:
     {
-        u32* pValue = EXP_evalTypeVarTableGet(vtable, vtableBase, desc->var);
+        u32* pValue = EXP_evalTypeVarValue(space, base, desc->var);
         if (pValue)
         {
             x = *pValue;
@@ -206,7 +206,7 @@ enter:
 
 bool EXP_evalTypeUnify
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* vtable, u32 vtableBase,
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 base,
     u32 a, u32 b, u32* u
 )
 {
@@ -247,13 +247,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarTableGet(vtable, vtableBase, descA->var);
+            u32* pValue = EXP_evalTypeVarValue(space, base, descA->var);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeVarTableAdd(vtable, descA->var, b);
+            EXP_evalTypeVarAdd(space, descA->var, b);
             *u = b;
             return true;
         }
@@ -285,18 +285,18 @@ enter:
 
 
 
-bool EXP_evalTypeLambdaBindUnify
+bool EXP_evalTypeUnifyVar1
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat,
-    EXP_EvalTypeVarTable* vtable, u32 vtableBase, u32 x
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space0, u32 x0,
+    EXP_EvalTypeVarSpace* space, u32 base, u32 x
 )
 {
-    const EXP_EvalTypeDesc* descPat = EXP_evalTypeDescById(ctx, pat);
+    const EXP_EvalTypeDesc* descPat = EXP_evalTypeDescById(ctx, x0);
     const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
     u32* pValue = NULL;
     if (EXP_EvalTypeType_Var == descPat->type)
     {
-        pValue = EXP_evalTypeVarTableGet(patVtable, 0, descPat->var);
+        pValue = EXP_evalTypeVarValue(space0, 0, descPat->var);
     }
     if (pValue)
     {
@@ -312,7 +312,7 @@ bool EXP_evalTypeLambdaBindUnify
     }
     else
     {
-        EXP_evalTypeVarTableAdd(patVtable, descPat->var, x);
+        EXP_evalTypeVarAdd(space0, descPat->var, x);
         return true;
     }
     return true;
@@ -322,11 +322,6 @@ bool EXP_evalTypeLambdaBindUnify
 
 
 
-u32 EXP_evalTypeLambdaSubst(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarTable* patVtable, u32 pat)
-{
-    u32 x = EXP_evalTypeNormForm(ctx, patVtable, 0, pat);
-    return x;
-}
 
 
 
