@@ -208,7 +208,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u3
 enter:
     if (a == b)
     {
-        *u = a;
+        *u = EXP_evalTypeNormForm(ctx, space, a);
         return true;
     }
     const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
@@ -249,7 +249,7 @@ enter:
                 goto enter;
             }
             EXP_evalTypeVarAdd(space, descA->var, b);
-            *u = b;
+            *u = EXP_evalTypeNormForm(ctx, space, b);
             return true;
         }
         else
