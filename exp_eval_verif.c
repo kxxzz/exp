@@ -700,6 +700,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
 
     if (!afunInfo->call)
     {
@@ -754,6 +755,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
 
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
@@ -764,6 +766,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numIns; ++i)
     {
         u32 x1 = blk->inout.data[i];
+        x1 = EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x1);
         u32 x = dataStack->data[argsOffset + i];
         if (!EXP_evalVerifTypeUnifyVarS1(ctx, x1, x))
         {
@@ -775,6 +778,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
         u32 x1 = blk->inout.data[blk->numIns + i];
+        x1 = EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x1);
         u32 x = EXP_evalVerifTypeVarS1Value(ctx, x1);
         vec_push(dataStack, x);
     }
