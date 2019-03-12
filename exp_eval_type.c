@@ -193,7 +193,7 @@ enter:
 u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x)
 {
     const EXP_EvalTypeDesc* desc = NULL;
-//enter:
+enter:
     desc = EXP_evalTypeDescById(ctx, x);
     switch (desc->type)
     {
@@ -203,7 +203,18 @@ u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, 
     }
     case EXP_EvalTypeType_Var:
     {
-        return EXP_evalTypeVarS1(ctx, desc->var);
+        x = EXP_evalTypeVarS1(ctx, desc->var);
+        goto enter;
+    }
+    case EXP_EvalTypeType_VarS1:
+    {
+        u32* pValue = EXP_evalTypeVarValue(space, desc->var);
+        if (pValue)
+        {
+            x = *pValue;
+            goto enter;
+        }
+        return x;
     }
     default:
         assert(false);
