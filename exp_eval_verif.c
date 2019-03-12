@@ -278,8 +278,8 @@ static u32 EXP_evalVerifTypeVarS1Value(EXP_EvalVerifContext* ctx, u32 x1)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    // todo
-    return -1;
+    u32 v = EXP_evalTypeNormForm(typeContext, typeVarSpace1, x1);
+    return v;
 }
 
 
