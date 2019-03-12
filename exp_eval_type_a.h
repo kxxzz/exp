@@ -14,8 +14,8 @@ typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarSpace;
 
 
 
-u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 var);
-void EXP_evalTypeVarAdd(EXP_EvalTypeVarSpace* space, u32 var, u32 value);
+u32* EXP_evalTypeVarValueGet(EXP_EvalTypeVarSpace* space, u32 var);
+void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* space, u32 var, u32 value);
 
 
 u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x);

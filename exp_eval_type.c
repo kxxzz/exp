@@ -121,7 +121,7 @@ const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 
 
 
-u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 var)
+u32* EXP_evalTypeVarValueGet(EXP_EvalTypeVarSpace* space, u32 var)
 {
     for (u32 i = 0; i < space->length; ++i)
     {
@@ -133,8 +133,16 @@ u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* space, u32 var)
     return NULL;
 }
 
-void EXP_evalTypeVarAdd(EXP_EvalTypeVarSpace* space, u32 var, u32 value)
+void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* space, u32 var, u32 value)
 {
+    for (u32 i = 0; i < space->length; ++i)
+    {
+        if (space->data[i].id == var)
+        {
+            space->data[i].val = value;
+            return;
+        }
+    }
     EXP_EvalTypeVarBinding b = { var, value };
     vec_push(space, b);
 }
@@ -170,7 +178,7 @@ enter:
     }
     case EXP_EvalTypeType_Var:
     {
-        u32* pValue = EXP_evalTypeVarValue(space, desc->var);
+        u32* pValue = EXP_evalTypeVarValueGet(space, desc->var);
         if (pValue)
         {
             x = *pValue;
@@ -208,7 +216,7 @@ enter:
     }
     case EXP_EvalTypeType_VarS1:
     {
-        u32* pValue = EXP_evalTypeVarValue(space, desc->var);
+        u32* pValue = EXP_evalTypeVarValueGet(space, desc->var);
         if (pValue)
         {
             x = *pValue;
@@ -275,13 +283,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarValue(space, descA->var);
+            u32* pValue = EXP_evalTypeVarValueGet(space, descA->var);
             if (pValue)
             {
                 a = *pValue;
                 goto enter;
             }
-            EXP_evalTypeVarAdd(space, descA->var, b);
+            EXP_evalTypeVarValueSet(space, descA->var, b);
             *u = EXP_evalTypeNormForm(ctx, space, b);
             return true;
         }
@@ -320,26 +328,38 @@ bool EXP_evalTypeUnifyVarS1
 {
     const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
     const EXP_EvalTypeDesc* descX1 = EXP_evalTypeDescById(ctx, x1);
-    u32* pValue = NULL;
+    u32* pValue1 = NULL;
     if (EXP_EvalTypeType_Var == descX1->type)
     {
-        pValue = EXP_evalTypeVarValue(space1, descX1->var);
+        pValue1 = EXP_evalTypeVarValueGet(space1, descX1->var);
     }
-    if (pValue)
+    if (pValue1)
     {
-        u32 v = *pValue;
+        u32 v1 = *pValue1;
         if (EXP_EvalTypeType_Var == descX->type)
         {
-            return true;
+            u32* pValue = EXP_evalTypeVarValueGet(space, x);
+            if (pValue)
+            {
+                u32 u;
+                EXP_evalTypeUnify(ctx, space, v1, x, &u);
+                EXP_evalTypeVarValueSet(space, descX->var, u);
+                return true;
+            }
+            else
+            {
+                EXP_evalTypeVarValueSet(space, descX->var, v1);
+                return true;
+            }
         }
         else
         {
-            return v == x;
+            return v1 == x;
         }
     }
     else
     {
-        EXP_evalTypeVarAdd(space1, descX1->var, x);
+        EXP_evalTypeVarValueSet(space1, descX1->var, x);
         return true;
     }
     return true;
