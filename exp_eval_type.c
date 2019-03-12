@@ -190,6 +190,28 @@ enter:
 
 
 
+u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x)
+{
+    const EXP_EvalTypeDesc* desc = NULL;
+//enter:
+    desc = EXP_evalTypeDescById(ctx, x);
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        return x;
+    }
+    case EXP_EvalTypeType_Var:
+    {
+        return EXP_evalTypeVarS1(ctx, desc->var);
+    }
+    default:
+        assert(false);
+        return x;
+    }
+}
+
+
 
 
 

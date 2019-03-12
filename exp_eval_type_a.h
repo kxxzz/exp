@@ -19,8 +19,7 @@ void EXP_evalTypeVarAdd(EXP_EvalTypeVarSpace* space, u32 var, u32 value);
 
 
 u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x);
-
-
+u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x);
 
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 a, u32 b, u32* u);
