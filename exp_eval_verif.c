@@ -255,18 +255,23 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 
 
 
-static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* u)
+static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    bool r = EXP_evalTypeUnify(typeContext, typeVarSpace, a, b, u);
-    return r;
+    return EXP_evalTypeUnify(typeContext, typeVarSpace, a, b, pU);
+}
+
+static u32 EXP_evalVerifTypeNormForm(EXP_EvalVerifContext* ctx, u32 x)
+{
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
+    return EXP_evalTypeNormForm(typeContext, typeVarSpace, x);
 }
 
 
 
-
-static bool EXP_evalVerifTypeUnifyVarS1(EXP_EvalVerifContext* ctx, u32 x1, u32 x)
+static bool EXP_evalVerifTypeUnifyVarS1(EXP_EvalVerifContext* ctx, u32 x, u32 x1)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
@@ -282,6 +287,13 @@ static u32 EXP_evalVerifTypeVarS1Value(EXP_EvalVerifContext* ctx, u32 x1)
     return v;
 }
 
+
+static u32 EXP_evalVerifTypeToS1Form(EXP_EvalVerifContext* ctx, u32 x)
+{
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
+    return EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x);
+}
 
 
 
@@ -518,8 +530,6 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
 {
     EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
 
     assert(curBlock->entered);
     assert(!curBlock->completed);
@@ -537,7 +547,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         for (u32 i = 0; i < curBlock->ins.length; ++i)
         {
             u32 t = curBlock->ins.data[i];
-            t = EXP_evalTypeNormForm(typeContext, typeVarSpace, t);
+            t = EXP_evalVerifTypeNormForm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
 
@@ -548,7 +558,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            t = EXP_evalTypeNormForm(typeContext, typeVarSpace, t);
+            t = EXP_evalVerifTypeNormForm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
     }
@@ -569,24 +579,24 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
 
         for (u32 i = 0; i < curBlock->ins.length; ++i)
         {
-            u32 t0 = curBlock->inout.data[i];
-            u32 t1 = curBlock->ins.data[i];
-            u32 t;
-            EXP_evalVerifTypeUnify(ctx, t0, t1, &t);
-            curBlock->inout.data[i] = t;
+            u32 a = curBlock->inout.data[i];
+            u32 b = curBlock->ins.data[i];
+            u32 u;
+            EXP_evalVerifTypeUnify(ctx, a, b, &u);
+            curBlock->inout.data[i] = u;
         }
 
         curBlock->numOuts = numOuts;
 
         for (u32 i = 0; i < curBlock->numOuts; ++i)
         {
-            u32 t0 = curBlock->inout.data[curBlock->numIns + i];
+            u32 a = curBlock->inout.data[curBlock->numIns + i];
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
-            u32 t1 = ctx->dataStack.data[j];
-            u32 t;
-            EXP_evalVerifTypeUnify(ctx, t0, t1, &t);
-            curBlock->inout.data[curBlock->numIns + i] = t;
-            ctx->dataStack.data[j] = t;
+            u32 b = ctx->dataStack.data[j];
+            u32 u;
+            EXP_evalVerifTypeUnify(ctx, a, b, &u);
+            curBlock->inout.data[curBlock->numIns + i] = u;
+            ctx->dataStack.data[j] = u;
         }
     }
 }
@@ -700,7 +710,6 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
 
     if (!afunInfo->call)
     {
@@ -711,7 +720,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     u32 inEvalType[EXP_EvalAfunIns_MAX];
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
-        inEvalType[i] = EXP_evalTypeAtom(ctx->typeContext, afunInfo->inAtype[i]);
+        inEvalType[i] = EXP_evalTypeAtom(typeContext, afunInfo->inAtype[i]);
     }
 
     if (dataStack->length < afunInfo->numIns)
@@ -730,9 +739,9 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
-        u32 x1 = inEvalType[i];
         u32 x = dataStack->data[argsOffset + i];
-        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x1, x))
+        u32 x1 = inEvalType[i];
+        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x, x1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -741,8 +750,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < afunInfo->numOuts; ++i)
     {
-        u32 x1 = EXP_evalTypeAtom(ctx->typeContext, afunInfo->outAtype[i]);
-        u32 x = EXP_evalVerifTypeVarS1Value(ctx, x1);
+        u32 x = EXP_evalTypeAtom(ctx->typeContext, afunInfo->outAtype[i]);
         vec_push(dataStack, x);
     }
 }
@@ -754,8 +762,6 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
 
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
@@ -765,10 +771,10 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
     {
-        u32 x1 = blk->inout.data[i];
-        x1 = EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x1);
         u32 x = dataStack->data[argsOffset + i];
-        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x1, x))
+        u32 x1 = blk->inout.data[i];
+        x1 = EXP_evalVerifTypeToS1Form(ctx, x1);
+        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x, x1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -778,7 +784,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
         u32 x1 = blk->inout.data[blk->numIns + i];
-        x1 = EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x1);
+        x1 = EXP_evalVerifTypeToS1Form(ctx, x1);
         u32 x = EXP_evalVerifTypeVarS1Value(ctx, x1);
         vec_push(dataStack, x);
     }
@@ -1204,7 +1210,6 @@ static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
     EXP_EvalVerifBlock* curBlock = NULL;
     vec_u32* dataStack = &ctx->dataStack;
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
 next:
     if (ctx->error.code)

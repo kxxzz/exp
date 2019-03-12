@@ -14,20 +14,20 @@ typedef vec_t(EXP_EvalTypeVarBinding) EXP_EvalTypeVarSpace;
 
 
 
-u32* EXP_evalTypeVarValueGet(EXP_EvalTypeVarSpace* space, u32 var);
-void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* space, u32 var, u32 value);
+u32* EXP_evalTypeVarValueGet(EXP_EvalTypeVarSpace* varSpace, u32 var);
+void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value);
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x);
-u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x);
+u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
+u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
 
 
-bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 a, u32 b, u32* u);
+bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);
 
 
 bool EXP_evalTypeUnifyVarS1
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* space, u32 x, EXP_EvalTypeVarSpace* space1, u32 x1
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x, EXP_EvalTypeVarSpace* varSpace1, u32 x1
 );
 
 
