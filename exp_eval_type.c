@@ -4,11 +4,23 @@
 
 
 
+typedef struct EXP_EvalTypeDescFrame
+{
+    EXP_EvalTypeDesc desc;
+    EXP_EvalTypeDesc desc1;
+    u32 remain;
+} EXP_EvalTypeDescFrame;
+
+typedef vec_t(EXP_EvalTypeDescFrame) EXP_EvalTypeDescStack;
+
+
+
 
 typedef struct EXP_EvalTypeContext
 {
     Upool* listPool;
     Upool* typePool;
+    EXP_EvalTypeDescStack descStack;
 } EXP_EvalTypeContext;
 
 
@@ -22,6 +34,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
+    vec_free(&ctx->descStack);
     upoolFree(ctx->typePool);
     upoolFree(ctx->listPool);
     free(ctx);
@@ -167,29 +180,51 @@ void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value)
 
 u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
-    const EXP_EvalTypeDesc* desc = NULL;
-enter:
-    desc = EXP_evalTypeDescById(ctx, x);
-    switch (desc->type)
+    EXP_EvalTypeDescStack* descStack = &ctx->descStack;
+    EXP_EvalTypeDesc desc = *EXP_evalTypeDescById(ctx, x);
+    u32 nf = x;
+next:
+    switch (desc.type)
     {
-    case EXP_EvalTypeType_Atom:
-    {
-        return x;
-    }
     case EXP_EvalTypeType_Var:
     {
-        u32* pValue = EXP_evalTypeVarValueGet(varSpace, desc->var);
+        u32* pValue = EXP_evalTypeVarValueGet(varSpace, desc.var);
         if (pValue)
         {
-            x = *pValue;
-            goto enter;
+            EXP_EvalTypeDescFrame f = { desc };
+            vec_push(descStack, f);
+            desc = *EXP_evalTypeDescById(ctx, *pValue);
+            goto next;
         }
-        return x;
     }
     default:
         assert(false);
-        return x;
     }
+    if (descStack->length > 0)
+    {
+        EXP_EvalTypeDesc* pDesc = &vec_last(descStack).desc;
+        switch (pDesc->type)
+        {
+        case EXP_EvalTypeType_Var:
+        {
+            if (pDesc->var != nf)
+            {
+                EXP_evalTypeVarValueSet(varSpace, pDesc->var, nf);
+            }
+            break;
+        }
+        default:
+            break;
+        }
+        vec_pop(descStack);
+        if (descStack->length > 0)
+        {
+            EXP_EvalTypeDescFrame* f = &vec_last(descStack);
+            desc = f->desc;
+            goto next;
+        }
+    }
+    return nf;
 }
 
 
