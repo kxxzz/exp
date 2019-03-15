@@ -227,6 +227,16 @@ next:
         else
         {
             assert(1 == top->progress);
+            // Update varSpace
+            u32* pV0 = EXP_evalTypeVarValueGet(varSpace, desc->var);
+            if (pV0)
+            {
+                u32 v0 = *pV0;
+                if (v0 != lRet)
+                {
+                    EXP_evalTypeVarValueSet(varSpace, desc->var, lRet);
+                }
+            }
             vec_pop(buildStack);
         }
         break;
@@ -262,10 +272,10 @@ enter:
     }
     case EXP_EvalTypeType_VarS1:
     {
-        u32* pValue = EXP_evalTypeVarValueGet(varSpace, desc->var);
-        if (pValue)
+        u32* pV = EXP_evalTypeVarValueGet(varSpace, desc->var);
+        if (pV)
         {
-            x = *pValue;
+            x = *pV;
             goto enter;
         }
         return x;
@@ -329,15 +339,13 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pValue = EXP_evalTypeVarValueGet(varSpace, descA->var);
-            if (pValue)
+            u32* pV = EXP_evalTypeVarValueGet(varSpace, descA->var);
+            if (pV)
             {
-                a = *pValue;
+                a = *pV;
                 goto enter;
             }
-            u32 v = *pU = EXP_evalTypeNormForm(ctx, varSpace, b);
-            // todo move
-            EXP_evalTypeVarValueSet(varSpace, descA->var, v);
+            *pU = EXP_evalTypeNormForm(ctx, varSpace, b);
             return true;
         }
         else
@@ -375,21 +383,21 @@ bool EXP_evalTypeUnifyVarS1
 {
     const EXP_EvalTypeDesc* descX = EXP_evalTypeDescById(ctx, x);
     const EXP_EvalTypeDesc* descX1 = EXP_evalTypeDescById(ctx, x1);
-    u32* pVal1 = NULL;
+    u32* pV1 = NULL;
     if (EXP_EvalTypeType_Var == descX1->type)
     {
-        pVal1 = EXP_evalTypeVarValueGet(varSpace1, descX1->var);
+        pV1 = EXP_evalTypeVarValueGet(varSpace1, descX1->var);
     }
-    if (pVal1)
+    if (pV1)
     {
-        u32 val1 = *pVal1;
+        u32 val1 = *pV1;
         if (EXP_EvalTypeType_Var == descX->type)
         {
-            u32* pVal = EXP_evalTypeVarValueGet(varSpace, x);
+            u32* pV = EXP_evalTypeVarValueGet(varSpace, x);
             // todo
-            if (pVal)
+            if (pV)
             {
-                u32 val = *pVal;
+                u32 val = *pV;
                 u32 u;
                 EXP_evalTypeUnify(ctx, varSpace, val, val1, &u);
                 EXP_evalTypeVarValueSet(varSpace, descX->var, u);
