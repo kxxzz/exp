@@ -400,8 +400,8 @@ bool EXP_evalTypeUnifyVarS1
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace0, u32 x0, EXP_EvalTypeVarSpace* varSpace1, u32 x1
 )
 {
-    u32 x0 = EXP_evalTypeNorm(ctx, varSpace0, x0);
-    u32 x1 = EXP_evalTypeNorm(ctx, varSpace1, x1);
+    //u32 x0 = EXP_evalTypeNorm(ctx, varSpace0, x0);
+    //u32 x1 = EXP_evalTypeNorm(ctx, varSpace1, x1);
     const EXP_EvalTypeDesc* descX0 = EXP_evalTypeDescById(ctx, x0);
     const EXP_EvalTypeDesc* descX1 = EXP_evalTypeDescById(ctx, x1);
     u32* pV1 = NULL;
