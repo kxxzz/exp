@@ -185,6 +185,7 @@ void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value)
 u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    bool recheck = false;
     u32 lRet = -1;
     EXP_EvalTypeBuildLevel root = { x };
     vec_push(buildStack, root);
@@ -194,6 +195,12 @@ next:
     if (!buildStack->length)
     {
         assert(lRet != -1);
+        if (recheck)
+        {
+            recheck = false;
+            vec_push(buildStack, root);
+            goto next;
+        }
         return lRet;
     }
     top = &vec_last(buildStack);
@@ -234,6 +241,7 @@ next:
                 u32 v0 = *pV0;
                 if (v0 != lRet)
                 {
+                    recheck = true;
                     EXP_evalTypeVarValueSet(varSpace, desc->var, lRet);
                 }
             }
