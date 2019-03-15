@@ -4,14 +4,18 @@
 
 
 
-typedef struct EXP_EvalTypeDescFrame
+typedef struct EXP_EvalTypeBuildLevel
 {
-    EXP_EvalTypeDesc desc;
-    EXP_EvalTypeDesc desc1;
-    u32 remain;
-} EXP_EvalTypeDescFrame;
+    u32 id;
+    u32 progress;
+    union
+    {
+        EXP_EvalTypeDescFun fun;
+        EXP_EvalTypeDescList tuple;
+    };
+} EXP_EvalTypeBuildLevel;
 
-typedef vec_t(EXP_EvalTypeDescFrame) EXP_EvalTypeDescStack;
+typedef vec_t(EXP_EvalTypeBuildLevel) EXP_EvalTypeBuildStack;
 
 
 
@@ -20,7 +24,7 @@ typedef struct EXP_EvalTypeContext
 {
     Upool* listPool;
     Upool* typePool;
-    EXP_EvalTypeDescStack descStack;
+    EXP_EvalTypeBuildStack buildStack;
 } EXP_EvalTypeContext;
 
 
@@ -34,7 +38,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
-    vec_free(&ctx->descStack);
+    vec_free(&ctx->buildStack);
     upoolFree(ctx->typePool);
     upoolFree(ctx->listPool);
     free(ctx);
@@ -180,51 +184,58 @@ void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value)
 
 u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
-    EXP_EvalTypeDescStack* descStack = &ctx->descStack;
-    EXP_EvalTypeDesc desc = *EXP_evalTypeDescById(ctx, x);
-    u32 nf = x;
+    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    u32 lRet = -1;
+    EXP_EvalTypeBuildLevel root = { x };
+    vec_push(buildStack, root);
+    EXP_EvalTypeBuildLevel* top = NULL;
+    const EXP_EvalTypeDesc* desc = NULL;
 next:
-    switch (desc.type)
+    if (!buildStack->length)
     {
+        assert(lRet != -1);
+        return lRet;
+    }
+    top = &vec_last(buildStack);
+    desc = EXP_evalTypeDescById(ctx, top->id);
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        lRet = top->id;
+        vec_pop(buildStack);
+        break;
+    }
     case EXP_EvalTypeType_Var:
+    case EXP_EvalTypeType_VarS1:
     {
-        u32* pValue = EXP_evalTypeVarValueGet(varSpace, desc.var);
-        if (pValue)
+        if (0 == top->progress)
         {
-            EXP_EvalTypeDescFrame f = { desc };
-            vec_push(descStack, f);
-            desc = *EXP_evalTypeDescById(ctx, *pValue);
-            goto next;
+            ++top->progress;
+            u32* pV = EXP_evalTypeVarValueGet(varSpace, desc->var);
+            if (pV)
+            {
+                u32 v = *pV;
+                EXP_EvalTypeBuildLevel l1 = { v };
+                vec_push(buildStack, l1);
+            }
+            else
+            {
+                lRet = desc->var;
+            }
         }
+        else
+        {
+            assert(1 == top->progress);
+            vec_pop(buildStack);
+        }
+        break;
     }
     default:
         assert(false);
+        break;
     }
-    if (descStack->length > 0)
-    {
-        EXP_EvalTypeDesc* pDesc = &vec_last(descStack).desc;
-        switch (pDesc->type)
-        {
-        case EXP_EvalTypeType_Var:
-        {
-            if (pDesc->var != nf)
-            {
-                EXP_evalTypeVarValueSet(varSpace, pDesc->var, nf);
-            }
-            break;
-        }
-        default:
-            break;
-        }
-        vec_pop(descStack);
-        if (descStack->length > 0)
-        {
-            EXP_EvalTypeDescFrame* f = &vec_last(descStack);
-            desc = f->desc;
-            goto next;
-        }
-    }
-    return nf;
+    goto next;
 }
 
 
