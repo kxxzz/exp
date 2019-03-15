@@ -18,8 +18,8 @@ u32* EXP_evalTypeVarValueGet(EXP_EvalTypeVarSpace* varSpace, u32 var);
 void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value);
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
-u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
+u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
+u32 EXP_evalTypeToVarS1(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
 
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);

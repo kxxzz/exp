@@ -182,7 +182,7 @@ void EXP_evalTypeVarValueSet(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value)
 
 
 
-u32 EXP_evalTypeNormForm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
+u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
     bool recheck = false;
@@ -267,7 +267,7 @@ next:
 
 
 
-u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
+u32 EXP_evalTypeToVarS1(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
     u32 lRet = -1;
@@ -294,18 +294,8 @@ next:
     }
     case EXP_EvalTypeType_Var:
     {
+        lRet = EXP_evalTypeVarS1(ctx, desc->var);
         vec_pop(buildStack);
-        u32* pV = EXP_evalTypeVarValueGet(varSpace, desc->var);
-        if (pV)
-        {
-            u32 v = *pV;
-            EXP_EvalTypeBuildLevel l1 = { v };
-            vec_push(buildStack, l1);
-        }
-        else
-        {
-            lRet = EXP_evalTypeVarS1(ctx, desc->var);
-        }
         break;
     }
     default:
@@ -334,7 +324,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 enter:
     if (a == b)
     {
-        *pU = EXP_evalTypeNormForm(ctx, varSpace, a);
+        *pU = EXP_evalTypeNorm(ctx, varSpace, a);
         return true;
     }
     const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
@@ -374,7 +364,7 @@ enter:
                 a = *pV;
                 goto enter;
             }
-            *pU = EXP_evalTypeNormForm(ctx, varSpace, b);
+            *pU = EXP_evalTypeNorm(ctx, varSpace, b);
             return true;
         }
         else

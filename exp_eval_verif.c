@@ -266,7 +266,7 @@ static u32 EXP_evalVerifTypeNormForm(EXP_EvalVerifContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    return EXP_evalTypeNormForm(typeContext, typeVarSpace, x);
+    return EXP_evalTypeNorm(typeContext, typeVarSpace, x);
 }
 
 
@@ -283,7 +283,7 @@ static u32 EXP_evalVerifTypeVarS1Value(EXP_EvalVerifContext* ctx, u32 x1)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    u32 v = EXP_evalTypeNormForm(typeContext, typeVarSpace1, x1);
+    u32 v = EXP_evalTypeNorm(typeContext, typeVarSpace1, x1);
     return v;
 }
 
@@ -292,7 +292,7 @@ static u32 EXP_evalVerifTypeToS1Form(EXP_EvalVerifContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    return EXP_evalTypeToS1Form(ctx->typeContext, typeVarSpace1, x);
+    return EXP_evalTypeToVarS1(ctx->typeContext, typeVarSpace1, x);
 }
 
 
