@@ -109,7 +109,7 @@ typedef struct EXP_EvalVerifSnapshot
     u32 csLen;
     u32 tvsOff;
     u32 tvsLen;
-    u32 tvCount;
+    u32 typeVarCount;
 } EXP_EvalVerifSnapshot;
 
 typedef vec_t(EXP_EvalVerifSnapshot) EXP_EvalVerifWorldStack;
@@ -133,11 +133,11 @@ typedef struct EXP_EvalVerifContext
     bool allowDsShift;
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
-    u32 tvCount;
+    u32 typeVarCount;
 
     vec_u32 dsBuf;
     EXP_EvalVerifCallVec csBuf;
-    EXP_EvalTypeVarSpace tvsBuf;
+    EXP_EvalTypeVarSpace tvBuf;
     EXP_EvalVerifWorldStack worldStack;
 
     EXP_EvalError error;
@@ -216,19 +216,19 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.dsLen = ctx->dataStack.length;
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
-    snapshot.tvsOff = ctx->tvsBuf.length;
+    snapshot.tvsOff = ctx->tvBuf.length;
     snapshot.tvsLen = ctx->typeVarSpace.length;
-    snapshot.tvCount = ctx->tvCount;
+    snapshot.typeVarCount = ctx->typeVarCount;
     vec_push(&ctx->worldStack, snapshot);
 
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
-    vec_concat(&ctx->tvsBuf, &ctx->typeVarSpace);
+    vec_concat(&ctx->tvBuf, &ctx->typeVarSpace);
     ctx->allowDsShift = allowDsShift;
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
     ctx->typeVarSpace.length = 0;
-    ctx->tvCount = 0;
+    ctx->typeVarCount = 0;
 }
 
 
@@ -244,29 +244,29 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
     ctx->typeVarSpace.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
-    vec_pusharr(&ctx->typeVarSpace, ctx->tvsBuf.data + snapshot.tvsOff, snapshot.tvsLen);
+    vec_pusharr(&ctx->typeVarSpace, ctx->tvBuf.data + snapshot.tvsOff, snapshot.tvsLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
-    vec_resize(&ctx->tvsBuf, snapshot.tvsOff);
-    ctx->tvCount = snapshot.tvCount;
+    vec_resize(&ctx->tvBuf, snapshot.tvsOff);
+    ctx->typeVarCount = snapshot.typeVarCount;
 }
 
 
 
 
+
+static u32 EXP_evalVerifTypeNorm(EXP_EvalVerifContext* ctx, u32 x)
+{
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
+    return EXP_evalTypeNorm(typeContext, typeVarSpace, x);
+}
 
 static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     return EXP_evalTypeUnify(typeContext, typeVarSpace, a, b, pU);
-}
-
-static u32 EXP_evalVerifTypeNormForm(EXP_EvalVerifContext* ctx, u32 x)
-{
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    return EXP_evalTypeNorm(typeContext, typeVarSpace, x);
 }
 
 
@@ -288,7 +288,7 @@ static u32 EXP_evalVerifTypeVarS1Value(EXP_EvalVerifContext* ctx, u32 x1)
 }
 
 
-static u32 EXP_evalVerifTypeToS1Form(EXP_EvalVerifContext* ctx, u32 x)
+static u32 EXP_evalVerifTypeToVarS1(EXP_EvalVerifContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
@@ -547,7 +547,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         for (u32 i = 0; i < curBlock->ins.length; ++i)
         {
             u32 t = curBlock->ins.data[i];
-            t = EXP_evalVerifTypeNormForm(ctx, t);
+            t = EXP_evalVerifTypeNorm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
 
@@ -558,7 +558,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            t = EXP_evalVerifTypeNormForm(ctx, t);
+            t = EXP_evalVerifTypeNorm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
     }
@@ -773,7 +773,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     {
         u32 x = dataStack->data[argsOffset + i];
         u32 x1 = blk->inout.data[i];
-        x1 = EXP_evalVerifTypeToS1Form(ctx, x1);
+        x1 = EXP_evalVerifTypeToVarS1(ctx, x1);
         if (!EXP_evalVerifTypeUnifyVarS1(ctx, x, x1))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
@@ -784,7 +784,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
         u32 x1 = blk->inout.data[blk->numIns + i];
-        x1 = EXP_evalVerifTypeToS1Form(ctx, x1);
+        x1 = EXP_evalVerifTypeToVarS1(ctx, x1);
         u32 x = EXP_evalVerifTypeVarS1Value(ctx, x1);
         vec_push(dataStack, x);
     }
@@ -923,7 +923,7 @@ static void EXP_evalVerifNode
                             ctx->typeBuf.length = 0;
                             for (u32 i = 0; i < shiftN; ++i)
                             {
-                                u32 t = EXP_evalTypeVar(typeContext, ctx->tvCount++);
+                                u32 t = EXP_evalTypeVar(typeContext, ctx->typeVarCount++);
                                 vec_push(&ctx->typeBuf, t);
                             }
                             if (!EXP_evalVerifShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
@@ -971,7 +971,7 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_Drop;
             if (!dataStack->length)
             {
-                u32 t = EXP_evalTypeVar(typeContext, ctx->tvCount++);
+                u32 t = EXP_evalTypeVar(typeContext, ctx->typeVarCount++);
                 if (!EXP_evalVerifShiftDataStack(ctx, 1, &t))
                 {
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
