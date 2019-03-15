@@ -262,36 +262,57 @@ next:
 
 
 
+
+
+
+
+
 u32 EXP_evalTypeToS1Form(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
+    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    u32 lRet = -1;
+    EXP_EvalTypeBuildLevel root = { x };
+    vec_push(buildStack, root);
+    EXP_EvalTypeBuildLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
-enter:
-    desc = EXP_evalTypeDescById(ctx, x);
+next:
+    if (!buildStack->length)
+    {
+        assert(lRet != -1);
+        return lRet;
+    }
+    top = &vec_last(buildStack);
+    desc = EXP_evalTypeDescById(ctx, top->id);
     switch (desc->type)
     {
     case EXP_EvalTypeType_Atom:
+    case EXP_EvalTypeType_VarS1:
     {
-        return x;
+        lRet = top->id;
+        vec_pop(buildStack);
+        break;
     }
     case EXP_EvalTypeType_Var:
     {
-        x = EXP_evalTypeVarS1(ctx, desc->var);
-        goto enter;
-    }
-    case EXP_EvalTypeType_VarS1:
-    {
+        vec_pop(buildStack);
         u32* pV = EXP_evalTypeVarValueGet(varSpace, desc->var);
         if (pV)
         {
-            x = *pV;
-            goto enter;
+            u32 v = *pV;
+            EXP_EvalTypeBuildLevel l1 = { v };
+            vec_push(buildStack, l1);
         }
-        return x;
+        else
+        {
+            lRet = EXP_evalTypeVarS1(ctx, desc->var);
+        }
+        break;
     }
     default:
         assert(false);
-        return x;
+        break;
     }
+    goto next;
 }
 
 
