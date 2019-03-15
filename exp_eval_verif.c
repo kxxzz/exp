@@ -133,11 +133,10 @@ typedef struct EXP_EvalVerifContext
     bool allowDsShift;
     vec_u32 dataStack;
     EXP_EvalVerifCallVec callStack;
-    u32 typeVarCount;
 
     vec_u32 dsBuf;
     EXP_EvalVerifCallVec csBuf;
-    EXP_EvalTypeVarSpace tvBuf;
+    EXP_EvalTypeBvarVec tvBuf;
     EXP_EvalVerifWorldStack worldStack;
 
     EXP_EvalError error;
@@ -180,7 +179,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
-    vec_free(&ctx->typeVarSpace1);
+    EXP_evalTypeVarSpaceFree(&ctx->typeVarSpace1);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varKeyBuf);
 
@@ -191,7 +190,7 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->dataStack);
 
-    vec_free(&ctx->typeVarSpace);
+    EXP_evalTypeVarSpaceFree(&ctx->typeVarSpace);
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
@@ -217,18 +216,18 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
     snapshot.csOff = ctx->csBuf.length;
     snapshot.csLen = ctx->callStack.length;
     snapshot.tvsOff = ctx->tvBuf.length;
-    snapshot.tvsLen = ctx->typeVarSpace.length;
-    snapshot.typeVarCount = ctx->typeVarCount;
+    snapshot.tvsLen = ctx->typeVarSpace.bvars.length;
+    snapshot.typeVarCount = ctx->typeVarSpace.varCount;
     vec_push(&ctx->worldStack, snapshot);
 
     vec_concat(&ctx->dsBuf, &ctx->dataStack);
     vec_concat(&ctx->csBuf, &ctx->callStack);
-    vec_concat(&ctx->tvBuf, &ctx->typeVarSpace);
+    vec_concat(&ctx->tvBuf, &ctx->typeVarSpace.bvars);
     ctx->allowDsShift = allowDsShift;
     ctx->dataStack.length = 0;
     ctx->callStack.length = 0;
-    ctx->typeVarSpace.length = 0;
-    ctx->typeVarCount = 0;
+    ctx->typeVarSpace.bvars.length = 0;
+    ctx->typeVarSpace.varCount = 0;
 }
 
 
@@ -241,14 +240,14 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 
     ctx->allowDsShift = snapshot.allowDsShift;
     ctx->dataStack.length = 0;
-    ctx->typeVarSpace.length = 0;
+    ctx->typeVarSpace.bvars.length = 0;
     vec_pusharr(&ctx->dataStack, ctx->dsBuf.data + snapshot.dsOff, snapshot.dsLen);
     vec_pusharr(&ctx->callStack, ctx->csBuf.data + snapshot.csOff, snapshot.csLen);
-    vec_pusharr(&ctx->typeVarSpace, ctx->tvBuf.data + snapshot.tvsOff, snapshot.tvsLen);
+    vec_pusharr(&ctx->typeVarSpace.bvars, ctx->tvBuf.data + snapshot.tvsOff, snapshot.tvsLen);
     vec_resize(&ctx->dsBuf, snapshot.dsOff);
     vec_resize(&ctx->csBuf, snapshot.csOff);
     vec_resize(&ctx->tvBuf, snapshot.tvsOff);
-    ctx->typeVarCount = snapshot.typeVarCount;
+    ctx->typeVarSpace.varCount = snapshot.typeVarCount;
 }
 
 
@@ -923,7 +922,8 @@ static void EXP_evalVerifNode
                             ctx->typeBuf.length = 0;
                             for (u32 i = 0; i < shiftN; ++i)
                             {
-                                u32 t = EXP_evalTypeVar(typeContext, ctx->typeVarCount++);
+                                u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
+                                u32 t = EXP_evalTypeVar(typeContext, var);
                                 vec_push(&ctx->typeBuf, t);
                             }
                             if (!EXP_evalVerifShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
@@ -971,7 +971,8 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_Drop;
             if (!dataStack->length)
             {
-                u32 t = EXP_evalTypeVar(typeContext, ctx->typeVarCount++);
+                u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
+                u32 t = EXP_evalTypeVar(typeContext, var);
                 if (!EXP_evalVerifShiftDataStack(ctx, 1, &t))
                 {
                     EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
