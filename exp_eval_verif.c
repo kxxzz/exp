@@ -142,7 +142,7 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
     vec_u32 typeBuf;
-    EXP_EvalTypeVarSpace typeVarSpace1;
+    EXP_EvalTypeVarSpace typePatSpace;
 } EXP_EvalVerifContext;
 
 
@@ -179,7 +179,7 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
 static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 {
-    EXP_evalTypeVarSpaceFree(&ctx->typeVarSpace1);
+    EXP_evalTypeVarSpaceFree(&ctx->typePatSpace);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varKeyBuf);
 
@@ -270,29 +270,24 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 
 
 
-static bool EXP_evalVerifTypeUnifyVarS1(EXP_EvalVerifContext* ctx, u32 x, u32 x1)
+static bool EXP_evalVerifTypeUnifyPatElm(EXP_EvalVerifContext* ctx, u32 x, u32 patX, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    return EXP_evalTypeUnifyVarS1(typeContext, typeVarSpace, x, typeVarSpace1, x1);
+    EXP_EvalTypeVarSpace* typePatSpace = &ctx->typePatSpace;
+    return EXP_evalTypeUnifyPatElm(typeContext, typeVarSpace, x, typePatSpace, patX, pU);
 }
 
-static u32 EXP_evalVerifTypeVarS1Value(EXP_EvalVerifContext* ctx, u32 x1)
+static u32 EXP_evalVerifTypePatApply(EXP_EvalVerifContext* ctx, u32 a)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    u32 v = EXP_evalTypeNorm(typeContext, typeVarSpace1, x1);
+    // todo
+    u32 v = -1;
     return v;
 }
 
 
-static u32 EXP_evalVerifTypeToVarS1(EXP_EvalVerifContext* ctx, u32 x)
-{
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace1 = &ctx->typeVarSpace1;
-    return EXP_evalTypeToVarS1(ctx->typeContext, typeVarSpace1, x);
-}
+
 
 
 
@@ -738,9 +733,10 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
-        u32 x = dataStack->data[argsOffset + i];
-        u32 x1 = inEvalType[i];
-        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x, x1))
+        u32 a = dataStack->data[argsOffset + i];
+        u32 b = inEvalType[i];
+        u32 u;
+        if (!EXP_evalVerifTypeUnifyPatElm(ctx, a, b, &u))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -770,10 +766,10 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
     {
-        u32 x = dataStack->data[argsOffset + i];
-        u32 x1 = blk->inout.data[i];
-        x1 = EXP_evalVerifTypeToVarS1(ctx, x1);
-        if (!EXP_evalVerifTypeUnifyVarS1(ctx, x, x1))
+        u32 a = dataStack->data[argsOffset + i];
+        u32 b = blk->inout.data[i];
+        u32 u;
+        if (!EXP_evalVerifTypeUnifyPatElm(ctx, a, b, &u))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -782,9 +778,8 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
-        u32 x1 = blk->inout.data[blk->numIns + i];
-        x1 = EXP_evalVerifTypeToVarS1(ctx, x1);
-        u32 x = EXP_evalVerifTypeVarS1Value(ctx, x1);
+        u32 x = blk->inout.data[blk->numIns + i];
+        x = EXP_evalVerifTypePatApply(ctx, x);
         vec_push(dataStack, x);
     }
 }

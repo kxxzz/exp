@@ -13,7 +13,6 @@ typedef enum EXP_EvalTypeType
     EXP_EvalTypeType_Tuple,
     EXP_EvalTypeType_Array,
     EXP_EvalTypeType_Var,
-    EXP_EvalTypeType_VarS1,
 
     EXP_NumEvalTypeTypes
 } EXP_EvalTypeType;
@@ -58,7 +57,6 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 nu
 u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
 u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var);
-u32 EXP_evalTypeVarS1(EXP_EvalTypeContext* ctx, u32 var);
 
 
 

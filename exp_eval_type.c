@@ -104,12 +104,7 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeVarS1(EXP_EvalTypeContext* ctx, u32 var)
-{
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_VarS1 };
-    desc.var = var;
-    return EXP_evalTypeIdByDesc(ctx, &desc);
-}
+
 
 
 
@@ -276,7 +271,6 @@ next:
         break;
     }
     case EXP_EvalTypeType_Var:
-    case EXP_EvalTypeType_VarS1:
     {
         if (0 == top->progress)
         {
@@ -329,43 +323,6 @@ next:
 
 
 
-u32 EXP_evalTypeToVarS1(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
-{
-    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
-    u32 lRet = -1;
-    EXP_EvalTypeBuildLevel root = { x };
-    vec_push(buildStack, root);
-    EXP_EvalTypeBuildLevel* top = NULL;
-    const EXP_EvalTypeDesc* desc = NULL;
-next:
-    if (!buildStack->length)
-    {
-        assert(lRet != -1);
-        return lRet;
-    }
-    top = &vec_last(buildStack);
-    desc = EXP_evalTypeDescById(ctx, top->id);
-    switch (desc->type)
-    {
-    case EXP_EvalTypeType_Atom:
-    case EXP_EvalTypeType_VarS1:
-    {
-        lRet = top->id;
-        vec_pop(buildStack);
-        break;
-    }
-    case EXP_EvalTypeType_Var:
-    {
-        lRet = EXP_evalTypeVarS1(ctx, desc->var);
-        vec_pop(buildStack);
-        break;
-    }
-    default:
-        assert(false);
-        break;
-    }
-    goto next;
-}
 
 
 
@@ -454,54 +411,14 @@ enter:
 
 
 
-
-
-
-bool EXP_evalTypeUnifyVarS1
+bool EXP_evalTypeUnifyPatElm
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace0, u32 x0, EXP_EvalTypeVarSpace* varSpace1, u32 x1
+    EXP_EvalTypeContext* ctx,
+    EXP_EvalTypeVarSpace* varSpace, u32 x,
+    EXP_EvalTypeVarSpace* patSpace, u32 patX,
+    u32* pU
 )
 {
-    //u32 x0 = EXP_evalTypeNorm(ctx, varSpace0, x0);
-    //u32 x1 = EXP_evalTypeNorm(ctx, varSpace1, x1);
-    const EXP_EvalTypeDesc* descX0 = EXP_evalTypeDescById(ctx, x0);
-    const EXP_EvalTypeDesc* descX1 = EXP_evalTypeDescById(ctx, x1);
-    u32* pV1 = NULL;
-    if (EXP_EvalTypeType_Var == descX1->type)
-    {
-        pV1 = EXP_evalTypeVarValue(varSpace1, descX1->var);
-    }
-    if (pV1)
-    {
-        u32 v1 = *pV1;
-        if (EXP_EvalTypeType_Var == descX0->type)
-        {
-            u32* pV0 = EXP_evalTypeVarValue(varSpace0, x0);
-            // todo
-            if (pV0)
-            {
-                u32 v0 = *pV0;
-                u32 u;
-                EXP_evalTypeUnify(ctx, varSpace0, v0, v1, &u);
-                EXP_evalTypeVarBind(varSpace0, descX0->var, u);
-                return true;
-            }
-            else
-            {
-                EXP_evalTypeVarBind(varSpace0, descX0->var, v1);
-                return true;
-            }
-        }
-        else
-        {
-            return v1 == x0;
-        }
-    }
-    else
-    {
-        EXP_evalTypeVarBind(varSpace1, descX1->var, x0);
-        return true;
-    }
     return true;
 }
 

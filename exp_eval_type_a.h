@@ -32,16 +32,19 @@ u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* varSpace, u32 var);
 void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value);
 
 
+
 u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
-u32 EXP_evalTypeToVarS1(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
 
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);
 
 
-bool EXP_evalTypeUnifyVarS1
+bool EXP_evalTypeUnifyPatElm
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace0, u32 x0, EXP_EvalTypeVarSpace* varSpace1, u32 x1
+    EXP_EvalTypeContext* ctx,
+    EXP_EvalTypeVarSpace* varSpace, u32 x,
+    EXP_EvalTypeVarSpace* patSpace, u32 patX,
+    u32* pU
 );
 
 
