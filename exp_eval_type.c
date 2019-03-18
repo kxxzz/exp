@@ -97,10 +97,10 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var)
+u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
-    desc.var = var;
+    desc.varId = varId;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -140,7 +140,11 @@ void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace)
     vec_free(&varSpace->bvars);
 }
 
-
+void EXP_evalTypeVarSpaceReset(EXP_EvalTypeVarSpace* varSpace)
+{
+    vec_resize(&varSpace->bvars, 0);
+    varSpace->varCount = 0;
+}
 
 
 
@@ -160,20 +164,20 @@ u32 EXP_evalTypeNewVar(EXP_EvalTypeVarSpace* varSpace)
 
 
 
-bool EXP_evalTypeVarIsExist(EXP_EvalTypeVarSpace* varSpace, u32 var)
+bool EXP_evalTypeVarIsExist(EXP_EvalTypeVarSpace* varSpace, u32 varId)
 {
-    return varSpace->varCount > var;
+    return varSpace->varCount > varId;
 }
 
-bool EXP_evalTypeVarIsFree(EXP_EvalTypeVarSpace* varSpace, u32 var)
+bool EXP_evalTypeVarIsFree(EXP_EvalTypeVarSpace* varSpace, u32 varId)
 {
-    if (!EXP_evalTypeVarIsExist(varSpace, var))
+    if (!EXP_evalTypeVarIsExist(varSpace, varId))
     {
         return false;
     }
     for (u32 i = 0; i < varSpace->bvars.length; ++i)
     {
-        if (varSpace->bvars.data[i].id == var)
+        if (varSpace->bvars.data[i].id == varId)
         {
             return false;
         }
@@ -181,9 +185,9 @@ bool EXP_evalTypeVarIsFree(EXP_EvalTypeVarSpace* varSpace, u32 var)
     return true;
 }
 
-bool EXP_evalTypeVarIsBound(EXP_EvalTypeVarSpace* varSpace, u32 var)
+bool EXP_evalTypeVarIsBound(EXP_EvalTypeVarSpace* varSpace, u32 varId)
 {
-    return !EXP_evalTypeVarIsFree(varSpace, var);
+    return !EXP_evalTypeVarIsFree(varSpace, varId);
 }
 
 
@@ -191,15 +195,15 @@ bool EXP_evalTypeVarIsBound(EXP_EvalTypeVarSpace* varSpace, u32 var)
 
 
 
-u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* varSpace, u32 var)
+u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* varSpace, u32 varId)
 {
-    if (!EXP_evalTypeVarIsExist(varSpace, var))
+    if (!EXP_evalTypeVarIsExist(varSpace, varId))
     {
         return NULL;
     }
     for (u32 i = 0; i < varSpace->bvars.length; ++i)
     {
-        if (varSpace->bvars.data[i].id == var)
+        if (varSpace->bvars.data[i].id == varId)
         {
             return &varSpace->bvars.data[i].val;
         }
@@ -207,17 +211,17 @@ u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* varSpace, u32 var)
     return NULL;
 }
 
-void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value)
+void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 {
     for (u32 i = 0; i < varSpace->bvars.length; ++i)
     {
-        if (varSpace->bvars.data[i].id == var)
+        if (varSpace->bvars.data[i].id == varId)
         {
             varSpace->bvars.data[i].val = value;
             return;
         }
     }
-    EXP_EvalTypeBvar b = { var, value };
+    EXP_EvalTypeBvar b = { varId, value };
     vec_push(&varSpace->bvars, b);
 }
 
@@ -275,7 +279,7 @@ next:
         if (0 == top->progress)
         {
             ++top->progress;
-            u32* pV = EXP_evalTypeVarValue(varSpace, desc->var);
+            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
             if (pV)
             {
                 u32 v = *pV;
@@ -284,21 +288,21 @@ next:
             }
             else
             {
-                lRet = desc->var;
+                lRet = top->id;
             }
         }
         else
         {
             assert(1 == top->progress);
             // Update varSpace
-            u32* pV0 = EXP_evalTypeVarValue(varSpace, desc->var);
+            u32* pV0 = EXP_evalTypeVarValue(varSpace, desc->varId);
             if (pV0)
             {
                 u32 v0 = *pV0;
                 if (v0 != lRet)
                 {
                     recheck = true;
-                    EXP_evalTypeVarBind(varSpace, desc->var, lRet);
+                    EXP_evalTypeVarBind(varSpace, desc->varId, lRet);
                 }
             }
             vec_pop(buildStack);
@@ -311,15 +315,6 @@ next:
     }
     goto next;
 }
-
-
-
-
-
-
-
-
-
 
 
 
@@ -377,7 +372,7 @@ enter:
         }
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            u32* pV = EXP_evalTypeVarValue(varSpace, descA->var);
+            u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
             if (pV)
             {
                 a = *pV;
@@ -410,12 +405,73 @@ enter:
 
 
 
+u32 EXP_evalTypeVarRenameNorm
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 x
+)
+{
+    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    u32 lRet = -1;
+    EXP_EvalTypeBuildLevel root = { x };
+    vec_push(buildStack, root);
+    EXP_EvalTypeBuildLevel* top = NULL;
+    const EXP_EvalTypeDesc* desc = NULL;
+next:
+    if (!buildStack->length)
+    {
+        assert(lRet != -1);
+        lRet = EXP_evalTypeNorm(ctx, varSpace, lRet);
+        return lRet;
+    }
+    top = &vec_last(buildStack);
+    desc = EXP_evalTypeDescById(ctx, top->id);
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        lRet = top->id;
+        vec_pop(buildStack);
+        break;
+    }
+    case EXP_EvalTypeType_Var:
+    {
+        u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+        if (pV)
+        {
+            lRet = *pV;
+        }
+        else
+        {
+            u32 varId = EXP_evalTypeNewVar(varSpace);
+            EXP_evalTypeVarBind(varRenMap, varId, top->id);
+            lRet = EXP_evalTypeVar(ctx, varId);
+        }
+        vec_pop(buildStack);
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
+    goto next;
+}
 
-bool EXP_evalTypeUnifyPatElm
+
+
+
+
+
+
+
+
+
+
+
+bool EXP_evalTypeUnifyPat
 (
     EXP_EvalTypeContext* ctx,
     EXP_EvalTypeVarSpace* varSpace, u32 x,
-    EXP_EvalTypeVarSpace* patSpace, u32 patX,
+    EXP_EvalTypeVarSpace* renameMap, u32 pat,
     u32* pU
 )
 {

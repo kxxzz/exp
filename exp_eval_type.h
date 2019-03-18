@@ -38,7 +38,7 @@ typedef struct EXP_EvalTypeDesc
         EXP_EvalTypeDescFun fun;
         EXP_EvalTypeDescList tuple;
         u32 aryElm;
-        u32 var;
+        u32 varId;
     };
 } EXP_EvalTypeDesc;
 

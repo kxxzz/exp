@@ -19,6 +19,7 @@ typedef struct EXP_EvalTypeVarSpace
 
 
 void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace);
+void EXP_evalTypeVarSpaceReset(EXP_EvalTypeVarSpace* varSpace);
 
 
 u32 EXP_evalTypeNewVar(EXP_EvalTypeVarSpace* varSpace);
@@ -39,11 +40,16 @@ u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);
 
 
-bool EXP_evalTypeUnifyPatElm
+u32 EXP_evalTypeVarRenameNorm
+(
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 x
+);
+
+bool EXP_evalTypeUnifyPat
 (
     EXP_EvalTypeContext* ctx,
     EXP_EvalTypeVarSpace* varSpace, u32 x,
-    EXP_EvalTypeVarSpace* patSpace, u32 patX,
+    EXP_EvalTypeVarSpace* varRenMap, u32 pat,
     u32* pU
 );
 
