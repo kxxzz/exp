@@ -435,7 +435,7 @@ next:
     }
     case EXP_EvalTypeType_Var:
     {
-        u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+        u32* pV = EXP_evalTypeVarValue(varRenMap, desc->varId);
         if (pV)
         {
             lRet = *pV;
@@ -467,15 +467,21 @@ next:
 
 
 
+
+
+
+
+
 bool EXP_evalTypeUnifyPat
 (
     EXP_EvalTypeContext* ctx,
-    EXP_EvalTypeVarSpace* varSpace, u32 x,
-    EXP_EvalTypeVarSpace* renameMap, u32 pat,
+    EXP_EvalTypeVarSpace* varSpace, u32 a,
+    EXP_EvalTypeVarSpace* varRenMap, u32 pat,
     u32* pU
 )
 {
-    return true;
+    u32 b = EXP_evalTypeVarRenameNorm(ctx, varSpace, varRenMap, pat);
+    return EXP_evalTypeUnify(ctx, varSpace, a, b, pU);
 }
 
 

@@ -39,7 +39,6 @@ u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);
 
-
 u32 EXP_evalTypeVarRenameNorm
 (
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 x
@@ -48,7 +47,7 @@ u32 EXP_evalTypeVarRenameNorm
 bool EXP_evalTypeUnifyPat
 (
     EXP_EvalTypeContext* ctx,
-    EXP_EvalTypeVarSpace* varSpace, u32 x,
+    EXP_EvalTypeVarSpace* varSpace, u32 a,
     EXP_EvalTypeVarSpace* varRenMap, u32 pat,
     u32* pU
 );
