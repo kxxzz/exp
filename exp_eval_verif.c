@@ -757,7 +757,6 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
-    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
 
     assert(blk->haveInOut);
@@ -765,22 +764,17 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     u32 argsOffset = dataStack->length - blk->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
 
-    u32 bvarCount = typeVarSpace->bvars.length;
-    u32 varCount = typeVarSpace->varCount;
-
     EXP_evalTypeVarSpaceReset(varRenMap);
 
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
     {
-        u32 x = dataStack->data[argsOffset + i];
-        u32 pat = blk->inout.data[i];
+        u32 a = dataStack->data[argsOffset + i];
+        u32 b = blk->inout.data[i];
         u32 u;
-        if (!EXP_evalVerifTypeUnifyPat(ctx, x, pat, &u))
+        if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-            typeVarSpace->varCount = varCount;
-            vec_resize(&typeVarSpace->bvars, bvarCount);
             return;
         }
     }
@@ -791,9 +785,6 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
         x = EXP_evalVerifTypeFromPat(ctx, x);
         vec_push(dataStack, x);
     }
-
-    typeVarSpace->varCount = varCount;
-    vec_resize(&typeVarSpace->bvars, bvarCount);
 }
 
 
