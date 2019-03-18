@@ -243,7 +243,7 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 
 
 
-u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
+u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
     bool recheck = false;
@@ -338,7 +338,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 enter:
     if (a == b)
     {
-        *pU = EXP_evalTypeNorm(ctx, varSpace, a);
+        *pU = EXP_evalTypeReduct(ctx, varSpace, a);
         return true;
     }
     const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
@@ -378,7 +378,7 @@ enter:
                 a = *pV;
                 goto enter;
             }
-            *pU = EXP_evalTypeNorm(ctx, varSpace, b);
+            *pU = EXP_evalTypeReduct(ctx, varSpace, b);
             return true;
         }
         else
@@ -405,14 +405,14 @@ enter:
 
 
 
-u32 EXP_evalTypeVarRenameNorm
+u32 EXP_evalTypeFromPat
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 x
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 pat
 )
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
     u32 lRet = -1;
-    EXP_EvalTypeBuildLevel root = { x };
+    EXP_EvalTypeBuildLevel root = { pat };
     vec_push(buildStack, root);
     EXP_EvalTypeBuildLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
@@ -420,7 +420,7 @@ next:
     if (!buildStack->length)
     {
         assert(lRet != -1);
-        lRet = EXP_evalTypeNorm(ctx, varSpace, lRet);
+        lRet = EXP_evalTypeReduct(ctx, varSpace, lRet);
         return lRet;
     }
     top = &vec_last(buildStack);
@@ -480,7 +480,7 @@ bool EXP_evalTypeUnifyPat
     u32* pU
 )
 {
-    u32 b = EXP_evalTypeVarRenameNorm(ctx, varSpace, varRenMap, pat);
+    u32 b = EXP_evalTypeFromPat(ctx, varSpace, varRenMap, pat);
     return EXP_evalTypeUnify(ctx, varSpace, a, b, pU);
 }
 

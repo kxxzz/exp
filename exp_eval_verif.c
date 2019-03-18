@@ -258,7 +258,7 @@ static u32 EXP_evalVerifTypeNorm(EXP_EvalVerifContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    return EXP_evalTypeNorm(typeContext, typeVarSpace, x);
+    return EXP_evalTypeReduct(typeContext, typeVarSpace, x);
 }
 
 static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* pU)
@@ -278,12 +278,12 @@ static bool EXP_evalVerifTypeUnifyPat(EXP_EvalVerifContext* ctx, u32 x, u32 pat,
     return EXP_evalTypeUnifyPat(typeContext, typeVarSpace, x, varRenMap, pat, pU);
 }
 
-static u32 EXP_evalVerifTypeVarRenameNorm(EXP_EvalVerifContext* ctx, u32 x)
+static u32 EXP_evalVerifTypeFromPat(EXP_EvalVerifContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
-    return EXP_evalTypeVarRenameNorm(typeContext, typeVarSpace, varRenMap, x);
+    return EXP_evalTypeFromPat(typeContext, typeVarSpace, varRenMap, x);
 }
 
 
@@ -788,7 +788,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
         u32 x = blk->inout.data[blk->numIns + i];
-        x = EXP_evalVerifTypeVarRenameNorm(ctx, x);
+        x = EXP_evalVerifTypeFromPat(ctx, x);
         vec_push(dataStack, x);
     }
 

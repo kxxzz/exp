@@ -34,14 +34,14 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 var, u32 value);
 
 
 
-u32 EXP_evalTypeNorm(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
+u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x);
 
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU);
 
-u32 EXP_evalTypeVarRenameNorm
+u32 EXP_evalTypeFromPat
 (
-    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 x
+    EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 pat
 );
 
 bool EXP_evalTypeUnifyPat
