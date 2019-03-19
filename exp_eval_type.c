@@ -278,17 +278,32 @@ next:
     }
     case EXP_EvalTypeType_Var:
     {
-        u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
-        if (pV)
+        if (top->progress < 1)
         {
-            r = *pV;
-            recheck = true;
+            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+            if (pV)
+            {
+                ++top->progress;
+                EXP_EvalTypeBuildLevel l = { *pV };
+                vec_push(buildStack, l);
+            }
+            else
+            {
+                r = top->src;
+                vec_pop(buildStack);
+            }
         }
         else
         {
-            r = top->src;
+            vec_pop(buildStack);
+            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+            assert(pV);
+            if (*pV != r)
+            {
+                recheck = true;
+                EXP_evalTypeVarBind(varSpace, desc->varId, r);
+            }
         }
-        vec_pop(buildStack);
         break;
     }
     default:
@@ -318,6 +333,7 @@ next:
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    bool recheck = false;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { a, b };
     vec_push(buildStack, root);
@@ -328,6 +344,12 @@ next:
     if (!buildStack->length)
     {
         assert(r != -1);
+        if (recheck)
+        {
+            recheck = false;
+            vec_push(buildStack, root);
+            goto next;
+        }
         *pU = r;
         return true;
     }
@@ -369,6 +391,8 @@ next:
                 goto next;
             }
             r = EXP_evalTypeReduct(ctx, varSpace, b);
+            EXP_evalTypeVarBind(varSpace, descA->varId, r);
+            recheck = true;
             goto next;
         }
         else if (EXP_EvalTypeType_Var == descB->type)
@@ -382,6 +406,8 @@ next:
                 goto next;
             }
             r = EXP_evalTypeReduct(ctx, varSpace, a);
+            EXP_evalTypeVarBind(varSpace, descB->varId, r);
+            recheck = true;
             goto next;
         }
         else
