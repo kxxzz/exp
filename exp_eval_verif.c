@@ -1209,6 +1209,7 @@ static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
     EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
     EXP_EvalVerifBlock* curBlock = NULL;
     vec_u32* dataStack = &ctx->dataStack;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
 next:
     if (ctx->error.code)
@@ -1330,15 +1331,16 @@ next:
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            u32 t1 = dataStack->data[curCall->dataStackP];
+            u32 a = EXP_evalTypeAtom(typeContext, EXP_EvalPrimType_BOOL);
+            u32 b = dataStack->data[curCall->dataStackP];
             vec_pop(dataStack);
-            u32 t;
-            if (!EXP_evalVerifTypeUnify(ctx, EXP_EvalPrimType_BOOL, t1, &t))
+            u32 u;
+            if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
             {
                 EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            dataStack->data[curCall->dataStackP] = t;
+            dataStack->data[curCall->dataStackP] = u;
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
             cb->type = EXP_EvalVerifBlockCallbackType_Branch0;
