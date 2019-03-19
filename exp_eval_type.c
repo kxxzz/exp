@@ -4,7 +4,7 @@
 
 
 
-typedef struct EXP_EvalTypeBuildLevel
+typedef struct EXP_EvalTypeTravLevel
 {
     u32 id;
     u32 progress;
@@ -13,9 +13,9 @@ typedef struct EXP_EvalTypeBuildLevel
         EXP_EvalTypeDescFun fun;
         EXP_EvalTypeDescList tuple;
     };
-} EXP_EvalTypeBuildLevel;
+} EXP_EvalTypeTravLevel;
 
-typedef vec_t(EXP_EvalTypeBuildLevel) EXP_EvalTypeBuildStack;
+typedef vec_t(EXP_EvalTypeTravLevel) EXP_EvalTypeTravStack;
 
 
 
@@ -24,7 +24,7 @@ typedef struct EXP_EvalTypeContext
 {
     Upool* listPool;
     Upool* typePool;
-    EXP_EvalTypeBuildStack buildStack;
+    EXP_EvalTypeTravStack travStack;
 } EXP_EvalTypeContext;
 
 
@@ -38,7 +38,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
-    vec_free(&ctx->buildStack);
+    vec_free(&ctx->travStack);
     upoolFree(ctx->typePool);
     upoolFree(ctx->listPool);
     free(ctx);
@@ -245,12 +245,12 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 
 u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
-    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    EXP_EvalTypeTravStack* buildStack = &ctx->travStack;
     bool recheck = false;
     u32 lRet = -1;
-    EXP_EvalTypeBuildLevel root = { x };
+    EXP_EvalTypeTravLevel root = { x };
     vec_push(buildStack, root);
-    EXP_EvalTypeBuildLevel* top = NULL;
+    EXP_EvalTypeTravLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
 next:
     if (!buildStack->length)
@@ -283,7 +283,7 @@ next:
             if (pV)
             {
                 u32 v = *pV;
-                EXP_EvalTypeBuildLevel l1 = { v };
+                EXP_EvalTypeTravLevel l1 = { v };
                 vec_push(buildStack, l1);
             }
             else
@@ -410,27 +410,27 @@ u32 EXP_evalTypeFromPat
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 pat
 )
 {
-    EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    EXP_EvalTypeTravStack* travStack = &ctx->travStack;
     u32 lRet = -1;
-    EXP_EvalTypeBuildLevel root = { pat };
-    vec_push(buildStack, root);
-    EXP_EvalTypeBuildLevel* top = NULL;
+    EXP_EvalTypeTravLevel root = { pat };
+    vec_push(travStack, root);
+    EXP_EvalTypeTravLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
 next:
-    if (!buildStack->length)
+    if (!travStack->length)
     {
         assert(lRet != -1);
         lRet = EXP_evalTypeReduct(ctx, varSpace, lRet);
         return lRet;
     }
-    top = &vec_last(buildStack);
+    top = &vec_last(travStack);
     desc = EXP_evalTypeDescById(ctx, top->id);
     switch (desc->type)
     {
     case EXP_EvalTypeType_Atom:
     {
         lRet = top->id;
-        vec_pop(buildStack);
+        vec_pop(travStack);
         break;
     }
     case EXP_EvalTypeType_Var:
@@ -446,7 +446,7 @@ next:
             EXP_evalTypeVarBind(varRenMap, varId, top->id);
             lRet = EXP_evalTypeVar(ctx, varId);
         }
-        vec_pop(buildStack);
+        vec_pop(travStack);
         break;
     }
     default:
