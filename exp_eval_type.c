@@ -359,17 +359,6 @@ enter:
     }
     else
     {
-    swap:
-        if (EXP_EvalTypeType_Var == descB->type)
-        {
-            u32 t = b;
-            b = a;
-            a = t;
-            const EXP_EvalTypeDesc* descC = descB;
-            descB = descA;
-            descA = descC;
-            goto swap;
-        }
         if (EXP_EvalTypeType_Var == descA->type)
         {
             u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
@@ -379,6 +368,17 @@ enter:
                 goto enter;
             }
             *pU = EXP_evalTypeReduct(ctx, varSpace, b);
+            return true;
+        }
+        else if (EXP_EvalTypeType_Var == descB->type)
+        {
+            u32* pV = EXP_evalTypeVarValue(varSpace, descB->varId);
+            if (pV)
+            {
+                b = *pV;
+                goto enter;
+            }
+            *pU = EXP_evalTypeReduct(ctx, varSpace, a);
             return true;
         }
         else
