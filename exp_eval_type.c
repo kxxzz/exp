@@ -337,7 +337,6 @@ next:
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
-    bool recheck = false;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { a, b };
     vec_push(buildStack, root);
@@ -348,12 +347,6 @@ next:
     if (!buildStack->length)
     {
         assert(r != -1);
-        if (recheck)
-        {
-            recheck = false;
-            vec_push(buildStack, root);
-            goto next;
-        }
         *pU = r;
         return true;
     }
@@ -394,7 +387,6 @@ next:
                 vec_push(buildStack, l);
                 goto next;
             }
-            recheck = true;
             r = EXP_evalTypeReduct(ctx, varSpace, b);
             goto next;
         }
@@ -408,7 +400,6 @@ next:
                 vec_push(buildStack, l);
                 goto next;
             }
-            recheck = true;
             r = EXP_evalTypeReduct(ctx, varSpace, a);
             goto next;
         }
