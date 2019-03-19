@@ -7,6 +7,7 @@
 typedef struct EXP_EvalTypeBuildLevel
 {
     u32 src;
+    u32 src1;
     u32 progress;
     union
     {
@@ -337,18 +338,35 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
     u32 r = -1;
-    EXP_EvalTypeBuildLevel root = { a };
+    EXP_EvalTypeBuildLevel root = { a, b };
     vec_push(buildStack, root);
     EXP_EvalTypeBuildLevel* top = NULL;
-    const EXP_EvalTypeDesc* desc = NULL;
+    const EXP_EvalTypeDesc* descA = NULL;
+    const EXP_EvalTypeDesc* descB = NULL;
+    bool failed = false;
 next:
-    if (a == b)
+    if (failed)
     {
-        *pU = EXP_evalTypeReduct(ctx, varSpace, a);
+        vec_resize(buildStack, 0);
+        return false;
+    }
+    if (!buildStack->length)
+    {
+        assert(r != -1);
+        *pU = r;
         return true;
     }
-    const EXP_EvalTypeDesc* descA = EXP_evalTypeDescById(ctx, a);
-    const EXP_EvalTypeDesc* descB = EXP_evalTypeDescById(ctx, b);
+    top = &vec_last(buildStack);
+    a = top->src;
+    b = top->src1;
+    if (a == b)
+    {
+        vec_pop(buildStack);
+        r = EXP_evalTypeReduct(ctx, varSpace, a);
+        goto next;
+    }
+    descA = EXP_evalTypeDescById(ctx, a);
+    descB = EXP_evalTypeDescById(ctx, b);
     if (descA->type == descB->type)
     {
         switch (descA->type)
@@ -356,40 +374,48 @@ next:
         case EXP_EvalTypeType_Atom:
         {
             assert(descA->atom != descB->atom);
-            return false;
+            failed = true;
+            goto next;
         }
         default:
-            assert(false);
-            return false;
+            failed = true;
+            goto next;
         }
     }
     else
     {
         if (EXP_EvalTypeType_Var == descA->type)
         {
+            vec_pop(buildStack);
             u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
             if (pV)
             {
                 a = *pV;
+                EXP_EvalTypeBuildLevel l = { a, b };
+                vec_push(buildStack, l);
                 goto next;
             }
-            *pU = EXP_evalTypeReduct(ctx, varSpace, b);
-            return true;
+            r = EXP_evalTypeReduct(ctx, varSpace, b);
+            goto next;
         }
         else if (EXP_EvalTypeType_Var == descB->type)
         {
+            vec_pop(buildStack);
             u32* pV = EXP_evalTypeVarValue(varSpace, descB->varId);
             if (pV)
             {
                 b = *pV;
+                EXP_EvalTypeBuildLevel l = { a, b };
+                vec_push(buildStack, l);
                 goto next;
             }
-            *pU = EXP_evalTypeReduct(ctx, varSpace, a);
-            return true;
+            r = EXP_evalTypeReduct(ctx, varSpace, a);
+            goto next;
         }
         else
         {
-            return false;
+            failed = true;
+            goto next;
         }
     }
 }
