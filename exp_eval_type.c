@@ -144,7 +144,7 @@ void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace)
 void EXP_evalTypeVarSpaceReset(EXP_EvalTypeVarSpace* varSpace)
 {
     vec_resize(&varSpace->bvars, 0);
-    varSpace->varCount = 0;
+    varSpace->varCount = -1;
 }
 
 
@@ -214,6 +214,7 @@ u32* EXP_evalTypeVarValue(EXP_EvalTypeVarSpace* varSpace, u32 varId)
 
 void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 {
+    assert(varSpace->varCount > varId);
     for (u32 i = 0; i < varSpace->bvars.length; ++i)
     {
         if (varSpace->bvars.data[i].id == varId)
@@ -277,37 +278,17 @@ next:
     }
     case EXP_EvalTypeType_Var:
     {
-        if (0 == top->progress)
+        u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+        if (pV)
         {
-            ++top->progress;
-            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
-            if (pV)
-            {
-                u32 v = *pV;
-                EXP_EvalTypeBuildLevel l1 = { v };
-                vec_push(buildStack, l1);
-            }
-            else
-            {
-                r = top->src;
-            }
+            r = *pV;
+            recheck = true;
         }
         else
         {
-            assert(1 == top->progress);
-            // Update varSpace
-            u32* pV0 = EXP_evalTypeVarValue(varSpace, desc->varId);
-            if (pV0)
-            {
-                u32 v0 = *pV0;
-                if (v0 != r)
-                {
-                    recheck = true;
-                    EXP_evalTypeVarBind(varSpace, desc->varId, r);
-                }
-            }
-            vec_pop(buildStack);
+            r = top->src;
         }
+        vec_pop(buildStack);
         break;
     }
     default:
@@ -468,8 +449,8 @@ next:
         else
         {
             u32 varId = EXP_evalTypeNewVar(varSpace);
-            EXP_evalTypeVarBind(varRenMap, varId, top->src);
             r = EXP_evalTypeVar(ctx, varId);
+            EXP_evalTypeVarBind(varRenMap, desc->varId, r);
         }
         vec_pop(buildStack);
         break;

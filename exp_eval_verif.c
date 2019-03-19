@@ -736,7 +736,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
         u32 a = dataStack->data[argsOffset + i];
         u32 b = inEvalType[i];
         u32 u;
-        if (!EXP_evalVerifTypeUnifyPat(ctx, a, b, &u))
+        if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -772,7 +772,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
         u32 a = dataStack->data[argsOffset + i];
         u32 b = blk->inout.data[i];
         u32 u;
-        if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
+        if (!EXP_evalVerifTypeUnifyPat(ctx, a, b, &u))
         {
             EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;

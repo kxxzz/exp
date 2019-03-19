@@ -1,6 +1,6 @@
-(def a 1)
-(def b 2)
-a b +
+// (def a 1)
+// (def b 2)
+// a b +
 
 (def swap -> a b : b a)
 
