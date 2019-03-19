@@ -248,7 +248,6 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
-    bool recheck = false;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { x };
     vec_push(buildStack, root);
@@ -258,12 +257,6 @@ next:
     if (!buildStack->length)
     {
         assert(r != -1);
-        if (recheck)
-        {
-            recheck = false;
-            vec_push(buildStack, root);
-            goto next;
-        }
         return r;
     }
     top = &vec_last(buildStack);
@@ -278,31 +271,17 @@ next:
     }
     case EXP_EvalTypeType_Var:
     {
-        if (top->progress < 1)
+        u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+        if (pV)
         {
-            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
-            if (pV)
-            {
-                ++top->progress;
-                EXP_EvalTypeBuildLevel l = { *pV };
-                vec_push(buildStack, l);
-            }
-            else
-            {
-                r = top->src;
-                vec_pop(buildStack);
-            }
+            vec_pop(buildStack);
+            EXP_EvalTypeBuildLevel l = { *pV };
+            vec_push(buildStack, l);
         }
         else
         {
+            r = top->src;
             vec_pop(buildStack);
-            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
-            assert(pV);
-            if (*pV != r)
-            {
-                recheck = true;
-                EXP_evalTypeVarBind(varSpace, desc->varId, r);
-            }
         }
         break;
     }
@@ -333,6 +312,7 @@ next:
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    // recheck when varSpace updated
     bool recheck = false;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { a, b };
