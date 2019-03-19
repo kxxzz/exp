@@ -344,13 +344,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     EXP_EvalTypeBuildLevel* top = NULL;
     const EXP_EvalTypeDesc* descA = NULL;
     const EXP_EvalTypeDesc* descB = NULL;
-    bool failed = false;
 next:
-    if (failed)
-    {
-        vec_resize(buildStack, 0);
-        return false;
-    }
     if (!buildStack->length)
     {
         assert(r != -1);
@@ -381,19 +375,17 @@ next:
         case EXP_EvalTypeType_Atom:
         {
             assert(descA->atom != descB->atom);
-            failed = true;
-            goto next;
+            goto failed;
         }
         default:
-            failed = true;
-            goto next;
+            goto failed;
         }
     }
     else
     {
+        vec_pop(buildStack);
         if (EXP_EvalTypeType_Var == descA->type)
         {
-            vec_pop(buildStack);
             u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
             if (pV)
             {
@@ -408,7 +400,6 @@ next:
         }
         else if (EXP_EvalTypeType_Var == descB->type)
         {
-            vec_pop(buildStack);
             u32* pV = EXP_evalTypeVarValue(varSpace, descB->varId);
             if (pV)
             {
@@ -423,10 +414,12 @@ next:
         }
         else
         {
-            failed = true;
-            goto next;
+            goto failed;
         }
     }
+failed:
+    vec_resize(buildStack, 0);
+    return false;
 }
 
 
