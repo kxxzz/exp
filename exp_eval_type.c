@@ -154,6 +154,7 @@ void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace)
 
 u32 EXP_evalTypeNewVar(EXP_EvalTypeVarSpace* varSpace)
 {
+    assert(varSpace->varCount != -1);
     return varSpace->varCount++;
 }
 
