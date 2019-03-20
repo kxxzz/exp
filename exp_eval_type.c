@@ -141,11 +141,7 @@ void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace)
     vec_free(&varSpace->bvars);
 }
 
-void EXP_evalTypeVarSpaceReset(EXP_EvalTypeVarSpace* varSpace)
-{
-    vec_resize(&varSpace->bvars, 0);
-    varSpace->varCount = -1;
-}
+
 
 
 
@@ -312,8 +308,6 @@ next:
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
-    // recheck when varSpace updated
-    bool recheck = false;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { a, b };
     vec_push(buildStack, root);
@@ -324,13 +318,7 @@ next:
     if (!buildStack->length)
     {
         assert(r != -1);
-        if (recheck)
-        {
-            recheck = false;
-            vec_push(buildStack, root);
-            goto next;
-        }
-        *pU = r;
+        *pU = EXP_evalTypeReduct(ctx, varSpace, r);
         return true;
     }
     top = &vec_last(buildStack);
@@ -372,7 +360,6 @@ next:
             }
             r = EXP_evalTypeReduct(ctx, varSpace, b);
             EXP_evalTypeVarBind(varSpace, descA->varId, r);
-            recheck = true;
             goto next;
         }
         else if (EXP_EvalTypeType_Var == descB->type)
@@ -387,7 +374,6 @@ next:
             }
             r = EXP_evalTypeReduct(ctx, varSpace, a);
             EXP_evalTypeVarBind(varSpace, descB->varId, r);
-            recheck = true;
             goto next;
         }
         else

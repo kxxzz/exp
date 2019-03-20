@@ -174,6 +174,8 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     ctx->blockTableBase = nodeTableLength0;
     vec_resize(&ctx->blockTable, n);
     memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
+
+    ctx->varRenMap.varCount = -1;
     return *ctx;
 }
 
@@ -764,7 +766,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     u32 argsOffset = dataStack->length - blk->numIns;
     EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
 
-    EXP_evalTypeVarSpaceReset(varRenMap);
+    vec_resize(&varRenMap->bvars, 0);
 
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)

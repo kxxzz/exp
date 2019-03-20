@@ -19,7 +19,6 @@ typedef struct EXP_EvalTypeVarSpace
 
 
 void EXP_evalTypeVarSpaceFree(EXP_EvalTypeVarSpace* varSpace);
-void EXP_evalTypeVarSpaceReset(EXP_EvalTypeVarSpace* varSpace);
 
 
 u32 EXP_evalTypeNewVar(EXP_EvalTypeVarSpace* varSpace);
