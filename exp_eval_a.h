@@ -88,6 +88,10 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
     {
         return false;
     }
+    if (EXP_tokQuoted(space, elms[0]))
+    {
+        return false;
+    }
     return true;
 }
 

@@ -881,194 +881,194 @@ static void EXP_evalCompileNode
     EXP_EvalNode* enode = nodeTable->data + node.id;
     if (EXP_isTok(space, node))
     {
-        const char* name = EXP_tokCstr(space, node);
+        if (EXP_tokQuoted(space, node))
+        {
+            enode->type = EXP_EvalNodeType_String;
+            u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
+            vec_push(dataStack, t);
+            return;
+        }
+        else
+        {
+            const char* name = EXP_tokCstr(space, node);
 
-        EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
-        switch (k)
-        {
-        case EXP_EvalKey_VarDefBegin:
-        {
-            enode->type = EXP_EvalNodeType_VarDefBegin;
-            if (curCall->cb.type != EXP_EvalCompileBlockCallbackType_NONE)
+            EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
+            switch (k)
             {
-                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
-            ctx->varKeyBuf.length = 0;
-            for (u32 n = 0;;)
+            case EXP_EvalKey_VarDefBegin:
             {
-                if (curCall->p == curCall->end)
-                {
-                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-                    return;
-                }
-                node = *(curCall->p++);
-                enode = nodeTable->data + node.id;
-                const char* skey = EXP_tokCstr(space, node);
-                if (!EXP_isTok(space, node))
+                enode->type = EXP_EvalNodeType_VarDefBegin;
+                if (curCall->cb.type != EXP_EvalCompileBlockCallbackType_NONE)
                 {
                     EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                EXP_EvalKey k = EXP_evalCompileGetKey(ctx, EXP_tokCstr(space, node));
-                if (k != -1)
+                ctx->varKeyBuf.length = 0;
+                for (u32 n = 0;;)
                 {
-                    if (EXP_EvalKey_VarDefEnd == k)
+                    if (curCall->p == curCall->end)
                     {
-                        enode->type = EXP_EvalNodeType_VarDefEnd;
-                        if (n > dataStack->length)
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                        return;
+                    }
+                    node = *(curCall->p++);
+                    enode = nodeTable->data + node.id;
+                    const char* skey = EXP_tokCstr(space, node);
+                    if (!EXP_isTok(space, node))
+                    {
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, EXP_tokCstr(space, node));
+                    if (k != -1)
+                    {
+                        if (EXP_EvalKey_VarDefEnd == k)
                         {
-                            u32 shiftN = n - dataStack->length;
-                            ctx->typeBuf.length = 0;
-                            for (u32 i = 0; i < shiftN; ++i)
+                            enode->type = EXP_EvalNodeType_VarDefEnd;
+                            if (n > dataStack->length)
                             {
-                                u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
-                                u32 t = EXP_evalTypeVar(typeContext, var);
-                                vec_push(&ctx->typeBuf, t);
+                                u32 shiftN = n - dataStack->length;
+                                ctx->typeBuf.length = 0;
+                                for (u32 i = 0; i < shiftN; ++i)
+                                {
+                                    u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
+                                    u32 t = EXP_evalTypeVar(typeContext, var);
+                                    vec_push(&ctx->typeBuf, t);
+                                }
+                                if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
+                                {
+                                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                                    return;
+                                }
                             }
-                            if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
+
+                            u32 off = dataStack->length - n;
+                            for (u32 i = 0; i < n; ++i)
+                            {
+                                u32 vt = dataStack->data[off + i];
+                                EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
+                                EXP_EvalCompileDef def = { ctx->varKeyBuf.data[i], true, .var = var };
+                                vec_push(&curBlock->defs, def);
+                                ++curBlock->varsCount;
+                            }
+                            assert(n <= dataStack->length);
+                            vec_resize(dataStack, off);
+                            ctx->varKeyBuf.length = 0;
+
+                            if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
+                            {
+                                u32 n = curCall->dataStackP - dataStack->length - curBlock->ins.length;
+                                u32 added = n - curBlock->ins.length;
+                                for (u32 i = 0; i < added; ++i)
+                                {
+                                    EXP_EvalCompileDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
+                                    assert(def->isVar);
+                                    vec_insert(&curBlock->ins, i, def->var.valType);
+                                }
+                            }
+                            return;
+                        }
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                    vec_push(&ctx->varKeyBuf, node);
+                    ++n;
+                }
+            }
+            case EXP_EvalKey_Drop:
+            {
+                enode->type = EXP_EvalNodeType_Drop;
+                if (!dataStack->length)
+                {
+                    u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
+                    u32 t = EXP_evalTypeVar(typeContext, var);
+                    if (!EXP_evalCompileShiftDataStack(ctx, 1, &t))
+                    {
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                }
+                u32 t = vec_last(dataStack);
+                vec_pop(dataStack);
+                if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
+                {
+                    u32 n = curCall->dataStackP - dataStack->length;
+                    u32 added = n - curBlock->ins.length;
+                    assert(1 == added);
+                    vec_insert(&curBlock->ins, 0, t);
+                }
+                return;
+            }
+            default:
+                break;
+            }
+
+            u32 afun = EXP_evalCompileGetAfun(ctx, name);
+            if (afun != -1)
+            {
+                enode->type = EXP_EvalNodeType_Afun;
+                enode->afun = afun;
+                EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
+                EXP_evalCompileAfunCall(ctx, afunInfo, node);
+                return;
+            }
+
+            EXP_EvalCompileDef def = { 0 };
+            if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
+            {
+                if (def.isVar)
+                {
+                    enode->type = EXP_EvalNodeType_Var;
+                    enode->var.block = def.var.block;
+                    enode->var.id = def.var.id;
+                    vec_push(dataStack, def.var.valType);
+                    return;
+                }
+                else
+                {
+                    enode->type = EXP_EvalNodeType_Fun;
+                    enode->funDef = def.fun;
+                    EXP_Node fun = def.fun;
+                    EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
+                    if (funBlk->completed)
+                    {
+                        assert(!funBlk->entered);
+                        if (dataStack->length < funBlk->numIns)
+                        {
+                            u32 n = funBlk->numIns - dataStack->length;
+                            if (!EXP_evalCompileShiftDataStack(ctx, n, funBlk->inout.data))
                             {
                                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                                 return;
                             }
                         }
-
-                        u32 off = dataStack->length - n;
-                        for (u32 i = 0; i < n; ++i)
-                        {
-                            u32 vt = dataStack->data[off + i];
-                            EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                            EXP_EvalCompileDef def = { ctx->varKeyBuf.data[i], true, .var = var };
-                            vec_push(&curBlock->defs, def);
-                            ++curBlock->varsCount;
-                        }
-                        assert(n <= dataStack->length);
-                        vec_resize(dataStack, off);
-                        ctx->varKeyBuf.length = 0;
-
-                        if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
-                        {
-                            u32 n = curCall->dataStackP - dataStack->length - curBlock->ins.length;
-                            u32 added = n - curBlock->ins.length;
-                            for (u32 i = 0; i < added; ++i)
-                            {
-                                EXP_EvalCompileDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
-                                assert(def->isVar);
-                                vec_insert(&curBlock->ins, i, def->var.valType);
-                            }
-                        }
+                        EXP_evalCompileBlockCall(ctx, funBlk, node);
                         return;
                     }
-                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                    return;
-                }
-                vec_push(&ctx->varKeyBuf, node);
-                ++n;
-            }
-        }
-        case EXP_EvalKey_Drop:
-        {
-            enode->type = EXP_EvalNodeType_Drop;
-            if (!dataStack->length)
-            {
-                u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
-                u32 t = EXP_evalTypeVar(typeContext, var);
-                if (!EXP_evalCompileShiftDataStack(ctx, 1, &t))
-                {
-                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                    return;
-                }
-            }
-            u32 t = vec_last(dataStack);
-            vec_pop(dataStack);
-            if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
-            {
-                u32 n = curCall->dataStackP - dataStack->length;
-                u32 added = n - curBlock->ins.length;
-                assert(1 == added);
-                vec_insert(&curBlock->ins, 0, t);
-            }
-            return;
-        }
-        default:
-            break;
-        }
-
-        u32 afun = EXP_evalCompileGetAfun(ctx, name);
-        if (afun != -1)
-        {
-            enode->type = EXP_EvalNodeType_Afun;
-            enode->afun = afun;
-            EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
-            EXP_evalCompileAfunCall(ctx, afunInfo, node);
-            return;
-        }
-
-        EXP_EvalCompileDef def = { 0 };
-        if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
-        {
-            if (def.isVar)
-            {
-                enode->type = EXP_EvalNodeType_Var;
-                enode->var.block = def.var.block;
-                enode->var.id = def.var.id;
-                vec_push(dataStack, def.var.valType);
-                return;
-            }
-            else
-            {
-                enode->type = EXP_EvalNodeType_Fun;
-                enode->funDef = def.fun;
-                EXP_Node fun = def.fun;
-                EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
-                if (funBlk->completed)
-                {
-                    assert(!funBlk->entered);
-                    if (dataStack->length < funBlk->numIns)
+                    else if (!funBlk->entered)
                     {
-                        u32 n = funBlk->numIns - dataStack->length;
-                        if (!EXP_evalCompileShiftDataStack(ctx, n, funBlk->inout.data))
-                        {
-                            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                            return;
-                        }
-                    }
-                    EXP_evalCompileBlockCall(ctx, funBlk, node);
-                    return;
-                }
-                else if (!funBlk->entered)
-                {
-                    u32 bodyLen = 0;
-                    EXP_Node* body = NULL;
-                    EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
+                        u32 bodyLen = 0;
+                        EXP_Node* body = NULL;
+                        EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
 
-                    --curCall->p;
-                    EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
-                    return;
-                }
-                else
-                {
-                    assert(funBlk->entered);
-                    if (funBlk->haveInOut)
-                    {
-                        EXP_evalCompileBlockCall(ctx, funBlk, node);
+                        --curCall->p;
+                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
+                        return;
                     }
                     else
                     {
-                        EXP_evalCompileRecurFallbackToOtherBranch(ctx);
+                        assert(funBlk->entered);
+                        if (funBlk->haveInOut)
+                        {
+                            EXP_evalCompileBlockCall(ctx, funBlk, node);
+                        }
+                        else
+                        {
+                            EXP_evalCompileRecurFallbackToOtherBranch(ctx);
+                        }
+                        return;
                     }
-                    return;
                 }
-            }
-        }
-        else
-        {
-            bool isQuoted = EXP_tokQuoted(space, node);
-            if (isQuoted)
-            {
-                enode->type = EXP_EvalNodeType_String;
-                u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
-                vec_push(dataStack, t);
             }
             else
             {
@@ -1091,8 +1091,8 @@ static void EXP_evalCompileNode
                     }
                 }
                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                return;
             }
-            return;
         }
     }
 
