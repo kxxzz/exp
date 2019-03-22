@@ -1064,7 +1064,13 @@ static void EXP_evalCompileNode
         else
         {
             bool isQuoted = EXP_tokQuoted(space, node);
-            if (!isQuoted)
+            if (isQuoted)
+            {
+                enode->type = EXP_EvalNodeType_String;
+                u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
+                vec_push(dataStack, t);
+            }
+            else
             {
                 for (u32 i = 0; i < ctx->atypeTable->length; ++i)
                 {
@@ -1085,11 +1091,7 @@ static void EXP_evalCompileNode
                     }
                 }
                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
-                return;
             }
-            enode->type = EXP_EvalNodeType_String;
-            u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
-            vec_push(dataStack, t);
             return;
         }
     }
