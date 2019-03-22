@@ -3,32 +3,32 @@
 
 
 
-typedef struct EXP_EvalVerifVar
+typedef struct EXP_EvalCompileVar
 {
     u32 valType;
     EXP_Node block;
     u32 id;
-} EXP_EvalVerifVar;
+} EXP_EvalCompileVar;
 
-typedef struct EXP_EvalVerifDef
+typedef struct EXP_EvalCompileDef
 {
     EXP_Node key;
     bool isVar;
     union
     {
         EXP_Node fun;
-        EXP_EvalVerifVar var;
+        EXP_EvalCompileVar var;
     };
-} EXP_EvalVerifDef;
+} EXP_EvalCompileDef;
 
-typedef vec_t(EXP_EvalVerifDef) EXP_EvalVerifDefTable;
-
-
+typedef vec_t(EXP_EvalCompileDef) EXP_EvalCompileDefTable;
 
 
 
 
-typedef struct EXP_EvalVerifBlock
+
+
+typedef struct EXP_EvalCompileBlock
 {
     bool completed;
     bool haveInOut;
@@ -39,16 +39,16 @@ typedef struct EXP_EvalVerifBlock
 
     EXP_Node parent;
     u32 varsCount;
-    EXP_EvalVerifDefTable defs;
+    EXP_EvalCompileDefTable defs;
 
     u32 numIns;
     u32 numOuts;
     vec_u32 inout;
-} EXP_EvalVerifBlock;
+} EXP_EvalCompileBlock;
 
-typedef vec_t(EXP_EvalVerifBlock) EXP_EvalVerifBlockTable;
+typedef vec_t(EXP_EvalCompileBlock) EXP_EvalCompileBlockTable;
 
-static void EXP_evalVerifBlockFree(EXP_EvalVerifBlock* blk)
+static void EXP_evalCompileBlockFree(EXP_EvalCompileBlock* blk)
 {
     vec_free(&blk->inout);
     vec_free(&blk->defs);
@@ -59,48 +59,48 @@ static void EXP_evalVerifBlockFree(EXP_EvalVerifBlock* blk)
 
 
 
-typedef enum EXP_EvalVerifBlockCallbackType
+typedef enum EXP_EvalCompileBlockCallbackType
 {
-    EXP_EvalVerifBlockCallbackType_NONE,
-    EXP_EvalVerifBlockCallbackType_Ncall,
-    EXP_EvalVerifBlockCallbackType_Call,
-    EXP_EvalVerifBlockCallbackType_Cond,
-    EXP_EvalVerifBlockCallbackType_Branch0,
-    EXP_EvalVerifBlockCallbackType_Branch1,
-    EXP_EvalVerifBlockCallbackType_BranchUnify,
-} EXP_EvalVerifBlockCallbackType;
+    EXP_EvalCompileBlockCallbackType_NONE,
+    EXP_EvalCompileBlockCallbackType_Ncall,
+    EXP_EvalCompileBlockCallbackType_Call,
+    EXP_EvalCompileBlockCallbackType_Cond,
+    EXP_EvalCompileBlockCallbackType_Branch0,
+    EXP_EvalCompileBlockCallbackType_Branch1,
+    EXP_EvalCompileBlockCallbackType_BranchUnify,
+} EXP_EvalCompileBlockCallbackType;
 
-typedef struct EXP_EvalVerifBlockCallback
+typedef struct EXP_EvalCompileBlockCallback
 {
-    EXP_EvalVerifBlockCallbackType type;
+    EXP_EvalCompileBlockCallbackType type;
     union
     {
         u32 afun;
         EXP_Node fun;
     };
-} EXP_EvalVerifBlockCallback;
+} EXP_EvalCompileBlockCallback;
 
-static EXP_EvalVerifBlockCallback EXP_EvalBlockCallback_NONE = { EXP_EvalVerifBlockCallbackType_NONE };
-
-
+static EXP_EvalCompileBlockCallback EXP_EvalBlockCallback_NONE = { EXP_EvalCompileBlockCallbackType_NONE };
 
 
 
-typedef struct EXP_EvalVerifCall
+
+
+typedef struct EXP_EvalCompileCall
 {
     EXP_Node srcNode;
     u32 dataStackP;
     EXP_Node* p;
     EXP_Node* end;
-    EXP_EvalVerifBlockCallback cb;
-} EXP_EvalVerifCall;
+    EXP_EvalCompileBlockCallback cb;
+} EXP_EvalCompileCall;
 
-typedef vec_t(EXP_EvalVerifCall) EXP_EvalVerifCallVec;
-
-
+typedef vec_t(EXP_EvalCompileCall) EXP_EvalCompileCallVec;
 
 
-typedef struct EXP_EvalVerifSnapshot
+
+
+typedef struct EXP_EvalCompileSnapshot
 {
     bool allowDsShift;
     u32 dsOff;
@@ -110,13 +110,13 @@ typedef struct EXP_EvalVerifSnapshot
     u32 tvsOff;
     u32 tvsLen;
     u32 typeVarCount;
-} EXP_EvalVerifSnapshot;
+} EXP_EvalCompileSnapshot;
 
-typedef vec_t(EXP_EvalVerifSnapshot) EXP_EvalVerifWorldStack;
+typedef vec_t(EXP_EvalCompileSnapshot) EXP_EvalCompileWorldStack;
 
 
 
-typedef struct EXP_EvalVerifContext
+typedef struct EXP_EvalCompileContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo* srcInfo;
@@ -126,30 +126,30 @@ typedef struct EXP_EvalVerifContext
     EXP_EvalTypeContext* typeContext;
 
     u32 blockTableBase;
-    EXP_EvalVerifBlockTable blockTable;
+    EXP_EvalCompileBlockTable blockTable;
 
     EXP_EvalTypeVarSpace typeVarSpace;
 
     bool allowDsShift;
     vec_u32 dataStack;
-    EXP_EvalVerifCallVec callStack;
+    EXP_EvalCompileCallVec callStack;
 
     vec_u32 dsBuf;
-    EXP_EvalVerifCallVec csBuf;
+    EXP_EvalCompileCallVec csBuf;
     EXP_EvalTypeBvarVec tvBuf;
-    EXP_EvalVerifWorldStack worldStack;
+    EXP_EvalCompileWorldStack worldStack;
 
     EXP_EvalError error;
     EXP_NodeVec varKeyBuf;
     vec_u32 typeBuf;
     EXP_EvalTypeVarSpace varRenMap;
-} EXP_EvalVerifContext;
+} EXP_EvalCompileContext;
 
 
 
 
 
-static EXP_EvalVerifContext EXP_newEvalVerifContext
+static EXP_EvalCompileContext EXP_newEvalVerifContext
 (
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
@@ -157,8 +157,8 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
     EXP_EvalTypeContext* typeContext
 )
 {
-    EXP_EvalVerifContext _ctx = { 0 };
-    EXP_EvalVerifContext* ctx = &_ctx;
+    EXP_EvalCompileContext _ctx = { 0 };
+    EXP_EvalCompileContext* ctx = &_ctx;
     ctx->space = space;
     ctx->srcInfo = srcInfo;
     ctx->atypeTable = atypeTable;
@@ -173,13 +173,13 @@ static EXP_EvalVerifContext EXP_newEvalVerifContext
 
     ctx->blockTableBase = nodeTableLength0;
     vec_resize(&ctx->blockTable, n);
-    memset(ctx->blockTable.data, 0, sizeof(EXP_EvalVerifBlock)*ctx->blockTable.length);
+    memset(ctx->blockTable.data, 0, sizeof(EXP_EvalCompileBlock)*ctx->blockTable.length);
 
     ctx->varRenMap.varCount = -1;
     return *ctx;
 }
 
-static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
 {
     EXP_evalTypeVarSpaceFree(&ctx->varRenMap);
     vec_free(&ctx->typeBuf);
@@ -196,8 +196,8 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
     for (u32 i = 0; i < ctx->blockTable.length; ++i)
     {
-        EXP_EvalVerifBlock* b = ctx->blockTable.data + i;
-        EXP_evalVerifBlockFree(b);
+        EXP_EvalCompileBlock* b = ctx->blockTable.data + i;
+        EXP_evalCompileBlockFree(b);
     }
     vec_free(&ctx->blockTable);
 }
@@ -209,9 +209,9 @@ static void EXP_evalVerifContextFree(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
+static void EXP_evalCompilePushWorld(EXP_EvalCompileContext* ctx, bool allowDsShift)
 {
-    EXP_EvalVerifSnapshot snapshot = { 0 };
+    EXP_EvalCompileSnapshot snapshot = { 0 };
     snapshot.allowDsShift = ctx->allowDsShift;
     snapshot.dsOff = ctx->dsBuf.length;
     snapshot.dsLen = ctx->dataStack.length;
@@ -233,11 +233,11 @@ static void EXP_evalVerifPushWorld(EXP_EvalVerifContext* ctx, bool allowDsShift)
 }
 
 
-static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompilePopWorld(EXP_EvalCompileContext* ctx)
 {
     assert(0 == ctx->callStack.length);
     assert(ctx->worldStack.length > 0);
-    EXP_EvalVerifSnapshot snapshot = vec_last(&ctx->worldStack);
+    EXP_EvalCompileSnapshot snapshot = vec_last(&ctx->worldStack);
     vec_pop(&ctx->worldStack);
 
     ctx->allowDsShift = snapshot.allowDsShift;
@@ -256,14 +256,14 @@ static void EXP_evalVerifPopWorld(EXP_EvalVerifContext* ctx)
 
 
 
-static u32 EXP_evalVerifTypeNorm(EXP_EvalVerifContext* ctx, u32 x)
+static u32 EXP_evalCompileTypeNorm(EXP_EvalCompileContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     return EXP_evalTypeReduct(typeContext, typeVarSpace, x);
 }
 
-static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32* pU)
+static bool EXP_evalCompileTypeUnify(EXP_EvalCompileContext* ctx, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
@@ -272,7 +272,7 @@ static bool EXP_evalVerifTypeUnify(EXP_EvalVerifContext* ctx, u32 a, u32 b, u32*
 
 
 
-static bool EXP_evalVerifTypeUnifyPat(EXP_EvalVerifContext* ctx, u32 x, u32 pat, u32* pU)
+static bool EXP_evalCompileTypeUnifyPat(EXP_EvalCompileContext* ctx, u32 x, u32 pat, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
@@ -280,7 +280,7 @@ static bool EXP_evalVerifTypeUnifyPat(EXP_EvalVerifContext* ctx, u32 x, u32 pat,
     return EXP_evalTypeUnifyPat(typeContext, typeVarSpace, x, varRenMap, pat, pU);
 }
 
-static u32 EXP_evalVerifTypeFromPat(EXP_EvalVerifContext* ctx, u32 x)
+static u32 EXP_evalCompileTypeFromPat(EXP_EvalCompileContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
@@ -295,7 +295,7 @@ static u32 EXP_evalVerifTypeFromPat(EXP_EvalVerifContext* ctx, u32 x)
 
 
 
-static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
+static void EXP_evalCompileErrorAtNode(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
 {
     ctx->error.code = errCode;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
@@ -318,10 +318,10 @@ static void EXP_evalVerifErrorAtNode(EXP_EvalVerifContext* ctx, EXP_Node node, E
 
 
 
-static EXP_EvalVerifBlock* EXP_evalVerifGetBlock(EXP_EvalVerifContext* ctx, EXP_Node node)
+static EXP_EvalCompileBlock* EXP_evalCompileGetBlock(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     assert(node.id >= ctx->blockTableBase);
-    EXP_EvalVerifBlock* b = ctx->blockTable.data + node.id - ctx->blockTableBase;
+    EXP_EvalCompileBlock* b = ctx->blockTable.data + node.id - ctx->blockTableBase;
     return b;
 }
 
@@ -329,18 +329,18 @@ static EXP_EvalVerifBlock* EXP_evalVerifGetBlock(EXP_EvalVerifContext* ctx, EXP_
 
 
 
-static bool EXP_evalVerifGetMatched
+static bool EXP_evalCompileGetMatched
 (
-    EXP_EvalVerifContext* ctx, const char* name, EXP_Node blkNode, EXP_EvalVerifDef* outDef
+    EXP_EvalCompileContext* ctx, const char* name, EXP_Node blkNode, EXP_EvalCompileDef* outDef
 )
 {
     EXP_Space* space = ctx->space;
     while (blkNode.id != EXP_NodeId_Invalid)
     {
-        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, blkNode);
+        EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, blkNode);
         for (u32 i = 0; i < blk->defs.length; ++i)
         {
-            EXP_EvalVerifDef* def = blk->defs.data + blk->defs.length - 1 - i;
+            EXP_EvalCompileDef* def = blk->defs.data + blk->defs.length - 1 - i;
             const char* str = EXP_tokCstr(space, def->key);
             if (0 == strcmp(str, name))
             {
@@ -356,7 +356,7 @@ static bool EXP_evalVerifGetMatched
 
 
 
-static u32 EXP_evalVerifGetAfun(EXP_EvalVerifContext* ctx, const char* name)
+static u32 EXP_evalCompileGetAfun(EXP_EvalCompileContext* ctx, const char* name)
 {
     EXP_Space* space = ctx->space;
     for (u32 i = 0; i < ctx->afunTable->length; ++i)
@@ -374,7 +374,7 @@ static u32 EXP_evalVerifGetAfun(EXP_EvalVerifContext* ctx, const char* name)
 
 
 
-static EXP_EvalKey EXP_evalVerifGetKey(EXP_EvalVerifContext* ctx, const char* name)
+static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char* name)
 {
     for (EXP_EvalKey i = 0; i < EXP_NumEvalKeys; ++i)
     {
@@ -392,7 +392,7 @@ static EXP_EvalKey EXP_evalVerifGetKey(EXP_EvalVerifContext* ctx, const char* na
 
 
 
-static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
+static void EXP_evalCompileDefGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_seqLen(space, node) >= 2);
@@ -407,7 +407,7 @@ static void EXP_evalVerifDefGetBody(EXP_EvalVerifContext* ctx, EXP_Node node, u3
 
 
 
-static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
+static bool EXP_evalCompileIsFunDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
     if (EXP_isTok(space, node))
@@ -416,19 +416,19 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
     }
     if (!EXP_evalCheckCall(space, node))
     {
-        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
     EXP_Node* defCall = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, defCall[0]);
-    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, kDef);
+    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
     if (k != EXP_EvalKey_Def)
     {
         return false;
     }
     if (!EXP_isTok(space, defCall[1]))
     {
-        EXP_evalVerifErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
         return false;
     }
     return true;
@@ -443,16 +443,16 @@ static bool EXP_evalVerifIsFunDef(EXP_EvalVerifContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalVerifBlock* blk)
+static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileBlock* blk)
 {
-    if (!EXP_evalVerifIsFunDef(ctx, node))
+    if (!EXP_evalCompileIsFunDef(ctx, node))
     {
         return;
     }
     EXP_Space* space = ctx->space;
     EXP_Node* defCall = EXP_seqElm(space, node);
     EXP_Node name = defCall[1];
-    EXP_EvalVerifDef def = { name, false, .fun = node };
+    EXP_EvalCompileDef def = { name, false, .fun = node };
     vec_push(&blk->defs, def);
 }
 
@@ -464,13 +464,13 @@ static void EXP_evalVerifLoadDef(EXP_EvalVerifContext* ctx, EXP_Node node, EXP_E
 
 
 
-static void EXP_evalVerifSetCallersIncomplete(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileSetCallersIncomplete(EXP_EvalCompileContext* ctx)
 {
     for (u32 i = 0; i < ctx->callStack.length; ++i)
     {
         u32 j = ctx->callStack.length - 1 - i;
-        EXP_EvalVerifCall* call = ctx->callStack.data + j;
-        EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, call->srcNode);
+        EXP_EvalCompileCall* call = ctx->callStack.data + j;
+        EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, call->srcNode);
         if (blk->incomplete)
         {
             break;
@@ -487,17 +487,17 @@ static void EXP_evalVerifSetCallersIncomplete(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifEnterBlock
+static void EXP_evalCompileEnterBlock
 (
-    EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent,
-    EXP_EvalVerifBlockCallback cb, bool isDefScope
+    EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent,
+    EXP_EvalCompileBlockCallback cb, bool isDefScope
 )
 {
     u32 dataStackP = ctx->dataStack.length;
-    EXP_EvalVerifCall call = { srcNode, dataStackP, seq, seq + len, cb };
+    EXP_EvalCompileCall call = { srcNode, dataStackP, seq, seq + len, cb };
     vec_push(&ctx->callStack, call);
 
-    EXP_EvalVerifBlock* blk = EXP_evalVerifGetBlock(ctx, srcNode);
+    EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, srcNode);
     assert(!blk->entered);
     blk->entered = true;
     blk->incomplete = false;
@@ -511,7 +511,7 @@ static void EXP_evalVerifEnterBlock
     {
         for (u32 i = 0; i < len; ++i)
         {
-            EXP_evalVerifLoadDef(ctx, seq[i], blk);
+            EXP_evalCompileLoadDef(ctx, seq[i], blk);
             if (ctx->error.code)
             {
                 return;
@@ -522,10 +522,10 @@ static void EXP_evalVerifEnterBlock
 
 
 
-static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
 {
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
 
     assert(curBlock->entered);
     assert(!curBlock->completed);
@@ -543,7 +543,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         for (u32 i = 0; i < curBlock->ins.length; ++i)
         {
             u32 t = curBlock->ins.data[i];
-            t = EXP_evalVerifTypeNorm(ctx, t);
+            t = EXP_evalCompileTypeNorm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
 
@@ -554,7 +554,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            t = EXP_evalVerifTypeNorm(ctx, t);
+            t = EXP_evalCompileTypeNorm(ctx, t);
             vec_push(&curBlock->inout, t);
         }
     }
@@ -562,14 +562,14 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
     {
         if (curBlock->numIns != curBlock->ins.length)
         {
-            EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
+            EXP_evalCompileErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
         }
         assert(ctx->dataStack.length + curBlock->ins.length >= curCall->dataStackP);
         u32 numOuts = ctx->dataStack.length + curBlock->ins.length - curCall->dataStackP;
         if (curBlock->numOuts != numOuts)
         {
-            EXP_evalVerifErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
+            EXP_evalCompileErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
         }
 
@@ -578,7 +578,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             u32 a = curBlock->inout.data[i];
             u32 b = curBlock->ins.data[i];
             u32 u;
-            EXP_evalVerifTypeUnify(ctx, a, b, &u);
+            EXP_evalCompileTypeUnify(ctx, a, b, &u);
             curBlock->inout.data[i] = u;
         }
 
@@ -590,7 +590,7 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 b = ctx->dataStack.data[j];
             u32 u;
-            EXP_evalVerifTypeUnify(ctx, a, b, &u);
+            EXP_evalCompileTypeUnify(ctx, a, b, &u);
             curBlock->inout.data[curBlock->numIns + i] = u;
             ctx->dataStack.data[j] = u;
         }
@@ -598,12 +598,12 @@ static void EXP_evalVerifSaveBlock(EXP_EvalVerifContext* ctx)
 }
 
 
-static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileLeaveBlock(EXP_EvalCompileContext* ctx)
 {
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
 
-    EXP_evalVerifSaveBlock(ctx);
+    EXP_evalCompileSaveBlock(ctx);
 
     curBlock->entered = false;
     curBlock->completed = !curBlock->incomplete;
@@ -611,17 +611,17 @@ static void EXP_evalVerifLeaveBlock(EXP_EvalVerifContext* ctx)
 
     if (!curBlock->completed)
     {
-        EXP_evalVerifSetCallersIncomplete(ctx);
+        EXP_evalCompileSetCallersIncomplete(ctx);
     }
 }
 
 
 
 
-static void EXP_evalVerifBlockRevert(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileBlockRevert(EXP_EvalCompileContext* ctx)
 {
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
 
     assert(curBlock->entered);
     assert(curCall->dataStackP >= curBlock->ins.length);
@@ -636,12 +636,12 @@ static void EXP_evalVerifBlockRevert(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileCancelBlock(EXP_EvalCompileContext* ctx)
 {
-    EXP_evalVerifBlockRevert(ctx);
+    EXP_evalCompileBlockRevert(ctx);
 
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
 
     curBlock->entered = false;
     curBlock->ins.length = 0;
@@ -654,7 +654,7 @@ static void EXP_evalVerifCancelBlock(EXP_EvalVerifContext* ctx)
 
 
 
-static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const u32* a)
+static bool EXP_evalCompileShiftDataStack(EXP_EvalCompileContext* ctx, u32 n, const u32* a)
 {
     if (!ctx->allowDsShift)
     {
@@ -664,7 +664,7 @@ static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const 
     vec_insertarr(dataStack, 0, a, n);
     for (u32 i = 0; i < ctx->callStack.length; ++i)
     {
-        EXP_EvalVerifCall* c = ctx->callStack.data + i;
+        EXP_EvalCompileCall* c = ctx->callStack.data + i;
         c->dataStackP += n;
     }
     return true;
@@ -678,10 +678,10 @@ static bool EXP_evalVerifShiftDataStack(EXP_EvalVerifContext* ctx, u32 n, const 
 
 
 
-static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOffset, const u32* funInTypes)
+static void EXP_evalCompileCurBlockInsUpdate(EXP_EvalCompileContext* ctx, u32 argsOffset, const u32* funInTypes)
 {
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
     assert(curBlock->entered);
     assert(curCall->dataStackP >= curBlock->ins.length);
     if (curCall->dataStackP > argsOffset + curBlock->ins.length)
@@ -701,7 +701,7 @@ static void EXP_evalVerifCurBlockInsUpdate(EXP_EvalVerifContext* ctx, u32 argsOf
 
 
 
-static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode)
+static void EXP_evalCompileAfunCall(EXP_EvalCompileContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
@@ -709,7 +709,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
 
     if (!afunInfo->call)
     {
-        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
         return;
     }
 
@@ -722,25 +722,25 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
     if (dataStack->length < afunInfo->numIns)
     {
         u32 n = afunInfo->numIns - dataStack->length;
-        if (!EXP_evalVerifShiftDataStack(ctx, n, inEvalType))
+        if (!EXP_evalCompileShiftDataStack(ctx, n, inEvalType))
         {
-            EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
     }
 
     assert(dataStack->length >= afunInfo->numIns);
     u32 argsOffset = dataStack->length - afunInfo->numIns;
-    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, inEvalType);
+    EXP_evalCompileCurBlockInsUpdate(ctx, argsOffset, inEvalType);
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
         u32 a = dataStack->data[argsOffset + i];
         u32 b = inEvalType[i];
         u32 u;
-        if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
+        if (!EXP_evalCompileTypeUnify(ctx, a, b, &u))
         {
-            EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
     }
@@ -755,7 +755,7 @@ static void EXP_evalVerifAfunCall(EXP_EvalVerifContext* ctx, EXP_EvalAfunInfo* a
 
 
 
-static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVerifBlock* blk, EXP_Node srcNode)
+static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
@@ -764,7 +764,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
-    EXP_evalVerifCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
+    EXP_evalCompileCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
 
     vec_resize(&varRenMap->bvars, 0);
 
@@ -774,9 +774,9 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
         u32 a = dataStack->data[argsOffset + i];
         u32 b = blk->inout.data[i];
         u32 u;
-        if (!EXP_evalVerifTypeUnifyPat(ctx, a, b, &u))
+        if (!EXP_evalCompileTypeUnifyPat(ctx, a, b, &u))
         {
-            EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
         }
     }
@@ -784,7 +784,7 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
     for (u32 i = 0; i < blk->numOuts; ++i)
     {
         u32 x = blk->inout.data[blk->numIns + i];
-        x = EXP_evalVerifTypeFromPat(ctx, x);
+        x = EXP_evalCompileTypeFromPat(ctx, x);
         vec_push(dataStack, x);
     }
 }
@@ -801,44 +801,44 @@ static void EXP_evalVerifBlockCall(EXP_EvalVerifContext* ctx, const EXP_EvalVeri
 
 
 
-static void EXP_evalVerifRecurFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileRecurFallbackToOtherBranch(EXP_EvalCompileContext* ctx)
 {
     EXP_Space* space = ctx->space;
 
-    EXP_EvalVerifCall* curCall = &vec_last(&ctx->callStack);
+    EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
     EXP_Node lastSrcNode = EXP_Node_Invalid;
     while (ctx->callStack.length > 0)
     {
         lastSrcNode = curCall->srcNode;
         curCall = &vec_last(&ctx->callStack);
-        EXP_EvalVerifBlock* curBlock = EXP_evalVerifGetBlock(ctx, curCall->srcNode);
+        EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
         EXP_Node srcNode = curCall->srcNode;
-        EXP_EvalVerifBlockCallback* cb = &curCall->cb;
+        EXP_EvalCompileBlockCallback* cb = &curCall->cb;
         // quit this branch until next enter
-        if (EXP_EvalVerifBlockCallbackType_Branch0 == cb->type)
+        if (EXP_EvalCompileBlockCallbackType_Branch0 == cb->type)
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
                 curBlock->incomplete = true;
-                EXP_evalVerifBlockRevert(ctx);
+                EXP_evalCompileBlockRevert(ctx);
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
-                cb->type = EXP_EvalVerifBlockCallbackType_NONE;
+                cb->type = EXP_EvalCompileBlockCallbackType_NONE;
                 return;
             }
         }
-        else if (EXP_EvalVerifBlockCallbackType_BranchUnify == cb->type)
+        else if (EXP_EvalCompileBlockCallbackType_BranchUnify == cb->type)
         {
             curBlock->incomplete = true;
-            EXP_evalVerifBlockRevert(ctx);
+            EXP_evalCompileBlockRevert(ctx);
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
-            cb->type = EXP_EvalVerifBlockCallbackType_NONE;
+            cb->type = EXP_EvalCompileBlockCallbackType_NONE;
             return;
         }
-        EXP_evalVerifCancelBlock(ctx);
+        EXP_evalCompileCancelBlock(ctx);
     }
-    EXP_evalVerifErrorAtNode(ctx, lastSrcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
+    EXP_evalCompileErrorAtNode(ctx, lastSrcNode, EXP_EvalErrCode_EvalRecurNoBaseCase);
 }
 
 
@@ -853,13 +853,13 @@ static void EXP_evalVerifRecurFallbackToOtherBranch(EXP_EvalVerifContext* ctx)
 
 
 
-static void EXP_evalVerifEnterWorld
+static void EXP_evalCompileEnterWorld
 (
-    EXP_EvalVerifContext* ctx, EXP_Node* seq, u32 len, EXP_Node src, EXP_Node parent, bool allowDsShift
+    EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, EXP_Node src, EXP_Node parent, bool allowDsShift
 )
 {
-    EXP_evalVerifPushWorld(ctx, allowDsShift);
-    EXP_evalVerifEnterBlock(ctx, seq, len, src, parent, EXP_EvalBlockCallback_NONE, true);
+    EXP_evalCompilePushWorld(ctx, allowDsShift);
+    EXP_evalCompileEnterBlock(ctx, seq, len, src, parent, EXP_EvalBlockCallback_NONE, true);
 }
 
 
@@ -867,14 +867,14 @@ static void EXP_evalVerifEnterWorld
 
 
 
-static void EXP_evalVerifNode
+static void EXP_evalCompileNode
 (
-    EXP_EvalVerifContext* ctx, EXP_Node node, EXP_EvalVerifCall* curCall, EXP_EvalVerifBlock* curBlock
+    EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_EvalCompileBlock* curBlock
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalNodeTable* nodeTable = ctx->nodeTable;
-    EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
+    EXP_EvalCompileBlockTable* blockTable = &ctx->blockTable;
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
@@ -883,15 +883,15 @@ static void EXP_evalVerifNode
     {
         const char* name = EXP_tokCstr(space, node);
 
-        EXP_EvalKey k = EXP_evalVerifGetKey(ctx, name);
+        EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
         switch (k)
         {
         case EXP_EvalKey_VarDefBegin:
         {
             enode->type = EXP_EvalNodeType_VarDefBegin;
-            if (curCall->cb.type != EXP_EvalVerifBlockCallbackType_NONE)
+            if (curCall->cb.type != EXP_EvalCompileBlockCallbackType_NONE)
             {
-                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                 return;
             }
             ctx->varKeyBuf.length = 0;
@@ -899,7 +899,7 @@ static void EXP_evalVerifNode
             {
                 if (curCall->p == curCall->end)
                 {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
                     return;
                 }
                 node = *(curCall->p++);
@@ -907,10 +907,10 @@ static void EXP_evalVerifNode
                 const char* skey = EXP_tokCstr(space, node);
                 if (!EXP_isTok(space, node))
                 {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                EXP_EvalKey k = EXP_evalVerifGetKey(ctx, EXP_tokCstr(space, node));
+                EXP_EvalKey k = EXP_evalCompileGetKey(ctx, EXP_tokCstr(space, node));
                 if (k != -1)
                 {
                     if (EXP_EvalKey_VarDefEnd == k)
@@ -926,9 +926,9 @@ static void EXP_evalVerifNode
                                 u32 t = EXP_evalTypeVar(typeContext, var);
                                 vec_push(&ctx->typeBuf, t);
                             }
-                            if (!EXP_evalVerifShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
+                            if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
                             {
-                                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                                 return;
                             }
                         }
@@ -937,8 +937,8 @@ static void EXP_evalVerifNode
                         for (u32 i = 0; i < n; ++i)
                         {
                             u32 vt = dataStack->data[off + i];
-                            EXP_EvalVerifVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                            EXP_EvalVerifDef def = { ctx->varKeyBuf.data[i], true, .var = var };
+                            EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
+                            EXP_EvalCompileDef def = { ctx->varKeyBuf.data[i], true, .var = var };
                             vec_push(&curBlock->defs, def);
                             ++curBlock->varsCount;
                         }
@@ -952,14 +952,14 @@ static void EXP_evalVerifNode
                             u32 added = n - curBlock->ins.length;
                             for (u32 i = 0; i < added; ++i)
                             {
-                                EXP_EvalVerifDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
+                                EXP_EvalCompileDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
                                 assert(def->isVar);
                                 vec_insert(&curBlock->ins, i, def->var.valType);
                             }
                         }
                         return;
                     }
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
                 vec_push(&ctx->varKeyBuf, node);
@@ -973,9 +973,9 @@ static void EXP_evalVerifNode
             {
                 u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
                 u32 t = EXP_evalTypeVar(typeContext, var);
-                if (!EXP_evalVerifShiftDataStack(ctx, 1, &t))
+                if (!EXP_evalCompileShiftDataStack(ctx, 1, &t))
                 {
-                    EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
             }
@@ -994,18 +994,18 @@ static void EXP_evalVerifNode
             break;
         }
 
-        u32 afun = EXP_evalVerifGetAfun(ctx, name);
+        u32 afun = EXP_evalCompileGetAfun(ctx, name);
         if (afun != -1)
         {
             enode->type = EXP_EvalNodeType_Afun;
             enode->afun = afun;
             EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
-            EXP_evalVerifAfunCall(ctx, afunInfo, node);
+            EXP_evalCompileAfunCall(ctx, afunInfo, node);
             return;
         }
 
-        EXP_EvalVerifDef def = { 0 };
-        if (EXP_evalVerifGetMatched(ctx, name, curCall->srcNode, &def))
+        EXP_EvalCompileDef def = { 0 };
+        if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
         {
             if (def.isVar)
             {
@@ -1020,30 +1020,30 @@ static void EXP_evalVerifNode
                 enode->type = EXP_EvalNodeType_Fun;
                 enode->funDef = def.fun;
                 EXP_Node fun = def.fun;
-                EXP_EvalVerifBlock* funBlk = blockTable->data + fun.id;
+                EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
                 if (funBlk->completed)
                 {
                     assert(!funBlk->entered);
                     if (dataStack->length < funBlk->numIns)
                     {
                         u32 n = funBlk->numIns - dataStack->length;
-                        if (!EXP_evalVerifShiftDataStack(ctx, n, funBlk->inout.data))
+                        if (!EXP_evalCompileShiftDataStack(ctx, n, funBlk->inout.data))
                         {
-                            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                             return;
                         }
                     }
-                    EXP_evalVerifBlockCall(ctx, funBlk, node);
+                    EXP_evalCompileBlockCall(ctx, funBlk, node);
                     return;
                 }
                 else if (!funBlk->entered)
                 {
                     u32 bodyLen = 0;
                     EXP_Node* body = NULL;
-                    EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
+                    EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
 
                     --curCall->p;
-                    EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
+                    EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
                     return;
                 }
                 else
@@ -1051,11 +1051,11 @@ static void EXP_evalVerifNode
                     assert(funBlk->entered);
                     if (funBlk->haveInOut)
                     {
-                        EXP_evalVerifBlockCall(ctx, funBlk, node);
+                        EXP_evalCompileBlockCall(ctx, funBlk, node);
                     }
                     else
                     {
-                        EXP_evalVerifRecurFallbackToOtherBranch(ctx);
+                        EXP_evalCompileRecurFallbackToOtherBranch(ctx);
                     }
                     return;
                 }
@@ -1084,7 +1084,7 @@ static void EXP_evalVerifNode
                         }
                     }
                 }
-                EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
                 return;
             }
             enode->type = EXP_EvalNodeType_String;
@@ -1096,7 +1096,7 @@ static void EXP_evalVerifNode
 
     if (!EXP_evalCheckCall(space, node))
     {
-        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return;
     }
 
@@ -1104,8 +1104,8 @@ static void EXP_evalVerifNode
     u32 len = EXP_seqLen(space, node);
     const char* name = EXP_tokCstr(space, elms[0]);
 
-    EXP_EvalVerifDef def = { 0 };
-    if (EXP_evalVerifGetMatched(ctx, name, curCall->srcNode, &def))
+    EXP_EvalCompileDef def = { 0 };
+    if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
     {
         if (def.isVar)
         {
@@ -1120,21 +1120,21 @@ static void EXP_evalVerifNode
             enode->type = EXP_EvalNodeType_CallFun;
             enode->funDef = def.fun;
 
-            EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+            EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!nodeBlk->completed)
             {
-                EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Call, .fun = def.fun };
-                EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .fun = def.fun };
+                EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
             {
-                EXP_evalVerifBlockCall(ctx, nodeBlk, node);
+                EXP_evalCompileBlockCall(ctx, nodeBlk, node);
             }
             return;
         }
     }
 
-    u32 afun = EXP_evalVerifGetAfun(ctx, name);
+    u32 afun = EXP_evalCompileGetAfun(ctx, name);
     if (afun != -1)
     {
         enode->type = EXP_EvalNodeType_CallAfun;
@@ -1143,20 +1143,20 @@ static void EXP_evalVerifNode
         EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
         assert(afunInfo->call);
 
-        EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
         if (!nodeBlk->completed)
         {
-            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Ncall, .afun = afun };
-            EXP_evalVerifEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+            EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Ncall, .afun = afun };
+            EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         }
         else
         {
-            EXP_evalVerifBlockCall(ctx, nodeBlk, node);
+            EXP_evalCompileBlockCall(ctx, nodeBlk, node);
         }
         return;
     }
 
-    EXP_EvalKey k = EXP_evalVerifGetKey(ctx, name);
+    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
     switch (k)
     {
     case EXP_EvalKey_Def:
@@ -1169,24 +1169,24 @@ static void EXP_evalVerifNode
         enode->type = EXP_EvalNodeType_If;
         if ((len != 3) && (len != 4))
         {
-            EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
             return;
         }
-        EXP_EvalVerifBlock* nodeBlk = EXP_evalVerifGetBlock(ctx, node);
+        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
         if (!nodeBlk->completed)
         {
-            EXP_EvalVerifBlockCallback cb = { EXP_EvalVerifBlockCallbackType_Cond };
-            EXP_evalVerifEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
+            EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Cond };
+            EXP_evalCompileEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
         }
         else
         {
-            EXP_evalVerifBlockCall(ctx, nodeBlk, node);
+            EXP_evalCompileBlockCall(ctx, nodeBlk, node);
         }
         return;
     }
     default:
     {
-        EXP_evalVerifErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return;
     }
     }
@@ -1204,12 +1204,12 @@ static void EXP_evalVerifNode
 
 
 
-static void EXP_evalVerifCall(EXP_EvalVerifContext* ctx)
+static void EXP_evalCompileCall(EXP_EvalCompileContext* ctx)
 {
     EXP_Space* space = ctx->space;
-    EXP_EvalVerifCall* curCall;
-    EXP_EvalVerifBlockTable* blockTable = &ctx->blockTable;
-    EXP_EvalVerifBlock* curBlock = NULL;
+    EXP_EvalCompileCall* curCall;
+    EXP_EvalCompileBlockTable* blockTable = &ctx->blockTable;
+    EXP_EvalCompileBlock* curBlock = NULL;
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
@@ -1222,7 +1222,7 @@ next:
     {
         if (ctx->worldStack.length > 0)
         {
-            EXP_evalVerifPopWorld(ctx);
+            EXP_evalCompilePopWorld(ctx);
             goto next;
         }
         return;
@@ -1231,73 +1231,73 @@ next:
     curBlock = blockTable->data + curCall->srcNode.id;
     if (curCall->p == curCall->end)
     {
-        EXP_EvalVerifBlockCallback* cb = &curCall->cb;
+        EXP_EvalCompileBlockCallback* cb = &curCall->cb;
         EXP_Node srcNode = curCall->srcNode;
 #ifndef NDEBUG
         EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo->nodes.data + srcNode.id;
 #endif
         switch (cb->type)
         {
-        case EXP_EvalVerifBlockCallbackType_NONE:
+        case EXP_EvalCompileBlockCallbackType_NONE:
         {
-            EXP_evalVerifLeaveBlock(ctx);
+            EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalVerifBlockCallbackType_Ncall:
+        case EXP_EvalCompileBlockCallbackType_Ncall:
         {
             if (curBlock->ins.length > 0)
             {
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             if (dataStack->length < curCall->dataStackP)
             {
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + cb->afun;
             u32 numIns = dataStack->length - curCall->dataStackP;
             if (numIns != afunInfo->numIns)
             {
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_evalVerifAfunCall(ctx, afunInfo, srcNode);
-            EXP_evalVerifLeaveBlock(ctx);
+            EXP_evalCompileAfunCall(ctx, afunInfo, srcNode);
+            EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalVerifBlockCallbackType_Call:
+        case EXP_EvalCompileBlockCallbackType_Call:
         {
             EXP_Node fun = cb->fun;
-            EXP_EvalVerifBlock* funBlk = blockTable->data + fun.id;
+            EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
             if (funBlk->completed)
             {
                 assert(!funBlk->entered);
                 if (curBlock->numIns > 0)
                 {
-                    EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
                 if (curCall->dataStackP != (dataStack->length - funBlk->numIns))
                 {
-                    EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
-                EXP_evalVerifBlockCall(ctx, funBlk, srcNode);
-                EXP_evalVerifLeaveBlock(ctx);
+                EXP_evalCompileBlockCall(ctx, funBlk, srcNode);
+                EXP_evalCompileLeaveBlock(ctx);
                 goto next;
             }
             else if (!funBlk->entered)
             {
                 if (curCall->dataStackP > dataStack->length)
                 {
-                    EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                    EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
-                EXP_evalVerifDefGetBody(ctx, fun, &bodyLen, &body);
-                EXP_evalVerifEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
+                EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
+                EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
                 goto next;
             }
             else
@@ -1307,65 +1307,65 @@ next:
                 {
                     if (curBlock->numIns > 0)
                     {
-                        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                         goto next;
                     }
                     if (curCall->dataStackP != (dataStack->length - funBlk->numIns))
                     {
-                        EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                         goto next;
                     }
-                    EXP_evalVerifBlockCall(ctx, funBlk, srcNode);
-                    EXP_evalVerifLeaveBlock(ctx);
+                    EXP_evalCompileBlockCall(ctx, funBlk, srcNode);
+                    EXP_evalCompileLeaveBlock(ctx);
                 }
                 else
                 {
-                    EXP_evalVerifRecurFallbackToOtherBranch(ctx);
+                    EXP_evalCompileRecurFallbackToOtherBranch(ctx);
                 }
                 goto next;
             }
             return;
         }
-        case EXP_EvalVerifBlockCallbackType_Cond:
+        case EXP_EvalCompileBlockCallbackType_Cond:
         {
             if (curCall->dataStackP + 1 != dataStack->length)
             {
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             u32 a = EXP_evalTypeAtom(typeContext, EXP_EvalPrimType_BOOL);
             u32 b = dataStack->data[curCall->dataStackP];
             vec_pop(dataStack);
             u32 u;
-            if (!EXP_evalVerifTypeUnify(ctx, a, b, &u))
+            if (!EXP_evalCompileTypeUnify(ctx, a, b, &u))
             {
-                EXP_evalVerifErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
             dataStack->data[curCall->dataStackP] = u;
             curCall->p = EXP_evalIfBranch0(space, srcNode);
             curCall->end = EXP_evalIfBranch0(space, srcNode) + 1;
-            cb->type = EXP_EvalVerifBlockCallbackType_Branch0;
+            cb->type = EXP_EvalCompileBlockCallbackType_Branch0;
             goto next;
         }
-        case EXP_EvalVerifBlockCallbackType_Branch0:
+        case EXP_EvalCompileBlockCallbackType_Branch0:
         {
             if (EXP_evalIfHasBranch1(space, srcNode))
             {
-                EXP_evalVerifSaveBlock(ctx);
-                EXP_evalVerifBlockRevert(ctx);
+                EXP_evalCompileSaveBlock(ctx);
+                EXP_evalCompileBlockRevert(ctx);
                 curCall->p = EXP_evalIfBranch1(space, srcNode);
                 curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
-                cb->type = EXP_EvalVerifBlockCallbackType_BranchUnify;
+                cb->type = EXP_EvalCompileBlockCallbackType_BranchUnify;
                 goto next;
             }
-            EXP_evalVerifLeaveBlock(ctx);
+            EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalVerifBlockCallbackType_BranchUnify:
+        case EXP_EvalCompileBlockCallbackType_BranchUnify:
         {
             assert(EXP_evalIfHasBranch1(space, srcNode));
-            EXP_evalVerifLeaveBlock(ctx);
+            EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }
         default:
@@ -1375,7 +1375,7 @@ next:
         return;
     }
     EXP_Node node = *(curCall->p++);
-    EXP_evalVerifNode(ctx, node, curCall, curBlock);
+    EXP_evalCompileNode(ctx, node, curCall, curBlock);
     goto next;
 }
 
@@ -1405,7 +1405,7 @@ next:
 
 
 
-EXP_EvalError EXP_evalVerif
+EXP_EvalError EXP_evalCompile
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
@@ -1414,42 +1414,41 @@ EXP_EvalError EXP_evalVerif
 )
 {
     EXP_EvalError error = { 0 };
-    //return error;
     if (!EXP_isSeq(space, root))
     {
         return error;
     }
-    EXP_EvalVerifContext _ctx = EXP_newEvalVerifContext
+    EXP_EvalCompileContext _ctx = EXP_newEvalVerifContext
     (
         space, srcInfo, atypeTable, afunTable, nodeTable, typeContext
     );
-    EXP_EvalVerifContext* ctx = &_ctx;
+    EXP_EvalCompileContext* ctx = &_ctx;
 
     ctx->allowDsShift = false;
     vec_dup(&ctx->dataStack, typeStack);
 
     EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
-    EXP_evalVerifEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
+    EXP_evalCompileEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
     if (ctx->error.code)
     {
         error = ctx->error;
-        EXP_evalVerifContextFree(ctx);
+        EXP_evalCompileContextFree(ctx);
         return error;
     }
-    EXP_evalVerifCall(ctx);
-    EXP_EvalVerifBlock* rootBlk = EXP_evalVerifGetBlock(ctx, root);
+    EXP_evalCompileCall(ctx);
+    EXP_EvalCompileBlock* rootBlk = EXP_evalCompileGetBlock(ctx, root);
     assert(rootBlk->completed);
     vec_dup(typeStack, &ctx->dataStack);
     if (!ctx->error.code)
     {
         for (u32 i = 0; i < ctx->blockTable.length; ++i)
         {
-            EXP_EvalVerifBlock* vb = ctx->blockTable.data + i;
+            EXP_EvalCompileBlock* vb = ctx->blockTable.data + i;
             EXP_EvalNode* enode = nodeTable->data + i + ctx->blockTableBase;
             for (u32 i = 0; i < vb->defs.length; ++i)
             {
-                EXP_EvalVerifDef* vdef = vb->defs.data + i;
+                EXP_EvalCompileDef* vdef = vb->defs.data + i;
                 if (vdef->isVar)
                 {
                     ++enode->varsCount;
@@ -1459,7 +1458,7 @@ EXP_EvalError EXP_evalVerif
         }
     }
     error = ctx->error;
-    EXP_evalVerifContextFree(ctx);
+    EXP_evalCompileContextFree(ctx);
     return error;
 }
 

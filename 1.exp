@@ -1,6 +1,6 @@
-// (def a 1)
-// (def b 2)
-// a b +
+//(def a 1)
+//(def b 2)
+//a b +
 
 (def swap -> a b : b a)
 
@@ -11,7 +11,7 @@
 
 (if (= 2 (+ 1 3)) 100 200)
 
-(if (= (+ 1 3) 2) "a" "b")
+(if (= (+ 1 3) 2) "aa" "bb")
 
 (def fib -> x : (if (> x 2) (+ (fib (- x 1)) (fib (- x 2))) 1))
 

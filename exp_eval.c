@@ -560,7 +560,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 
 
 
-EXP_EvalError EXP_evalVerif
+EXP_EvalError EXP_evalCompile
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
@@ -612,7 +612,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
         ctx->error.column = srcInfo->nodes.data[root.id].column;
         return false;
     }
-    EXP_EvalError error = EXP_evalVerif
+    EXP_EvalError error = EXP_evalCompile
     (
         space, root, &ctx->srcInfo,
         &ctx->atypeTable, &ctx->afunTable,
