@@ -50,11 +50,21 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
+
+
+static void EXP_evalStringDtor(EXP_EvalValue* pVal)
+{
+    vec_free(pVal->s);
+    free(pVal->s);
+}
+
+
+
 const EXP_EvalAtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes] =
 {
     { "bool", EXP_evalBoolFromSym },
     { "float", EXP_evalFloatFromSym },
-    { "string", NULL },
+    { "string", NULL, EXP_evalStringDtor },
 };
 
 

@@ -95,6 +95,31 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
+    EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
+    for (u32 i = 0; i < dataStack->length; ++i)
+    {
+        u32 t = typeStack->data[i];
+        EXP_EvalValue v = dataStack->data[i];
+        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
+        switch (desc->type)
+        {
+        case EXP_EvalTypeType_Atom:
+        {
+            EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + desc->atom;
+            if (atypeInfo->dtor)
+            {
+                atypeInfo->dtor(&v);
+            }
+            break;
+        }
+        default:
+            // todo
+            assert(false);
+            break;
+        }
+    }
+
     vec_free(&ctx->dataStack);
     vec_free(&ctx->varStack);
     vec_free(&ctx->callStack);
