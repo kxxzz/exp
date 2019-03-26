@@ -13,6 +13,7 @@ include (FeatureSummary)
 include (CMakeDependentOption)
 
 
+include_directories (.)
 include_directories (..)
 add_definitions (-D_UNICODE -D_CRT_SECURE_NO_WARNINGS -D_USE_MATH_DEFINES)
 
@@ -61,6 +62,8 @@ source_group (imp FILES ${IMP_SRC_FILES})
 #add_library (imp STATIC ${IMP_SRC_FILES})
 
 
+
+
 file (GLOB SRC_FILES exp/*.h exp/*.c)
 source_group (src FILES ${SRC_FILES})
 
@@ -70,16 +73,16 @@ add_library (exp ${SRC_FILES} ${IMP_SRC_FILES})
 
 
 
+file (GLOB SHELL_SRC_FILES shell/*.h shell/*.c)
+source_group (src FILES ${SHELL_SRC_FILES})
 
+add_executable (shell ${SHELL_SRC_FILES})
 
-
-add_executable (main main.c)
-
-target_link_libraries (main exp)
+target_link_libraries (shell exp)
 
 if (WIN32)
 else ()
-    target_link_libraries (main m)
+    target_link_libraries (shell m)
 endif ()
 
 
