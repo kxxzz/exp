@@ -35,14 +35,18 @@ typedef enum EXP_NodeType
     EXP_NumNodeTypes
 } EXP_NodeType;
 
-static const char* EXP_NodeTypeNameTable[EXP_NumNodeTypes] =
+static const char** EXP_NodeTypeNameTable(void)
 {
-    "Tok",
-    "SeqNaked",
-    "SeqRound",
-    "SeqSquare",
-    "SeqCurly",
-};
+    static const char* a[EXP_NumNodeTypes] =
+    {
+        "Tok",
+        "SeqNaked",
+        "SeqRound",
+        "SeqSquare",
+        "SeqCurly",
+    };
+    return a;
+}
 
 
 typedef struct EXP_Space EXP_Space;

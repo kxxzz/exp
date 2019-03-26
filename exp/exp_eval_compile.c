@@ -379,7 +379,7 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
     for (EXP_EvalKey i = 0; i < EXP_NumEvalKeys; ++i)
     {
         EXP_EvalKey k = EXP_NumEvalKeys - 1 - i;
-        const char* s = EXP_EvalKeyNameTable[k];
+        const char* s = EXP_EvalKeyNameTable()[k];
         if (0 == strcmp(s, name))
         {
             return k;

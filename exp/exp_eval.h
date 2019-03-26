@@ -19,7 +19,7 @@ typedef enum EXP_EvalKey
     EXP_NumEvalKeys
 } EXP_EvalKey;
 
-const char* EXP_EvalKeyNameTable[EXP_NumEvalKeys];
+const char** EXP_EvalKeyNameTable(void);
 
 
 
@@ -80,7 +80,7 @@ typedef enum EXP_EvalPrimType
     EXP_NumEvalPrimTypes
 } EXP_EvalPrimType;
 
-const EXP_EvalAtypeInfo EXP_EvalPrimTypeInfoTable[EXP_NumEvalPrimTypes];
+const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void);
 
 
 
@@ -106,7 +106,7 @@ typedef enum EXP_EvalPrimFun
     EXP_NumEvalPrimFuns
 } EXP_EvalPrimFun;
 
-const EXP_EvalAfunInfo EXP_EvalPrimFunInfoTable[EXP_NumEvalPrimFuns];
+const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void);
 
 
 

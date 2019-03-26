@@ -1,6 +1,6 @@
 #pragma warning(disable: 4101)
 
-#include "exp_eval.h"
+#include "exp/exp_eval.h"
 
 
 
@@ -86,7 +86,7 @@ void testEval(void)
             }
             default:
             {
-                const char* s = EXP_EvalPrimTypeInfoTable[t].name;
+                const char* s = EXP_EvalPrimTypeInfoTable()[t].name;
                 printf("<TYPE: %s>\n", s);
                 break;
             }

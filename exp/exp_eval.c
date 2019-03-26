@@ -71,11 +71,11 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
     ctx->space = EXP_newSpace();
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
-        vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable[i]);
+        vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable()[i]);
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
-        vec_push(&ctx->afunTable, EXP_EvalPrimFunInfoTable[i]);
+        vec_push(&ctx->afunTable, EXP_EvalPrimFunInfoTable()[i]);
     }
     if (addAtomTable)
     {
