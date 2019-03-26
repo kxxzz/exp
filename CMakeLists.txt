@@ -39,24 +39,26 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 
 
 
-#include_directories (imp)
+include_directories (imp)
 include_directories (imp/vec)
 include_directories (imp/fileu)
 include_directories (imp/nstr)
 include_directories (imp/upool)
 include_directories (imp/upool/imp)
 file (GLOB IMP_SRC_FILES
-        imp/vec/vec.h
-        imp/vec/vec.c
-        imp/fileu/fileu.h
-        imp/fileu/fileu.c
-        imp/nstr/nstr.h
-        imp/nstr/nstr.c
-        imp/upool/upool.h
-        imp/upool/upool.c
-        imp/upool/imp/xxhash.h
-        imp/upool/imp/xxhash.c
-        )
+    imp/*.h
+    imp/*.c
+    imp/vec/vec.h
+    imp/vec/vec.c
+    imp/fileu/fileu.h
+    imp/fileu/fileu.c
+    imp/nstr/nstr.h
+    imp/nstr/nstr.c
+    imp/upool/upool.h
+    imp/upool/upool.c
+    imp/upool/imp/xxhash.h
+    imp/upool/imp/xxhash.c
+    )
 source_group (imp FILES ${IMP_SRC_FILES})
 
 #add_library (imp STATIC ${IMP_SRC_FILES})
@@ -73,16 +75,16 @@ add_library (exp ${SRC_FILES} ${IMP_SRC_FILES})
 
 
 
-file (GLOB EXPE_SRC_FILES expe/*.h expe/*.c)
-source_group (src FILES ${EXPE_SRC_FILES})
+file (GLOB EXPI_SRC_FILES expi/*.h expi/*.c)
+source_group (src FILES ${EXPI_SRC_FILES})
 
-add_executable (expe ${EXPE_SRC_FILES})
+add_executable (expi ${EXPI_SRC_FILES})
 
-target_link_libraries (expe exp)
+target_link_libraries (expi exp)
 
 if (WIN32)
 else ()
-    target_link_libraries (expe m)
+    target_link_libraries (expi m)
 endif ()
 
 
