@@ -1,6 +1,7 @@
 #pragma warning(disable: 4101)
 
 #include "exp/exp_eval.h"
+#include "exp/exp_eval_utils.h"
 
 
 
