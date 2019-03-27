@@ -63,8 +63,9 @@ int main(int argc, char* argv[])
         }
         else
         {
+            EXP_evalErrorFprint(stderr, &err);
         }
-        EXP_evalContextDataStackPrint(ctx);
+        EXP_evalDataStackFprint(stdout, ctx);
         EXP_evalContextFree(ctx);
     }
 

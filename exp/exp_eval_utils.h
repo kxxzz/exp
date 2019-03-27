@@ -2,15 +2,17 @@
 
 
 
-
 #include "exp_eval.h"
 
 
+#include <stdio.h>
 
 
-void EXP_evalContextDataStackPrint(EXP_EvalContext* ctx);
 
 
+void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx);
+
+void EXP_evalErrorFprint(FILE* f, const EXP_EvalError* err);
 
 
 

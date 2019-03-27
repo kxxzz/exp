@@ -9,7 +9,7 @@
 
 
 
-void EXP_evalContextDataStackPrint(EXP_EvalContext* ctx)
+void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
 {
     vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
     EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
@@ -26,24 +26,24 @@ void EXP_evalContextDataStackPrint(EXP_EvalContext* ctx)
             {
             case EXP_EvalPrimType_BOOL:
             {
-                printf("%s\n", v.b ? "true" : "false");
+                fprintf(f, "%s\n", v.b ? "true" : "false");
                 break;
             }
             case EXP_EvalPrimType_FLOAT:
             {
-                printf("%f\n", v.f);
+                fprintf(f, "%f\n", v.f);
                 break;
             }
             case EXP_EvalPrimType_STRING:
             {
                 const char* s = v.s->data;
-                printf("%s\n", s);
+                fprintf(f, "%s\n", s);
                 break;
             }
             default:
             {
                 const char* s = EXP_EvalPrimTypeInfoTable()[t].name;
-                printf("<TYPE: %s>\n", s);
+                fprintf(f, "<TYPE: %s>\n", s);
                 break;
             }
             }
@@ -68,7 +68,55 @@ void EXP_evalContextDataStackPrint(EXP_EvalContext* ctx)
 
 
 
-
+void EXP_evalErrorFprint(FILE* f, const EXP_EvalError* err)
+{
+    switch (err->code)
+    {
+    case EXP_EvalErrCode_NONE:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_SrcFile:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_ExpSyntax:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalSyntax:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalUnable:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalUndefined:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalArgs:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalBranchUneq:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalRecurNoBaseCase:
+    {
+        break;
+    }
+    case EXP_EvalErrCode_EvalUnification:
+    {
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
+}
 
 
 
