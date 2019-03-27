@@ -182,7 +182,7 @@ bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo
 
 
 
-
+void EXP_evalContextDataStackPrint(EXP_EvalContext* ctx);
 
 
 

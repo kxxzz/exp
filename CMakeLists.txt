@@ -75,16 +75,16 @@ add_library (exp ${SRC_FILES} ${IMP_SRC_FILES})
 
 
 
-file (GLOB EXPI_SRC_FILES expi/*.h expi/*.c)
-source_group (src FILES ${EXPI_SRC_FILES})
+file (GLOB EXPE_SRC_FILES expe/*.h expe/*.c)
+source_group (src FILES ${EXPE_SRC_FILES})
 
-add_executable (expi ${EXPI_SRC_FILES})
+add_executable (expe ${EXPE_SRC_FILES})
 
-target_link_libraries (expi exp)
+target_link_libraries (expe exp)
 
 if (WIN32)
 else ()
-    target_link_libraries (expi m)
+    target_link_libraries (expe m)
 endif ()
 
 
