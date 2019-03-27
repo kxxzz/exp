@@ -15,6 +15,7 @@
 
 #include <fileu.h>
 
+#include <argparse.h>
 
 
 
@@ -124,8 +125,32 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    //testLoadSave();
-    testEval();
+    char* srcFile = NULL;
+    struct argparse_option options[] =
+    {
+        OPT_HELP(),
+        OPT_GROUP("Basic options"),
+        OPT_STRING('o', "open", &srcFile, "source file to open"),
+        OPT_END(),
+    };
+    struct argparse argparse;
+    argparse_init(&argparse, options, NULL, 0);
+    argc = argparse_parse(&argparse, argc, argv);
+
+    if (srcFile)
+    {
+        EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
+        bool r = EXP_evalFile(ctx, srcFile, true);
+        if (r)
+        {
+            EXP_EvalError err = EXP_evalLastError(ctx);
+            assert(EXP_EvalErrCode_NONE == err.code);
+        }
+        else
+        {
+            EXP_EvalError err = EXP_evalLastError(ctx);
+        }
+    }
 
     return mainReturn(EXIT_SUCCESS);
 }
