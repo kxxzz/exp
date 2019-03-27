@@ -37,22 +37,24 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    char* srcFile = NULL;
+    char* execFile = NULL;
+    char* watchFile = NULL;
     struct argparse_option options[] =
     {
         OPT_HELP(),
         //OPT_GROUP("Basic options"),
-        OPT_STRING('f', "file", &srcFile, "source code file to execute"),
+        OPT_STRING('e', "exec", &execFile, "execute file"),
+        OPT_STRING('w', "watch", &watchFile, "watch file and execute it when it changes"),
         OPT_END(),
     };
     struct argparse argparse;
     argparse_init(&argparse, options, NULL, 0);
     argc = argparse_parse(&argparse, argc, argv);
 
-    if (srcFile)
+    if (execFile)
     {
         EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-        bool r = EXP_evalFile(ctx, srcFile, true);
+        bool r = EXP_evalFile(ctx, execFile, true);
         EXP_EvalError err = EXP_evalLastError(ctx);
         if (r)
         {
