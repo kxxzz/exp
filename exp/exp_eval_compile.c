@@ -186,6 +186,7 @@ static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
     vec_free(&ctx->varKeyBuf);
 
     vec_free(&ctx->worldStack);
+    vec_free(&ctx->tvBuf);
     vec_free(&ctx->csBuf);
     vec_free(&ctx->dsBuf);
 
