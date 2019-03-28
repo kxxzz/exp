@@ -39,15 +39,19 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 
 
 
-include_directories (imp)
+include_directories (imp/argparse)
+include_directories (imp/fswatcher)
 include_directories (imp/vec)
 include_directories (imp/fileu)
 include_directories (imp/nstr)
 include_directories (imp/upool)
 include_directories (imp/upool/imp)
+
 file (GLOB IMP_SRC_FILES
-    imp/*.h
-    imp/*.c
+    imp/argparse/argparse.h
+    imp/argparse/argparse.c
+    imp/fswatcher/fswatcher/fswatcher.h
+    imp/fswatcher/fswatcher.cpp
     imp/vec/vec.h
     imp/vec/vec.c
     imp/fileu/fileu.h
@@ -59,9 +63,9 @@ file (GLOB IMP_SRC_FILES
     imp/upool/imp/xxhash.h
     imp/upool/imp/xxhash.c
     )
-source_group (imp FILES ${IMP_SRC_FILES})
 
-#add_library (imp STATIC ${IMP_SRC_FILES})
+source_group (imp FILES ${IMP_SRC_FILES})
+add_library (imp STATIC ${IMP_SRC_FILES})
 
 
 
@@ -70,7 +74,9 @@ file (GLOB SRC_FILES exp/*.h exp/*.c)
 source_group (src FILES ${SRC_FILES})
 
 
-add_library (exp ${SRC_FILES} ${IMP_SRC_FILES})
+add_library (exp ${SRC_FILES})
+
+
 
 
 
@@ -80,7 +86,7 @@ source_group (src FILES ${EXPE_SRC_FILES})
 
 add_executable (expe ${EXPE_SRC_FILES})
 
-target_link_libraries (expe exp)
+target_link_libraries (expe imp exp)
 
 if (WIN32)
 else ()
