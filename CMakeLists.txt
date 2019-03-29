@@ -45,8 +45,6 @@ include_directories (imp/fileu)
 include_directories (imp/nstr)
 include_directories (imp/upool)
 include_directories (imp/upool/imp)
-include_directories (imp/filew)
-include_directories (imp/filew/imp)
 
 file (GLOB IMP_SRC_FILES
     imp/argparse/argparse.h
@@ -61,8 +59,6 @@ file (GLOB IMP_SRC_FILES
     imp/upool/upool.c
     imp/upool/imp/xxhash.h
     imp/upool/imp/xxhash.c
-    imp/filew/*cpp
-    imp/filew/**/*.cpp
     )
 
 source_group (imp FILES ${IMP_SRC_FILES})
