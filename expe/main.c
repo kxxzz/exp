@@ -17,7 +17,6 @@
 #include <fileu.h>
 
 #include <argparse.h>
-#include <fswatcher/fswatcher.h>
 
 
 
@@ -57,9 +56,7 @@ int main(int argc, char* argv[])
     {
         if (watchFlag)
         {
-            fswatcher_t watcher = fswatcher_create(FSWATCHER_CREATE_DEFAULT, FSWATCHER_EVENT_ALL, entryFile, NULL);
 
-            fswatcher_destroy(watcher);
         }
         else
         {
