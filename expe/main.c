@@ -21,6 +21,42 @@
 
 
 
+static void execFile(const char* filename)
+{
+    EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
+    bool r = EXP_evalFile(ctx, filename, true);
+    EXP_EvalError err = EXP_evalLastError(ctx);
+    if (r)
+    {
+        assert(EXP_EvalErrCode_NONE == err.code);
+    }
+    else
+    {
+        EXP_evalErrorFprint(stderr, &err);
+    }
+    EXP_evalDataStackFprint(stdout, ctx);
+    EXP_evalContextFree(ctx);
+}
+
+static void entryFileCallback(const char* dir, const char* filename, FILEW_Change change)
+{
+    switch (change)
+    {
+    case FILEW_Change_Add:
+    case FILEW_Change_Delete:
+        break;
+    case FILEW_Change_Modified:
+    {
+        printf("refresh %s", filename);
+        execFile(filename);
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
+}
+
 
 
 
@@ -55,26 +91,22 @@ int main(int argc, char* argv[])
 
     if (entryFile)
     {
+        FILEW_Context* wctx = NULL;
         if (watchFlag)
         {
-            FILEW_Context* ctx = FILEW_newContext();
-            FILEW_contextFree(ctx);
+            wctx = FILEW_newContext();
+            FILEW_Callback cb = entryFileCallback;
+            FILEW_addFile(wctx, entryFile, cb);
+            
         }
-        else
+        execFile(entryFile);
+        if (watchFlag)
         {
-            EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-            bool r = EXP_evalFile(ctx, entryFile, true);
-            EXP_EvalError err = EXP_evalLastError(ctx);
-            if (r)
+            while (true)
             {
-                assert(EXP_EvalErrCode_NONE == err.code);
+                FILEW_poll(wctx);
             }
-            else
-            {
-                EXP_evalErrorFprint(stderr, &err);
-            }
-            EXP_evalDataStackFprint(stdout, ctx);
-            EXP_evalContextFree(ctx);
+            FILEW_contextFree(wctx);
         }
     }
     else
