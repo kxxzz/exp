@@ -40,7 +40,7 @@ int main(int argc, char* argv[])
 #endif
 
     char* entryFile = NULL;
-    bool watchFlag = false;
+    int watchFlag = false;
     struct argparse_option options[] =
     {
         OPT_HELP(),
@@ -81,6 +81,7 @@ int main(int argc, char* argv[])
     else
     {
         argparse_usage(&argparse);
+        return mainReturn(EXIT_FAILURE);
     }
 
     return mainReturn(EXIT_SUCCESS);
