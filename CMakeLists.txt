@@ -40,18 +40,17 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 
 
 include_directories (imp/argparse)
-include_directories (imp/fswatcher)
 include_directories (imp/vec)
 include_directories (imp/fileu)
 include_directories (imp/nstr)
 include_directories (imp/upool)
 include_directories (imp/upool/imp)
+include_directories (imp/filew)
+include_directories (imp/filew/imp)
 
 file (GLOB IMP_SRC_FILES
     imp/argparse/argparse.h
     imp/argparse/argparse.c
-    imp/fswatcher/fswatcher/fswatcher.h
-    imp/fswatcher/fswatcher.cpp
     imp/vec/vec.h
     imp/vec/vec.c
     imp/fileu/fileu.h
@@ -62,6 +61,8 @@ file (GLOB IMP_SRC_FILES
     imp/upool/upool.c
     imp/upool/imp/xxhash.h
     imp/upool/imp/xxhash.c
+    imp/filew/*cpp
+    imp/filew/**/*.cpp
     )
 
 source_group (imp FILES ${IMP_SRC_FILES})

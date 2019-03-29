@@ -14,9 +14,10 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <fileu.h>
-
 #include <argparse.h>
+
+#include <fileu.h>
+#include <filew.h>
 
 
 
@@ -56,7 +57,8 @@ int main(int argc, char* argv[])
     {
         if (watchFlag)
         {
-
+            FILEW_Context* ctx = FILEW_newContext();
+            FILEW_contextFree(ctx);
         }
         else
         {
