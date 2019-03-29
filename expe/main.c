@@ -17,6 +17,7 @@
 #include <fileu.h>
 
 #include <argparse.h>
+#include <fswatcher/fswatcher.h>
 
 
 
@@ -38,35 +39,48 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
-    char* execFile = NULL;
-    char* watchFile = NULL;
+    char* entryFile = NULL;
+    bool watchFlag = false;
     struct argparse_option options[] =
     {
         OPT_HELP(),
         //OPT_GROUP("Basic options"),
-        OPT_STRING('e', "exec", &execFile, "execute file"),
-        OPT_STRING('w', "watch", &watchFile, "watch file and execute it when it changes"),
+        OPT_STRING('f', "file", &entryFile, "execute entry file"),
+        OPT_BOOLEAN('w', "watch", &watchFlag, "watch file and execute it when it changes"),
         OPT_END(),
     };
     struct argparse argparse;
     argparse_init(&argparse, options, NULL, 0);
     argc = argparse_parse(&argparse, argc, argv);
 
-    if (execFile)
+    if (entryFile)
     {
-        EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-        bool r = EXP_evalFile(ctx, execFile, true);
-        EXP_EvalError err = EXP_evalLastError(ctx);
-        if (r)
+        if (watchFlag)
         {
-            assert(EXP_EvalErrCode_NONE == err.code);
+            fswatcher_t watcher = fswatcher_create(FSWATCHER_CREATE_DEFAULT, FSWATCHER_EVENT_ALL, entryFile, NULL);
+
+            fswatcher_destroy(watcher);
         }
         else
         {
-            EXP_evalErrorFprint(stderr, &err);
+            EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
+            bool r = EXP_evalFile(ctx, entryFile, true);
+            EXP_EvalError err = EXP_evalLastError(ctx);
+            if (r)
+            {
+                assert(EXP_EvalErrCode_NONE == err.code);
+            }
+            else
+            {
+                EXP_evalErrorFprint(stderr, &err);
+            }
+            EXP_evalDataStackFprint(stdout, ctx);
+            EXP_evalContextFree(ctx);
         }
-        EXP_evalDataStackFprint(stdout, ctx);
-        EXP_evalContextFree(ctx);
+    }
+    else
+    {
+        argparse_usage(&argparse);
     }
 
     return mainReturn(EXIT_SUCCESS);

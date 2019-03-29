@@ -43,17 +43,17 @@ extern "C" {
 /**
  *
  */
-enum fswatcher_create_flags
+typedef enum fswatcher_create_flags
 {
 	FSWATCHER_CREATE_BLOCKING  = (1 << 1), ///< calls to fswatcher_poll should block until 1 or more events arrive.
 	FSWATCHER_CREATE_RECURSIVE = (1 << 2), ///< the directory watch should recursively add all sub-directories to watch.
 	FSWATCHER_CREATE_DEFAULT   = FSWATCHER_CREATE_RECURSIVE
-};
+} fswatcher_create_flags;
 
 /**
  *
  */
-enum fswatcher_event_type
+typedef enum fswatcher_event_type
 {
 	FSWATCHER_EVENT_CREATE = (1 << 1), ///< file in "src" was just created.
 	FSWATCHER_EVENT_REMOVE = (1 << 2), ///< file in "src" was just removed.
@@ -66,7 +66,7 @@ enum fswatcher_event_type
 						  FSWATCHER_EVENT_MOVE   ,
 
 	FSWATCHER_EVENT_BUFFER_OVERFLOW ///< doc me
-};
+} fswatcher_event_type;
 
 /**
  *
@@ -100,6 +100,7 @@ typedef struct fswatcher* fswatcher_t;
  *     fswatcher_poll( w, h, &salloc.alloc );
  * }
  */
+typedef struct fswatcher_allocator fswatcher_allocator;
 struct fswatcher_allocator
 {
 	/**
@@ -149,6 +150,7 @@ struct fswatcher_allocator
  *     fswatcher_poll( w, &h.eh, 0x0 );
  * }
  */
+typedef struct fswatcher_event_handler fswatcher_event_handler;
 struct fswatcher_event_handler
 {
 	/**
