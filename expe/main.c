@@ -17,7 +17,6 @@
 #include <argparse.h>
 
 #include <fileu.h>
-#include <filew.h>
 
 
 
@@ -38,24 +37,24 @@ static void execFile(const char* filename)
     EXP_evalContextFree(ctx);
 }
 
-static void entryFileCallback(const char* dir, const char* filename, FILEW_Change change)
-{
-    switch (change)
-    {
-    case FILEW_Change_Add:
-    case FILEW_Change_Delete:
-        break;
-    case FILEW_Change_Modified:
-    {
-        printf("refresh %s", filename);
-        execFile(filename);
-        break;
-    }
-    default:
-        assert(false);
-        break;
-    }
-}
+//static void entryFileCallback(const char* dir, const char* filename, FILEW_Change change)
+//{
+//    switch (change)
+//    {
+//    case FILEW_Change_Add:
+//    case FILEW_Change_Delete:
+//        break;
+//    case FILEW_Change_Modified:
+//    {
+//        printf("refresh %s", filename);
+//        execFile(filename);
+//        break;
+//    }
+//    default:
+//        assert(false);
+//        break;
+//    }
+//}
 
 
 
@@ -91,22 +90,22 @@ int main(int argc, char* argv[])
 
     if (entryFile)
     {
-        FILEW_Context* wctx = NULL;
+        //FILEW_Context* wctx = NULL;
         if (watchFlag)
         {
-            wctx = FILEW_newContext();
-            FILEW_Callback cb = entryFileCallback;
-            FILEW_addFile(wctx, entryFile, cb);
+            //wctx = FILEW_newContext();
+            //FILEW_Callback cb = entryFileCallback;
+            //FILEW_addFile(wctx, entryFile, cb);
             
         }
         execFile(entryFile);
         if (watchFlag)
         {
-            while (true)
-            {
-                FILEW_poll(wctx);
-            }
-            FILEW_contextFree(wctx);
+            //while (true)
+            //{
+                //FILEW_poll(wctx);
+            //}
+            //FILEW_contextFree(wctx);
         }
     }
     else

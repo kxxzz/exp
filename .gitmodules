@@ -10,6 +10,3 @@
 [submodule "imp/upool"]
 	path = imp/upool
 	url = git@github.com:kxxzz/upool.git
-[submodule "imp/filew"]
-	path = imp/filew
-	url = git@github.com:kxxzz/filew.git
