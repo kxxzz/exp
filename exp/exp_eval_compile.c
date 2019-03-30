@@ -763,12 +763,12 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
 
+    vec_resize(&varRenMap->bvars, 0);
+
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
     EXP_evalCompileFixCurBlockIns(ctx, argsOffset, blk->inout.data);
-
-    vec_resize(&varRenMap->bvars, 0);
 
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
@@ -1038,7 +1038,16 @@ static void EXP_evalCompileNode
                         if (dataStack->length < funBlk->numIns)
                         {
                             u32 n = funBlk->numIns - dataStack->length;
-                            if (!EXP_evalCompileShiftDataStack(ctx, n, funBlk->inout.data))
+
+                            ctx->typeBuf.length = 0;
+                            for (u32 i = 0; i < n; ++i)
+                            {
+                                u32 pat = funBlk->inout.data[i];
+                                u32 t = EXP_evalCompileTypeFromPat(ctx, pat);
+                                vec_push(&ctx->typeBuf, t);
+                            }
+
+                            if (!EXP_evalCompileShiftDataStack(ctx, n, ctx->typeBuf.data))
                             {
                                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                                 return;
