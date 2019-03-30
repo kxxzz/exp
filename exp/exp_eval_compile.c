@@ -680,8 +680,9 @@ static bool EXP_evalCompileShiftDataStack(EXP_EvalCompileContext* ctx, u32 n, co
 
 
 
-static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsOffset, const u32* pats)
+static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsOffset)
 {
+    vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
     assert(curBlock->entered);
@@ -693,7 +694,7 @@ static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsO
         u32 added = n - curBlock->ins.length;
         for (u32 i = 0; i < added; ++i)
         {
-            u32 t = EXP_evalCompileTypeFromPat(ctx, pats[i]);
+            u32 t = dataStack->data[argsOffset + i];
             vec_insert(&curBlock->ins, i, t);
         }
     }
@@ -734,7 +735,7 @@ static void EXP_evalCompileAfunCall(EXP_EvalCompileContext* ctx, EXP_EvalAfunInf
 
     assert(dataStack->length >= afunInfo->numIns);
     u32 argsOffset = dataStack->length - afunInfo->numIns;
-    EXP_evalCompileFixCurBlockIns(ctx, argsOffset, inEvalType);
+    EXP_evalCompileFixCurBlockIns(ctx, argsOffset);
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
@@ -769,7 +770,7 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
-    EXP_evalCompileFixCurBlockIns(ctx, argsOffset, blk->inout.data);
+    EXP_evalCompileFixCurBlockIns(ctx, argsOffset);
 
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)

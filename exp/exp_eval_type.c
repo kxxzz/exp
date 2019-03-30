@@ -342,6 +342,37 @@ next:
             assert(descA->atom != descB->atom);
             goto failed;
         }
+        case EXP_EvalTypeType_Var:
+        {
+            vec_pop(buildStack);
+            u32* aV = EXP_evalTypeVarValue(varSpace, descA->varId);
+            u32* bV = EXP_evalTypeVarValue(varSpace, descB->varId);
+            if (aV && bV)
+            {
+                a = *aV;
+                b = *bV;
+                EXP_EvalTypeBuildLevel l = { a, b };
+                vec_push(buildStack, l);
+                goto next;
+            }
+            else if (aV && !bV)
+            {
+                r = EXP_evalTypeReduct(ctx, varSpace, *aV);
+                goto next;
+            }
+            else if (!aV && bV)
+            {
+                r = EXP_evalTypeReduct(ctx, varSpace, *bV);
+                goto next;
+            }
+            else
+            {
+                assert(!aV && !bV);
+                r = a;
+                EXP_evalTypeVarBind(varSpace, descA->varId, b);
+                goto next;
+            }
+        }
         default:
             goto failed;
         }
