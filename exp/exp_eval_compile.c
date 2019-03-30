@@ -273,12 +273,12 @@ static bool EXP_evalCompileTypeUnify(EXP_EvalCompileContext* ctx, u32 a, u32 b, 
 
 
 
-static bool EXP_evalCompileTypeUnifyPat(EXP_EvalCompileContext* ctx, u32 x, u32 pat, u32* pU)
+static bool EXP_evalCompileTypeUnifyPat(EXP_EvalCompileContext* ctx, u32 a, u32 pat, u32* pU)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
-    return EXP_evalTypeUnifyPat(typeContext, typeVarSpace, x, varRenMap, pat, pU);
+    return EXP_evalTypeUnifyPat(typeContext, typeVarSpace, a, varRenMap, pat, pU);
 }
 
 static u32 EXP_evalCompileTypeFromPat(EXP_EvalCompileContext* ctx, u32 x)
@@ -773,9 +773,9 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     for (u32 i = 0; i < blk->numIns; ++i)
     {
         u32 a = dataStack->data[argsOffset + i];
-        u32 b = blk->inout.data[i];
+        u32 pat = blk->inout.data[i];
         u32 u;
-        if (!EXP_evalCompileTypeUnifyPat(ctx, a, b, &u))
+        if (!EXP_evalCompileTypeUnifyPat(ctx, a, pat, &u))
         {
             EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
