@@ -13,7 +13,6 @@
 // (def swap1 -> a b : b a)
 // (swap1 3 4)
 
-3 4
 1 2
 
 (def drop2 drop drop)
