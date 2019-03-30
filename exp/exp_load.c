@@ -394,7 +394,7 @@ static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_
     }
     assert(ctx->srcInfo->fileCount > 0);
     info->file = ctx->srcInfo->fileCount - 1;
-    info->offset = ctx->cur;
+    info->offset = ctx->cur - tok->len;
     info->line = ctx->curLine;
     info->column = 1;
     for (u32 i = 0; i < info->offset; ++i)
