@@ -2,23 +2,24 @@
 // (def b 2)
 // a b +
 
-// (def swap -> a b : b a)
+(def swap -> a b : b a)
 
-// "a" "b" swap
-// 1 2 swap
+//"a" "b" swap
+//1 2 swap
 // "a" 1 swap
-// (swap "b" 2)
-// (swap 1 2)
+(swap "b" 2)
+(swap 1 2)
 
-// (def swap1 -> a b : b a)
-// (swap1 3 4)
+(def swap1 -> a b : b a)
+(swap1 3 4)
+//(swap "a" "x")
 
-1 2
+"a" 1 2 3 4 5 6 7 8 9 10 11 12
 
-(def drop2 drop drop)
-(def drop2_ drop2)
+(def drop4 drop drop drop drop)
+(def drop12 drop4 drop4 drop4)
 
-drop2_
+drop12
 //drop4 drop4 drop4
 
 // (if (= 2 (+ 1 3)) 100 200)
