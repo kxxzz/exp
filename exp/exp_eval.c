@@ -707,6 +707,34 @@ bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo
 
 
 
+const char** EXP_EvalErrCodeNameTable(void)
+{
+    static const char* a[EXP_NumEvalErrorCodes] =
+    {
+        "NONE",
+        "SrcFile",
+        "ExpSyntax",
+        "EvalSyntax",
+        "EvalUnable",
+        "EvalUndefined",
+        "EvalArgs",
+        "EvalBranchUneq",
+        "EvalRecurNoBaseCase",
+        "EvalUnification",
+    };
+    return a;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 

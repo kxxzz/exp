@@ -139,6 +139,9 @@ typedef enum EXP_EvalErrCode
     EXP_NumEvalErrorCodes
 } EXP_EvalErrCode;
 
+const char** EXP_EvalErrCodeNameTable(void);
+
+
 typedef struct EXP_EvalError
 {
     EXP_EvalErrCode code;

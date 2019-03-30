@@ -679,7 +679,7 @@ static bool EXP_evalCompileShiftDataStack(EXP_EvalCompileContext* ctx, u32 n, co
 
 
 
-static void EXP_evalCompileCurBlockInsUpdate(EXP_EvalCompileContext* ctx, u32 argsOffset, const u32* funInTypes)
+static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsOffset, const u32* pats)
 {
     EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
@@ -692,7 +692,8 @@ static void EXP_evalCompileCurBlockInsUpdate(EXP_EvalCompileContext* ctx, u32 ar
         u32 added = n - curBlock->ins.length;
         for (u32 i = 0; i < added; ++i)
         {
-            vec_insert(&curBlock->ins, i, funInTypes[i]);
+            u32 t = EXP_evalCompileTypeFromPat(ctx, pats[i]);
+            vec_insert(&curBlock->ins, i, t);
         }
     }
 }
@@ -732,7 +733,7 @@ static void EXP_evalCompileAfunCall(EXP_EvalCompileContext* ctx, EXP_EvalAfunInf
 
     assert(dataStack->length >= afunInfo->numIns);
     u32 argsOffset = dataStack->length - afunInfo->numIns;
-    EXP_evalCompileCurBlockInsUpdate(ctx, argsOffset, inEvalType);
+    EXP_evalCompileFixCurBlockIns(ctx, argsOffset, inEvalType);
 
     for (u32 i = 0; i < afunInfo->numIns; ++i)
     {
@@ -765,8 +766,7 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
-    // todo
-    EXP_evalCompileCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
+    EXP_evalCompileFixCurBlockIns(ctx, argsOffset, blk->inout.data);
 
     vec_resize(&varRenMap->bvars, 0);
 
@@ -1442,6 +1442,12 @@ EXP_EvalError EXP_evalCompile
     }
     EXP_evalCompileCall(ctx);
     EXP_EvalCompileBlock* rootBlk = EXP_evalCompileGetBlock(ctx, root);
+    if (ctx->error.code)
+    {
+        error = ctx->error;
+        EXP_evalCompileContextFree(ctx);
+        return error;
+    }
     assert(rootBlk->completed);
     vec_dup(typeStack, &ctx->dataStack);
     if (!ctx->error.code)

@@ -70,52 +70,8 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
 
 void EXP_evalErrorFprint(FILE* f, const EXP_EvalError* err)
 {
-    switch (err->code)
-    {
-    case EXP_EvalErrCode_NONE:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_SrcFile:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_ExpSyntax:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalSyntax:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalUnable:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalUndefined:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalArgs:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalBranchUneq:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalRecurNoBaseCase:
-    {
-        break;
-    }
-    case EXP_EvalErrCode_EvalUnification:
-    {
-        break;
-    }
-    default:
-        assert(false);
-        break;
-    }
+    const char* name = EXP_EvalErrCodeNameTable()[err->code];
+    fprintf(f, "[ERROR] %s: \"%u\": %u:%u\n", name, err->file, err->line, err->column);
 }
 
 
