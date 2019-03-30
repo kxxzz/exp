@@ -621,6 +621,7 @@ static void EXP_evalCompileLeaveBlock(EXP_EvalCompileContext* ctx)
 
 static void EXP_evalCompileBlockRevert(EXP_EvalCompileContext* ctx)
 {
+    vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
 
@@ -630,7 +631,7 @@ static void EXP_evalCompileBlockRevert(EXP_EvalCompileContext* ctx)
     ctx->dataStack.length = curCall->dataStackP - curBlock->ins.length;
     for (u32 i = 0; i < curBlock->ins.length; ++i)
     {
-        vec_push(&ctx->dataStack, curBlock->ins.data[i]);
+        vec_push(dataStack, curBlock->ins.data[i]);
     }
 }
 
