@@ -39,9 +39,6 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
-
-
-
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
@@ -58,6 +55,8 @@ typedef struct EXP_EvalContext
 
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
+
+    EXP_EvalFileInfoTable fileInfoTable;
 } EXP_EvalContext;
 
 
@@ -95,6 +94,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    vec_free(&ctx->fileInfoTable);
+
     vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
     EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
     for (u32 i = 0; i < dataStack->length; ++i)
@@ -657,6 +658,12 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
 
 bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo)
 {
+    if (enableSrcInfo)
+    {
+        EXP_EvalFileInfo fileInfo = { 0 };
+        stzncpy(fileInfo.name, fileName, EXP_EvalFileName_MAX);
+        vec_push(&ctx->fileInfoTable, fileInfo);
+    }
     char* code = NULL;
     u32 codeSize = FILEU_readFile(fileName, &code);
     if (-1 == codeSize)
@@ -694,6 +701,14 @@ bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo
 
 
 
+
+
+
+
+const EXP_EvalFileInfoTable* EXP_evalFileInfoTable(EXP_EvalContext* ctx)
+{
+    return &ctx->fileInfoTable;
+}
 
 
 

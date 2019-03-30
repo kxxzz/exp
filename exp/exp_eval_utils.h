@@ -12,7 +12,7 @@
 
 void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx);
 
-void EXP_evalErrorFprint(FILE* f, const EXP_EvalError* err);
+void EXP_evalErrorFprint(FILE* f, const EXP_EvalFileInfoTable* fiTable, const EXP_EvalError* err);
 
 
 

@@ -68,10 +68,11 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
 
 
 
-void EXP_evalErrorFprint(FILE* f, const EXP_EvalError* err)
+void EXP_evalErrorFprint(FILE* f, const EXP_EvalFileInfoTable* fiTable, const EXP_EvalError* err)
 {
     const char* name = EXP_EvalErrCodeNameTable()[err->code];
-    fprintf(f, "[ERROR] %s: \"%u\": %u:%u\n", name, err->file, err->line, err->column);
+    const char* filename = fiTable->data[err->file].name;
+    fprintf(f, "[ERROR] %s: \"%s\": %u:%u\n", name, filename, err->line, err->column);
 }
 
 

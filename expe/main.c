@@ -37,7 +37,8 @@ static void execFile(const char* filename)
     }
     else
     {
-        EXP_evalErrorFprint(stderr, &err);
+        const EXP_EvalFileInfoTable* fiTable = EXP_evalFileInfoTable(ctx);
+        EXP_evalErrorFprint(stderr, fiTable, &err);
     }
     EXP_evalDataStackFprint(stdout, ctx);
     EXP_evalContextFree(ctx);

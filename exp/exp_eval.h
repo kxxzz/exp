@@ -186,6 +186,22 @@ bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo
 
 
 
+enum
+{
+    EXP_EvalFileName_MAX = 255,
+};
+
+typedef struct EXP_EvalFileInfo
+{
+    char name[EXP_EvalFileName_MAX];
+} EXP_EvalFileInfo;
+
+typedef vec_t(EXP_EvalFileInfo) EXP_EvalFileInfoTable;
+
+const EXP_EvalFileInfoTable* EXP_evalFileInfoTable(EXP_EvalContext* ctx);
+
+
+
 
 
 
