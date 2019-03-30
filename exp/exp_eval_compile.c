@@ -765,6 +765,7 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
+    // todo
     EXP_evalCompileCurBlockInsUpdate(ctx, argsOffset, blk->inout.data);
 
     vec_resize(&varRenMap->bvars, 0);
