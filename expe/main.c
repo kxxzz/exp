@@ -34,6 +34,7 @@ static void execFile(const char* filename)
     if (r)
     {
         assert(EXP_EvalErrCode_NONE == err.code);
+        printf("[DONE] \"%s\"\n", filename);
     }
     else
     {
