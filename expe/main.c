@@ -25,16 +25,18 @@
 
 
 
+
 static void execFile(const char* filename)
 {
-    printf("[EXEC] \"%s\"\n", filename);
+    char timeBuf[EXP_EvalTimeStrBuf_MAX];
+    printf("[EXEC] \"%s\" [%s]\n", filename, EXP_evalGetNowStr(timeBuf));
     EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
     bool r = EXP_evalFile(ctx, filename, true);
     EXP_EvalError err = EXP_evalLastError(ctx);
     if (r)
     {
         assert(EXP_EvalErrCode_NONE == err.code);
-        printf("[DONE] \"%s\"\n", filename);
+        printf("[DONE] \"%s\" [%s]\n", filename, EXP_evalGetNowStr(timeBuf));
     }
     else
     {

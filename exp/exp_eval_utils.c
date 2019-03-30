@@ -2,6 +2,8 @@
 #include "exp_eval_type_a.h"
 
 
+#include "exp_eval_utils.h"
+#include <time.h>
 
 
 
@@ -63,6 +65,15 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
 
 
 
+char* EXP_evalGetNowStr(char* timeBuf)
+{
+    time_t t = time(NULL);
+    struct tm *lt = localtime(&t);
+    timeBuf[strftime(timeBuf, EXP_EvalTimeStrBuf_MAX, "%H:%M:%S", lt)] = '\0';
+    return timeBuf;
+}
+
+
 
 
 
@@ -72,7 +83,8 @@ void EXP_evalErrorFprint(FILE* f, const EXP_EvalFileInfoTable* fiTable, const EX
 {
     const char* name = EXP_EvalErrCodeNameTable()[err->code];
     const char* filename = fiTable->data[err->file].name;
-    fprintf(f, "[ERROR] %s: \"%s\": %u:%u\n", name, filename, err->line, err->column);
+    char timeBuf[EXP_EvalTimeStrBuf_MAX];
+    fprintf(f, "[ERROR] %s: \"%s\": %u:%u [%s]\n", name, filename, err->line, err->column, EXP_evalGetNowStr(timeBuf));
 }
 
 

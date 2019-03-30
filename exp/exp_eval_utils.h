@@ -9,8 +9,16 @@
 
 
 
+enum
+{
+    EXP_EvalTimeStrBuf_MAX = 16,
+};
+
+
 
 void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx);
+
+char* EXP_evalGetNowStr(char* timeBuf);
 
 void EXP_evalErrorFprint(FILE* f, const EXP_EvalFileInfoTable* fiTable, const EXP_EvalError* err);
 
