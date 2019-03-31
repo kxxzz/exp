@@ -77,6 +77,8 @@ int main(int argc, char* argv[])
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 
+    char timeBuf[EXP_EvalTimeStrBuf_MAX];
+
     char* entryFile = NULL;
     int watchFlag = false;
     struct argparse_option options[] =
@@ -108,6 +110,7 @@ int main(int argc, char* argv[])
                 stat(entryFile, &st);
                 if (lastMtime != st.st_mtime)
                 {
+                    printf("[CHANGE] \"%s\" [%s]\n", entryFile, EXP_evalGetNowStr(timeBuf));
                     execFile(entryFile);
                 }
                 lastMtime = st.st_mtime;
