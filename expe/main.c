@@ -24,6 +24,32 @@
 
 
 
+static void execCode(const char* code)
+{
+    char timeBuf[EXP_EvalTimeStrBuf_MAX];
+    printf("[EXEC] STDIN [%s]\n", EXP_evalGetNowStr(timeBuf));
+    EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
+    bool r = EXP_evalCode(ctx, code, true);
+    EXP_EvalError err = EXP_evalLastError(ctx);
+    if (r)
+    {
+        assert(EXP_EvalErrCode_NONE == err.code);
+        printf("[DONE] STDIN [%s]\n", EXP_evalGetNowStr(timeBuf));
+    }
+    else
+    {
+        const EXP_EvalFileInfoTable* fiTable = EXP_evalFileInfoTable(ctx);
+        EXP_evalErrorFprint(stderr, fiTable, &err);
+    }
+    if (r)
+    {
+        printf("<DataStack>\n");
+        printf("-------------\n");
+        EXP_evalDataStackFprint(stdout, ctx);
+        printf("-------------\n");
+    }
+    EXP_evalContextFree(ctx);
+}
 
 
 static void execFile(const char* filename)
@@ -119,8 +145,16 @@ int main(int argc, char* argv[])
     }
     else
     {
-        argparse_usage(&argparse);
-        return mainReturn(EXIT_FAILURE);
+        vec_char code = { 0 };
+        for (;;)
+        {
+            char c = getchar();
+            if (EOF == c) break;
+            vec_push(&code, c);
+        }
+        vec_push(&code, 0);
+        execCode(code.data);
+        vec_free(&code);
     }
 
     return mainReturn(EXIT_SUCCESS);
