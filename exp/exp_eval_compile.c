@@ -281,6 +281,12 @@ static bool EXP_evalCompileTypeUnifyPat(EXP_EvalCompileContext* ctx, u32 a, u32 
     return EXP_evalTypeUnifyPat(typeContext, typeVarSpace, a, varRenMap, pat, pU);
 }
 
+static void EXP_evalCompilePatContextReset(EXP_EvalCompileContext* ctx)
+{
+    EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
+    vec_resize(&varRenMap->bvars, 0);
+}
+
 static u32 EXP_evalCompileTypeFromPat(EXP_EvalCompileContext* ctx, u32 x)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
@@ -763,14 +769,13 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
 {
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
-    EXP_EvalTypeVarSpace* varRenMap = &ctx->varRenMap;
-
-    vec_resize(&varRenMap->bvars, 0);
 
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
     EXP_evalCompileFixCurBlockIns(ctx, argsOffset);
+
+    EXP_evalCompilePatContextReset(ctx);
 
     assert((blk->numIns + blk->numOuts) == blk->inout.length);
     for (u32 i = 0; i < blk->numIns; ++i)
@@ -1041,6 +1046,7 @@ static void EXP_evalCompileNode
                         {
                             u32 n = funBlk->numIns - dataStack->length;
 
+                            EXP_evalCompilePatContextReset(ctx);
                             ctx->typeBuf.length = 0;
                             for (u32 i = 0; i < n; ++i)
                             {
