@@ -43,8 +43,13 @@ static void execFile(const char* filename)
         const EXP_EvalFileInfoTable* fiTable = EXP_evalFileInfoTable(ctx);
         EXP_evalErrorFprint(stderr, fiTable, &err);
     }
-    printf("[DataStack] :\n");
-    EXP_evalDataStackFprint(stdout, ctx);
+    if (r)
+    {
+        printf("<DataStack>\n");
+        printf("-------------\n");
+        EXP_evalDataStackFprint(stdout, ctx);
+        printf("-------------\n");
+    }
     EXP_evalContextFree(ctx);
 }
 

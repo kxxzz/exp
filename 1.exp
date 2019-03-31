@@ -18,9 +18,11 @@ a b +
 
 (def drop2 drop drop)
 (def drop4 drop2 drop2)
-(def drop16 drop4 drop4 drop4 drop4)
+(def drop12 drop4 drop4 drop4)
 
-drop16
+drop12
+drop4
+drop
 
 (if (= 2 (+ 1 3)) 100 200)
 
@@ -44,7 +46,6 @@ drop16
 (facttail 50000 2)
 
 50000 2 facttail
-
 
 // (def ere (ere))
 // (ere)
