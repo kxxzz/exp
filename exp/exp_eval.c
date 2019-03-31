@@ -596,8 +596,14 @@ EXP_EvalError EXP_evalCompile
 
 
 
-bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
+bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, bool enableSrcInfo)
 {
+    if (enableSrcInfo)
+    {
+        EXP_EvalFileInfo fileInfo = { 0 };
+        stzncpy(fileInfo.name, filename, EXP_EvalFileName_MAX);
+        vec_push(&ctx->fileInfoTable, fileInfo);
+    }
     EXP_SpaceSrcInfo* srcInfo = NULL;
     if (enableSrcInfo)
     {
@@ -658,12 +664,6 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
 
 bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo)
 {
-    if (enableSrcInfo)
-    {
-        EXP_EvalFileInfo fileInfo = { 0 };
-        stzncpy(fileInfo.name, fileName, EXP_EvalFileName_MAX);
-        vec_push(&ctx->fileInfoTable, fileInfo);
-    }
     char* code = NULL;
     u32 codeSize = FILEU_readFile(fileName, &code);
     if (-1 == codeSize)
@@ -676,7 +676,7 @@ bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo
     {
         return false;
     }
-    bool r = EXP_evalCode(ctx, code, enableSrcInfo);
+    bool r = EXP_evalCode(ctx, fileName, code, enableSrcInfo);
     free(code);
     return r;
 }

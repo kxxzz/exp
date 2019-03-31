@@ -27,14 +27,14 @@
 static void execCode(const char* code)
 {
     char timeBuf[EXP_EvalTimeStrBuf_MAX];
-    printf("[EXEC] STDIN [%s]\n", EXP_evalGetNowStr(timeBuf));
+    printf("[EXEC] stdin [%s]\n", EXP_evalGetNowStr(timeBuf));
     EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-    bool r = EXP_evalCode(ctx, code, true);
+    bool r = EXP_evalCode(ctx, "stdin", code, true);
     EXP_EvalError err = EXP_evalLastError(ctx);
     if (r)
     {
         assert(EXP_EvalErrCode_NONE == err.code);
-        printf("[DONE] STDIN [%s]\n", EXP_evalGetNowStr(timeBuf));
+        printf("[DONE] stdin [%s]\n", EXP_evalGetNowStr(timeBuf));
     }
     else
     {
