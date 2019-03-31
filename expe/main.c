@@ -24,40 +24,20 @@
 
 
 
-static void execCode(const char* code)
-{
-    char timeBuf[EXP_EvalTimeStrBuf_MAX];
-    printf("[EXEC] stdin [%s]\n", EXP_evalGetNowStr(timeBuf));
-    EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-    bool r = EXP_evalCode(ctx, "stdin", code, true);
-    EXP_EvalError err = EXP_evalLastError(ctx);
-    if (r)
-    {
-        assert(EXP_EvalErrCode_NONE == err.code);
-        printf("[DONE] stdin [%s]\n", EXP_evalGetNowStr(timeBuf));
-    }
-    else
-    {
-        const EXP_EvalFileInfoTable* fiTable = EXP_evalFileInfoTable(ctx);
-        EXP_evalErrorFprint(stderr, fiTable, &err);
-    }
-    if (r)
-    {
-        printf("<DataStack>\n");
-        printf("-------------\n");
-        EXP_evalDataStackFprint(stdout, ctx);
-        printf("-------------\n");
-    }
-    EXP_evalContextFree(ctx);
-}
-
-
-static void execFile(const char* filename)
+static void execCode(const char* filename, const char* code)
 {
     char timeBuf[EXP_EvalTimeStrBuf_MAX];
     printf("[EXEC] \"%s\" [%s]\n", filename, EXP_evalGetNowStr(timeBuf));
     EXP_EvalContext* ctx = EXP_newEvalContext(NULL);
-    bool r = EXP_evalFile(ctx, filename, true);
+    bool r;
+    if (code)
+    {
+        r = EXP_evalCode(ctx, filename, code, true);
+    }
+    else
+    {
+        r = EXP_evalFile(ctx, filename, true);
+    }
     EXP_EvalError err = EXP_evalLastError(ctx);
     if (r)
     {
@@ -78,6 +58,8 @@ static void execFile(const char* filename)
     }
     EXP_evalContextFree(ctx);
 }
+
+
 
 
 static bool quitFlag = false;
@@ -127,7 +109,7 @@ int main(int argc, char* argv[])
             stat(entryFile, &st);
             lastMtime = st.st_mtime;
         }
-        execFile(entryFile);
+        execCode(entryFile, NULL);
         if (watchFlag)
         {
             signal(SIGINT, intHandler);
@@ -137,7 +119,7 @@ int main(int argc, char* argv[])
                 if (lastMtime != st.st_mtime)
                 {
                     printf("[CHANGE] \"%s\" [%s]\n", entryFile, EXP_evalGetNowStr(timeBuf));
-                    execFile(entryFile);
+                    execCode(entryFile, NULL);
                 }
                 lastMtime = st.st_mtime;
             }
@@ -153,7 +135,7 @@ int main(int argc, char* argv[])
             vec_push(&code, c);
         }
         vec_push(&code, 0);
-        execCode(code.data);
+        execCode("stdin", code.data);
         vec_free(&code);
     }
 
