@@ -632,7 +632,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* code, bool enableSrcInfo)
 
     if (!EXP_isSeq(space, root))
     {
-        ctx->error.code = EXP_EvalErrCode_EvalUnable;
+        ctx->error.code = EXP_EvalErrCode_EvalSyntax;
         ctx->error.file = srcInfo->nodes.data[root.id].file;
         ctx->error.line = srcInfo->nodes.data[root.id].line;
         ctx->error.column = srcInfo->nodes.data[root.id].column;
@@ -730,8 +730,8 @@ const char** EXP_EvalErrCodeNameTable(void)
         "SrcFile",
         "ExpSyntax",
         "EvalSyntax",
-        "EvalUnable",
-        "EvalUndefined",
+        "EvalUnkWord",
+        "EvalUnkCall",
         "EvalArgs",
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",

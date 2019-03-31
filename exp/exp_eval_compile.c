@@ -1109,7 +1109,7 @@ static void EXP_evalCompileNode
                         }
                     }
                 }
-                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUndefined);
+                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkWord);
                 return;
             }
         }
@@ -1207,7 +1207,7 @@ static void EXP_evalCompileNode
     }
     default:
     {
-        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkCall);
         return;
     }
     }

@@ -47,8 +47,8 @@ drop
 
 50000 2 facttail
 
-// (def ere (ere))
-// (ere)
+//(def ere (ere))
+//(synx)
 
 
 //[1 2 3 4 5]
