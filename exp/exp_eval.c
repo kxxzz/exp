@@ -47,6 +47,7 @@ typedef struct EXP_EvalContext
     EXP_EvalAfunInfoTable afunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
+    vec_u32 insDestroyTable;
 
     vec_u32 typeStack;
     EXP_EvalCallStack callStack;
@@ -126,6 +127,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->typeStack);
 
+    vec_free(&ctx->insDestroyTable);
     vec_free(&ctx->nodeTable);
     EXP_evalTypeContextFree(ctx->typeContext);
     vec_free(&ctx->afunTable);

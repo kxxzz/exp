@@ -61,7 +61,7 @@ typedef struct EXP_EvalNode
     union
     {
         u32 inDestory;
-        u32 insDestroyTable;
+        u32 insDestroyList;
     };
 } EXP_EvalNode;
 
