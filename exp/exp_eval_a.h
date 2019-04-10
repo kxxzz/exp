@@ -58,11 +58,6 @@ typedef struct EXP_EvalNode
         EXP_EvalNodeVar var;
     };
     u32 varsCount;
-    union
-    {
-        u32 inDestory;
-        u32 insDestroyList;
-    };
 } EXP_EvalNode;
 
 typedef vec_t(EXP_EvalNode) EXP_EvalNodeTable;

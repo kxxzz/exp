@@ -124,7 +124,6 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalAfunInfoTable* afunTable;
     EXP_EvalNodeTable* nodeTable;
     EXP_EvalTypeContext* typeContext;
-    vec_u32* insDestroyTable;
 
     u32 blockTableBase;
     EXP_EvalCompileBlockTable blockTable;
@@ -154,7 +153,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
 (
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
-    EXP_EvalNodeTable* nodeTable, vec_u32* insDestroyTable,
+    EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext
 )
 {
@@ -166,7 +165,6 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
     ctx->afunTable = afunTable;
     ctx->nodeTable = nodeTable;
     ctx->typeContext = typeContext;
-    ctx->insDestroyTable = insDestroyTable;
 
     u32 n = EXP_spaceNodesTotal(space);
     u32 nodeTableLength0 = nodeTable->length;
@@ -1432,7 +1430,7 @@ EXP_EvalError EXP_evalCompile
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
-    EXP_EvalNodeTable* nodeTable, vec_u32* insDestroyTable,
+    EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 )
 {
@@ -1443,7 +1441,7 @@ EXP_EvalError EXP_evalCompile
     }
     EXP_EvalCompileContext _ctx = EXP_newEvalCompileContext
     (
-        space, srcInfo, atypeTable, afunTable, nodeTable, insDestroyTable, typeContext
+        space, srcInfo, atypeTable, afunTable, nodeTable, typeContext
     );
     EXP_EvalCompileContext* ctx = &_ctx;
 
