@@ -58,8 +58,7 @@ typedef struct EXP_EvalNode
         EXP_EvalNodeVar var;
     };
     u32 varsCount;
-	bool dtVarsOff;
-	bool dtAfunInsOff;
+    u32 dtValsOff;
 } EXP_EvalNode;
 
 typedef vec_t(EXP_EvalNode) EXP_EvalNodeTable;
