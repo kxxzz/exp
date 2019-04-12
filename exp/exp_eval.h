@@ -37,12 +37,14 @@ typedef union EXP_EvalValue
 
 
 typedef bool(*EXP_EvalAtomCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
-typedef void(*EXP_EvalAtomDtor)(EXP_EvalValue* pVal);
+typedef EXP_EvalValue(*EXP_EvalAtomCopier)(EXP_EvalValue src);
+typedef void(*EXP_EvalAtomDtor)(EXP_EvalValue val);
 
 typedef struct EXP_EvalAtypeInfo
 {
     const char* name;
     EXP_EvalAtomCtorBySym ctorBySym;
+    EXP_EvalAtomCopier copier;
     EXP_EvalAtomDtor dtor;
 } EXP_EvalAtypeInfo;
 
@@ -65,8 +67,6 @@ typedef struct EXP_EvalAfunInfo
     u32 numOuts;
     u32 outAtype[EXP_EvalAfunOuts_MAX];
 } EXP_EvalAfunInfo;
-
-
 
 
 
@@ -171,7 +171,7 @@ EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx);
 
 
 
-void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue* val);
+void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue val);
 void EXP_evalDrop(EXP_EvalContext* ctx);
 
 

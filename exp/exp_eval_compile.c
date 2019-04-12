@@ -120,8 +120,8 @@ typedef struct EXP_EvalCompileContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo* srcInfo;
-    EXP_EvalAtypeInfoTable* atypeTable;
-    EXP_EvalAfunInfoTable* afunTable;
+    EXP_EvalAtypeInfoVec* atypeTable;
+    EXP_EvalAfunInfoVec* afunTable;
     EXP_EvalNodeTable* nodeTable;
     EXP_EvalTypeContext* typeContext;
 
@@ -152,7 +152,7 @@ typedef struct EXP_EvalCompileContext
 static EXP_EvalCompileContext EXP_newEvalCompileContext
 (
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
+    EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext
 )
@@ -1429,7 +1429,7 @@ next:
 EXP_EvalError EXP_evalCompile
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
+    EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 )

@@ -38,19 +38,28 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
+typedef struct EXP_EvalVar
+{
+    u32 type;
+    EXP_EvalValue val;
+} EXP_EvalVar;
+
+typedef vec_t(EXP_EvalVar) EXP_EvalVarStack;
+
+
 
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
-    EXP_EvalAtypeInfoTable atypeTable;
-    EXP_EvalAfunInfoTable afunTable;
+    EXP_EvalAtypeInfoVec atypeTable;
+    EXP_EvalAfunInfoVec afunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
 
     vec_u32 typeStack;
     EXP_EvalCallStack callStack;
-    EXP_EvalValueVec varStack;
+    EXP_EvalVarStack varStack;
     EXP_EvalValueVec dataStack;
 
     EXP_EvalError error;
@@ -92,6 +101,9 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 }
 
 
+static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* atypeTable, u32 typeId, EXP_EvalValue val);
+
+
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->fileInfoTable);
@@ -102,23 +114,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     {
         u32 t = typeStack->data[i];
         EXP_EvalValue v = dataStack->data[i];
-        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
-        switch (desc->type)
-        {
-        case EXP_EvalTypeType_Atom:
-        {
-            EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + desc->atom;
-            if (atypeInfo->dtor)
-            {
-                atypeInfo->dtor(&v);
-            }
-            break;
-        }
-        default:
-            // todo
-            assert(false);
-            break;
-        }
+        EXP_evalValueDtor(ctx->typeContext, &ctx->atypeTable, t, v);
     }
 
     vec_free(&ctx->dataStack);
@@ -175,10 +171,55 @@ EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx)
 
 
 
-void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue* val)
+
+
+
+static EXP_EvalValue EXP_evalValueCopier(EXP_EvalTypeContext* ctx, u32 typeId, EXP_EvalValue src)
+{
+    EXP_EvalValue dup = { 0 };
+    return dup;
+}
+
+
+static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* atypeTable, u32 typeId, EXP_EvalValue val)
+{
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(ctx, typeId);
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + desc->atom;
+        if (atypeInfo->dtor)
+        {
+            atypeInfo->dtor(val);
+        }
+        break;
+    }
+    default:
+        // todo
+        assert(false);
+        break;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue val)
 {
     vec_push(&ctx->typeStack, type);
-    vec_push(&ctx->dataStack, *val);
+    EXP_EvalValue val1 = EXP_evalValueCopier(ctx->typeContext, type, val);
+    vec_push(&ctx->dataStack, val1);
 }
 
 void EXP_evalDrop(EXP_EvalContext* ctx)
@@ -186,6 +227,9 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
     assert(ctx->typeStack.length > 0);
     assert(ctx->dataStack.length > 0);
     assert(ctx->typeStack.length == ctx->dataStack.length);
+    u32 t = vec_last(&ctx->typeStack);
+    EXP_EvalValue v = vec_last(&ctx->dataStack);
+    EXP_evalValueDtor(ctx->typeContext, &ctx->atypeTable, t, v);
     vec_pop(&ctx->typeStack);
     vec_pop(&ctx->dataStack);
 }
@@ -223,12 +267,12 @@ static void EXP_evalDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, E
 
 
 
-static EXP_EvalValue* EXP_evalGetVarValue(EXP_EvalContext* ctx, const EXP_EvalNodeVar* evar)
+static EXP_EvalVar* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar* evar)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
     EXP_EvalCallStack* callStack = &ctx->callStack;
-    EXP_EvalValueVec* varStack = &ctx->varStack;
+    EXP_EvalVarStack* varStack = &ctx->varStack;
     u32 offset = varStack->length;
     for (u32 i = 0; i < callStack->length; ++i)
     {
@@ -239,7 +283,7 @@ static EXP_EvalValue* EXP_evalGetVarValue(EXP_EvalContext* ctx, const EXP_EvalNo
         if (evar->block.id == call->srcNode.id)
         {
             offset += evar->id;
-            return varStack->data + offset;
+            return &varStack->data[offset];
         }
     }
     return NULL;
@@ -279,7 +323,15 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalNode* enode = ctx->nodeTable.data + curCall->srcNode.id;
     assert(ctx->varStack.length >= enode->varsCount);
-    vec_resize(&ctx->varStack, ctx->varStack.length - enode->varsCount);
+    u32 varStackLength1 = ctx->varStack.length - enode->varsCount;
+    for (u32 i = varStackLength1; i < ctx->varStack.length; ++i)
+    {
+        EXP_EvalVar* var = ctx->varStack.data + i;
+        u32 t = var->type;
+        EXP_EvalValue v = var->val;
+        EXP_evalValueDtor(ctx->typeContext, &ctx->atypeTable, t, v);
+    }
+    vec_resize(&ctx->varStack, varStackLength1);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }
@@ -311,8 +363,16 @@ static void EXP_evalAfunCall
 {
     EXP_Space* space = ctx->space;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+
     u32 argsOffset = dataStack->length - afunInfo->numIns;
     afunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
+    for (u32 i = 0; i < afunInfo->numIns; ++i)
+    {
+        u32 t = EXP_evalTypeAtom(typeContext, afunInfo->inAtype[i]);
+        EXP_EvalValue v = dataStack->data[argsOffset + i];
+        EXP_evalValueDtor(typeContext, &ctx->atypeTable, t, v);
+    }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < afunInfo->numOuts; ++i)
     {
@@ -334,6 +394,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_EvalCall* curCall;
     EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
 next:
     if (ctx->error.code)
     {
@@ -418,6 +479,7 @@ next:
     {
         assert(EXP_isTok(space, node));
         assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
+        EXP_Node* begin = curCall->p;
         for (u32 n = 0;;)
         {
             assert(curCall->p < curCall->end);
@@ -431,14 +493,23 @@ next:
                 for (u32 i = 0; i < n; ++i)
                 {
                     EXP_EvalValue val = dataStack->data[off + i];
-                    vec_push(&ctx->varStack, val);
+                    EXP_EvalNode* eval = nodeTable->data + begin[0].id;
+                    EXP_EvalValue val1 = EXP_evalValueCopier(typeContext, eval->valType, val);
+                    EXP_EvalVar var = { eval->valType, val1 };
+                    vec_push(&ctx->varStack, var);
+                }
+                for (u32 i = off; i < dataStack->length; ++i)
+                {
+                    EXP_EvalValue val = dataStack->data[off + i];
+                    EXP_EvalNode* eval = nodeTable->data + begin[0].id;
+                    EXP_evalValueDtor(typeContext, &ctx->atypeTable, eval->valType, val);
                 }
                 vec_resize(dataStack, off);
                 goto next;
             }
             else
             {
-                assert(EXP_EvalNodeType_None == enode->type);
+                assert(EXP_EvalNodeType_VarDefCopy == enode->type);
             }
             ++n;
         }
@@ -447,6 +518,9 @@ next:
     {
         assert(EXP_isTok(space, node));
         assert(dataStack->length > 0);
+        u32 t = enode->valType;
+        EXP_EvalValue v = vec_last(dataStack);
+        EXP_evalValueDtor(typeContext, &ctx->atypeTable, t, v);
         vec_pop(dataStack);
         goto next;
     }
@@ -462,8 +536,9 @@ next:
     case EXP_EvalNodeType_Var:
     {
         assert(EXP_isTok(space, node));
-        EXP_EvalValue* v = EXP_evalGetVarValue(ctx, &enode->var);
-        vec_push(dataStack, *v);
+        EXP_EvalVar* var = EXP_evalGetVar(ctx, &enode->var);
+        EXP_EvalValue val1 = EXP_evalValueCopier(typeContext, var->type, var->val);
+        vec_push(dataStack, val1);
         goto next;
     }
     case EXP_EvalNodeType_Fun:
@@ -479,8 +554,10 @@ next:
     case EXP_EvalNodeType_Value:
     {
         assert(EXP_isTok(space, node));
+        u32 t = enode->valType;
         EXP_EvalValue v = enode->value;
-        vec_push(dataStack, v);
+        EXP_EvalValue v1 = EXP_evalValueCopier(typeContext, t, v);
+        vec_push(dataStack, v1);
         goto next;
     }
     case EXP_EvalNodeType_String:
@@ -589,7 +666,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 EXP_EvalError EXP_evalCompile
 (
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalAtypeInfoTable* atypeTable, EXP_EvalAfunInfoTable* afunTable,
+    EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable,
     EXP_EvalNodeTable* nodeTable,
     EXP_EvalTypeContext* typeContext, vec_u32* typeStack
 );

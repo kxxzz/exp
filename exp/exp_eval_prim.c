@@ -54,11 +54,18 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
-
-static void EXP_evalStringDtor(EXP_EvalValue* pVal)
+static EXP_EvalValue EXP_evalStringCopier(EXP_EvalValue src)
 {
-    vec_free(pVal->s);
-    free(pVal->s);
+    EXP_EvalValue dst = { 0 };
+    dst.s = (vec_char*)zalloc(sizeof(vec_char));
+    vec_dup(dst.s, src.s);
+    return dst;
+}
+
+static void EXP_evalStringDtor(EXP_EvalValue val)
+{
+    vec_free(val.s);
+    free(val.s);
 }
 
 
@@ -69,7 +76,7 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
     {
         { "bool", EXP_evalBoolFromSym },
         { "float", EXP_evalFloatFromSym },
-        { "string", NULL, EXP_evalStringDtor },
+        { "string", NULL, EXP_evalStringCopier, EXP_evalStringDtor },
     };
     return a;
 }
