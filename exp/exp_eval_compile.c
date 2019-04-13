@@ -959,6 +959,10 @@ static void EXP_evalCompileNode
                                 EXP_EvalCompileDef def = { ctx->varKeyBuf.data[i], true, .var = var };
                                 vec_push(&curBlock->defs, def);
                                 ++curBlock->varsCount;
+
+                                EXP_EvalNode* enode = nodeTable->data + ctx->varKeyBuf.data[i].id;
+                                enode->type = EXP_EvalNodeType_VarDefCopy;
+                                enode->valType = vt;
                             }
                             assert(n <= dataStack->length);
                             vec_resize(dataStack, off);
@@ -998,6 +1002,7 @@ static void EXP_evalCompileNode
                     }
                 }
                 u32 t = vec_last(dataStack);
+                enode->valType = t;
                 vec_pop(dataStack);
                 if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
                 {
@@ -1104,6 +1109,7 @@ static void EXP_evalCompileNode
                             enode->type = EXP_EvalNodeType_Value;
                             enode->value = v;
                             u32 t = EXP_evalTypeAtom(ctx->typeContext, j);
+                            enode->valType = t;
                             vec_push(dataStack, t);
                             return;
                         }

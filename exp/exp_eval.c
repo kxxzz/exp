@@ -176,8 +176,8 @@ EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx)
 
 static EXP_EvalValue EXP_evalValueCopier(EXP_EvalTypeContext* ctx, u32 typeId, EXP_EvalValue src)
 {
-    EXP_EvalValue dup = { 0 };
-    return dup;
+    EXP_EvalValue dst = { 0 };
+    return dst;
 }
 
 
@@ -186,6 +186,11 @@ static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* at
     const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(ctx, typeId);
     switch (desc->type)
     {
+    case EXP_EvalTypeType_Var:
+    {
+        assert(false);
+        break;
+    }
     case EXP_EvalTypeType_Atom:
     {
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + desc->atom;
