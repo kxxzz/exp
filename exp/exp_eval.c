@@ -554,7 +554,7 @@ next:
         }
         else
         {
-            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalCtorByStr);
+            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalAtomCtorByStr);
         }
         goto next;
     }
@@ -803,7 +803,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",
         "EvalUnification",
-        "EvalCtorByStr",
+        "EvalAtomCtorByStr",
     };
     return a;
 }

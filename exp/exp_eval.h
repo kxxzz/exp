@@ -133,7 +133,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_EvalBranchUneq,
     EXP_EvalErrCode_EvalRecurNoBaseCase,
     EXP_EvalErrCode_EvalUnification,
-    EXP_EvalErrCode_EvalCtorByStr,
+    EXP_EvalErrCode_EvalAtomCtorByStr,
 
     EXP_NumEvalErrorCodes
 } EXP_EvalErrCode;
