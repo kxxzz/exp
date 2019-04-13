@@ -229,8 +229,7 @@ static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* at
 void EXP_evalPushValue(EXP_EvalContext* ctx, u32 type, EXP_EvalValue val)
 {
     vec_push(&ctx->typeStack, type);
-    EXP_EvalValue val1 = EXP_evalValueCopier(ctx->typeContext, type, val);
-    vec_push(&ctx->dataStack, val1);
+    vec_push(&ctx->dataStack, val);
 }
 
 void EXP_evalDrop(EXP_EvalContext* ctx)
@@ -238,9 +237,6 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
     assert(ctx->typeStack.length > 0);
     assert(ctx->dataStack.length > 0);
     assert(ctx->typeStack.length == ctx->dataStack.length);
-    u32 t = vec_last(&ctx->typeStack);
-    EXP_EvalValue v = vec_last(&ctx->dataStack);
-    EXP_evalValueDtor(ctx->typeContext, &ctx->atypeTable, t, v);
     vec_pop(&ctx->typeStack);
     vec_pop(&ctx->dataStack);
 }
@@ -371,12 +367,6 @@ static void EXP_evalAfunCall
 
     u32 argsOffset = dataStack->length - afunInfo->numIns;
     afunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
-    for (u32 i = 0; i < afunInfo->numIns; ++i)
-    {
-        u32 t = EXP_evalTypeAtom(typeContext, afunInfo->inAtype[i]);
-        EXP_EvalValue v = dataStack->data[argsOffset + i];
-        EXP_evalValueDtor(typeContext, &ctx->atypeTable, t, v);
-    }
     vec_resize(dataStack, argsOffset);
     for (u32 i = 0; i < afunInfo->numOuts; ++i)
     {
