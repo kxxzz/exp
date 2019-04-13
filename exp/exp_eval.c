@@ -548,13 +548,13 @@ next:
         u32 l = EXP_tokSize(space, node);
         const char* s = EXP_tokCstr(space, node);
         EXP_EvalValue v = { 0 };
-        if (ctx->atypeTable.data[enode->atype].ctorBySym(l, s, &v))
+        if (ctx->atypeTable.data[enode->atype].ctorByStr(l, s, &v))
         {
             vec_push(dataStack, v);
         }
         else
         {
-            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalCtorBySym);
+            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalCtorByStr);
         }
         goto next;
     }
@@ -720,6 +720,10 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
         return false;
     }
     EXP_evalBlock(ctx, root);
+    if (ctx->error.code)
+    {
+        return false;
+    }
     return true;
 }
 
@@ -799,7 +803,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",
         "EvalUnification",
-        "EvalCtorBySym",
+        "EvalCtorByStr",
     };
     return a;
 }

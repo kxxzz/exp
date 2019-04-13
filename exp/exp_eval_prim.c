@@ -21,7 +21,7 @@ const char** EXP_EvalKeyNameTable(void)
 
 
 
-static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalBoolFromStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (0 == strncmp(str, "true", len))
     {
@@ -36,7 +36,7 @@ static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
     return false;
 }
 
-static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalFloatFromStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     f64 f;
     u32 r = NSTR_str2num(&f, str, len, NULL);
@@ -54,7 +54,7 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
-static bool EXP_evalStringFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalStringFromStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (pVal)
     {
@@ -80,9 +80,9 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 {
     static const EXP_EvalAtypeInfo a[EXP_NumEvalPrimTypes] =
     {
-        { "bool", EXP_evalBoolFromSym },
-        { "float", EXP_evalFloatFromSym },
-        { "string", EXP_evalStringFromSym, EXP_evalStringDtor },
+        { "bool", EXP_evalBoolFromStr, NULL, true },
+        { "float", EXP_evalFloatFromStr, NULL, true },
+        { "string", EXP_evalStringFromStr, EXP_evalStringDtor },
     };
     return a;
 }

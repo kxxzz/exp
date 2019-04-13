@@ -35,14 +35,15 @@ typedef union EXP_EvalValue
 } EXP_EvalValue;
 
 
-typedef bool(*EXP_EvalAtomCtorBySym)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef bool(*EXP_EvalAtomCtorByStr)(u32 len, const char* str, EXP_EvalValue* pVal);
 typedef void(*EXP_EvalAtomDtor)(EXP_EvalValue val);
 
 typedef struct EXP_EvalAtypeInfo
 {
     const char* name;
-    EXP_EvalAtomCtorBySym ctorBySym;
+    EXP_EvalAtomCtorByStr ctorByStr;
     EXP_EvalAtomDtor dtor;
+    bool enableCtorBySym;
 } EXP_EvalAtypeInfo;
 
 
@@ -132,7 +133,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_EvalBranchUneq,
     EXP_EvalErrCode_EvalRecurNoBaseCase,
     EXP_EvalErrCode_EvalUnification,
-    EXP_EvalErrCode_EvalCtorBySym,
+    EXP_EvalErrCode_EvalCtorByStr,
 
     EXP_NumEvalErrorCodes
 } EXP_EvalErrCode;
