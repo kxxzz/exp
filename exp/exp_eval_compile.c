@@ -1095,7 +1095,7 @@ static void EXP_evalCompileNode
                 for (u32 i = 0; i < ctx->atypeTable->length; ++i)
                 {
                     u32 j = ctx->atypeTable->length - 1 - i;
-                    if (ctx->atypeTable->data[j].enableCtorBySym)
+                    if (ctx->atypeTable->data[j].fromSymAble)
                     {
                         assert(ctx->atypeTable->data[j].ctorByStr);
                         u32 l = EXP_tokSize(space, node);
