@@ -24,7 +24,6 @@ typedef enum EXP_EvalNodeType
 
     EXP_EvalNodeType_VarDefBegin,
     EXP_EvalNodeType_VarDefEnd,
-    EXP_EvalNodeType_VarDefCopy,
     EXP_EvalNodeType_Drop,
     EXP_EvalNodeType_Afun,
 
@@ -58,7 +57,6 @@ typedef struct EXP_EvalNode
         EXP_EvalValue value;
         EXP_EvalNodeVar var;
     };
-    u32 valType;
     u32 varsCount;
 } EXP_EvalNode;
 
