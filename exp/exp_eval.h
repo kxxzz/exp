@@ -43,7 +43,7 @@ typedef struct EXP_EvalAtypeInfo
     const char* name;
     EXP_EvalAtomCtorByStr ctorByStr;
     EXP_EvalAtomDtor dtor;
-    bool enableCtorBySym;
+    bool ctorBySymAble;
 } EXP_EvalAtypeInfo;
 
 

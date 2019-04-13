@@ -554,7 +554,8 @@ next:
         }
         else
         {
-            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalAtomCtorByStr);
+            assert(false);
+            //EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalAtomCtorByStr);
         }
         goto next;
     }
