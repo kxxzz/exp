@@ -38,7 +38,7 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
             }
             case EXP_EvalPrimType_STRING:
             {
-                const char* s = v.s->data;
+                const char* s = ((vec_char*)(v.p))->data;
                 fprintf(f, "\"%s\"\n", s);
                 break;
             }

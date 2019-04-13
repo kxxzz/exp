@@ -29,8 +29,6 @@ typedef union EXP_EvalValue
 {
     bool b;
     f64 f;
-    vec_char* s;
-    EXP_EvalValueVec* v;
     void* p;
 } EXP_EvalValue;
 
@@ -44,7 +42,7 @@ typedef struct EXP_EvalAtypeInfo
     EXP_EvalAtomCtorByStr ctorByStr;
     EXP_EvalAtomDtor dtor;
     bool fromSymAble;
-    bool gcMem;
+    bool ownMem;
 } EXP_EvalAtypeInfo;
 
 

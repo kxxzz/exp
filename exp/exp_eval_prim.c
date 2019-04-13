@@ -58,17 +58,19 @@ static bool EXP_evalStringByStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (pVal)
     {
-        pVal->s = (vec_char*)zalloc(sizeof(vec_char));
-        vec_pusharr(pVal->s, str, len);
-        vec_push(pVal->s, 0);
+        vec_char* s = (vec_char*)zalloc(sizeof(vec_char));
+        vec_pusharr(s, str, len);
+        vec_push(s, 0);
+        pVal->p = s;
     }
     return true;
 }
 
 static void EXP_evalStringDtor(EXP_EvalValue val)
 {
-    vec_free(val.s);
-    free(val.s);
+    vec_char* s = val.p;
+    vec_free(s);
+    free(val.p);
 }
 
 
