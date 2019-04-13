@@ -126,6 +126,22 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 
 
+static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
+{
+    ctx->error.code = errCode;
+    EXP_SpaceSrcInfo* srcInfo = &ctx->srcInfo;
+    if (srcInfo)
+    {
+        assert(node.id < srcInfo->nodes.length);
+        EXP_NodeSrcInfo* nodeSrcInfo = srcInfo->nodes.data + node.id;
+        ctx->error.file = nodeSrcInfo->file;
+        ctx->error.line = nodeSrcInfo->line;
+        ctx->error.column = nodeSrcInfo->column;
+    }
+}
+
+
+
 
 
 
@@ -526,23 +542,20 @@ next:
         EXP_evalEnterBlock(ctx, bodyLen, body, funDef);
         goto next;
     }
-    case EXP_EvalNodeType_Value:
+    case EXP_EvalNodeType_Atom:
     {
         assert(EXP_isTok(space, node));
-        EXP_EvalValue v = enode->value;
-        vec_push(dataStack, v);
-        goto next;
-    }
-    case EXP_EvalNodeType_String:
-    {
-        assert(EXP_isTok(space, node));
-        EXP_EvalValue v = { 0 };
         u32 l = EXP_tokSize(space, node);
         const char* s = EXP_tokCstr(space, node);
-        v.s = (vec_char*)zalloc(sizeof(vec_char));
-        vec_pusharr(v.s, s, l);
-        vec_push(v.s, 0);
-        vec_push(dataStack, v);
+        EXP_EvalValue v = { 0 };
+        if (ctx->atypeTable.data[enode->atype].ctorBySym(l, s, &v))
+        {
+            vec_push(dataStack, v);
+        }
+        else
+        {
+            EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalCtorBySym);
+        }
         goto next;
     }
     case EXP_EvalNodeType_CallVar:
@@ -786,6 +799,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",
         "EvalUnification",
+        "EvalCtorBySym",
     };
     return a;
 }

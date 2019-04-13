@@ -29,8 +29,7 @@ typedef enum EXP_EvalNodeType
 
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Fun,
-    EXP_EvalNodeType_Value,
-    EXP_EvalNodeType_String,
+    EXP_EvalNodeType_Atom,
 
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallFun,
@@ -53,8 +52,8 @@ typedef struct EXP_EvalNode
     union
     {
         u32 afun;
+        u32 atype;
         EXP_Node funDef;
-        EXP_EvalValue value;
         EXP_EvalNodeVar var;
     };
     u32 varsCount;

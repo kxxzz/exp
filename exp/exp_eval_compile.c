@@ -892,7 +892,7 @@ static void EXP_evalCompileNode
     {
         if (EXP_tokQuoted(space, node))
         {
-            enode->type = EXP_EvalNodeType_String;
+            enode->type = EXP_EvalNodeType_Atom;
             u32 t = EXP_evalTypeAtom(ctx->typeContext, EXP_EvalPrimType_STRING);
             vec_push(dataStack, t);
             return;
@@ -1098,11 +1098,9 @@ static void EXP_evalCompileNode
                     {
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
-                        EXP_EvalValue v = { 0 };
-                        if (ctx->atypeTable->data[j].ctorBySym(l, s, &v))
+                        if (ctx->atypeTable->data[j].ctorBySym(l, s, NULL))
                         {
-                            enode->type = EXP_EvalNodeType_Value;
-                            enode->value = v;
+                            enode->type = EXP_EvalNodeType_Atom;
                             u32 t = EXP_evalTypeAtom(ctx->typeContext, j);
                             vec_push(dataStack, t);
                             return;

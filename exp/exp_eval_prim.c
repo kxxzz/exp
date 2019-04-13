@@ -25,12 +25,12 @@ static bool EXP_evalBoolFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (0 == strncmp(str, "true", len))
     {
-        pVal->b = true;
+        if (pVal) pVal->b = true;
         return true;
     }
     if (0 == strncmp(str, "false", len))
     {
-        pVal->b = true;
+        if (pVal) pVal->b = true;
         return true;
     }
     return false;
@@ -46,7 +46,7 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
     }
     if (len == r)
     {
-        pVal->f = f;
+        if (pVal) pVal->f = f;
     }
     return len == r;
 }
@@ -54,6 +54,16 @@ static bool EXP_evalFloatFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
+static bool EXP_evalStringFromSym(u32 len, const char* str, EXP_EvalValue* pVal)
+{
+    if (pVal)
+    {
+        pVal->s = (vec_char*)zalloc(sizeof(vec_char));
+        vec_pusharr(pVal->s, str, len);
+        vec_push(pVal->s, 0);
+    }
+    return true;
+}
 
 static void EXP_evalStringDtor(EXP_EvalValue val)
 {
@@ -63,13 +73,16 @@ static void EXP_evalStringDtor(EXP_EvalValue val)
 
 
 
+
+
+
 const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 {
     static const EXP_EvalAtypeInfo a[EXP_NumEvalPrimTypes] =
     {
         { "bool", EXP_evalBoolFromSym },
         { "float", EXP_evalFloatFromSym },
-        { "string", NULL, EXP_evalStringDtor },
+        { "string", EXP_evalStringFromSym, EXP_evalStringDtor },
     };
     return a;
 }
