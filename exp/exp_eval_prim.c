@@ -58,10 +58,9 @@ static bool EXP_evalStringByStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (pVal)
     {
-        vec_char* s = (vec_char*)zalloc(sizeof(vec_char));
+        vec_char* s = pVal->p;
         vec_pusharr(s, str, len);
         vec_push(s, 0);
-        pVal->p = s;
     }
     return true;
 }
@@ -84,7 +83,7 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
     {
         { "bool", EXP_evalBoolByStr, NULL, true },
         { "float", EXP_evalFloatByStr, NULL, true },
-        { "string", EXP_evalStringByStr, EXP_evalStringDtor, false, true },
+        { "string", EXP_evalStringByStr, EXP_evalStringDtor, false, sizeof(vec_char) },
     };
     return a;
 }

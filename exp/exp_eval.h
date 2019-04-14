@@ -42,7 +42,7 @@ typedef struct EXP_EvalAtypeInfo
     EXP_EvalAtomCtorByStr ctorByStr;
     EXP_EvalAtomDtor dtor;
     bool fromSymAble;
-    bool ownMem;
+    u32 ownMemSize;
 } EXP_EvalAtypeInfo;
 
 

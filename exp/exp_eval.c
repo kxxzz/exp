@@ -389,6 +389,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
 next:
     if (ctx->error.code)
     {
@@ -538,6 +539,11 @@ next:
         u32 l = EXP_tokSize(space, node);
         const char* s = EXP_tokCstr(space, node);
         EXP_EvalValue v = { 0 };
+        EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + enode->atype;
+        if (atypeInfo->ownMemSize > 0)
+        {
+            v.p = zalloc(align(atypeInfo->ownMemSize, 8) + 4);
+        }
         if (ctx->atypeTable.data[enode->atype].ctorByStr(l, s, &v))
         {
             vec_push(dataStack, v);

@@ -65,7 +65,10 @@ static char* stzncpy(char* dst, char const* src, u32 len)
 
 
 
-
+static u32 align(u32 x, u32 a)
+{
+    return (x + a - 1) / a * a;
+}
 
 
 
