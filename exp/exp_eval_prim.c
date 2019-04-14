@@ -65,11 +65,10 @@ static bool EXP_evalStringByStr(u32 len, const char* str, EXP_EvalValue* pVal)
     return true;
 }
 
-static void EXP_evalStringDtor(EXP_EvalValue val)
+static void EXP_evalStringDtor(void* ptr)
 {
-    vec_char* s = val.p;
+    vec_char* s = ptr;
     vec_free(s);
-    free(val.p);
 }
 
 
@@ -81,9 +80,9 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 {
     static const EXP_EvalAtypeInfo a[EXP_NumEvalPrimTypes] =
     {
-        { "bool", EXP_evalBoolByStr, NULL, true },
-        { "float", EXP_evalFloatByStr, NULL, true },
-        { "string", EXP_evalStringByStr, EXP_evalStringDtor, false, sizeof(vec_char) },
+        { "bool", EXP_evalBoolByStr, true, NULL },
+        { "float", EXP_evalFloatByStr, true, NULL },
+        { "string", EXP_evalStringByStr, false, EXP_evalStringDtor, sizeof(vec_char) },
     };
     return a;
 }

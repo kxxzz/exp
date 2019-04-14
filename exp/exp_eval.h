@@ -34,15 +34,15 @@ typedef union EXP_EvalValue
 
 
 typedef bool(*EXP_EvalAtomCtorByStr)(u32 len, const char* str, EXP_EvalValue* pVal);
-typedef void(*EXP_EvalAtomDtor)(EXP_EvalValue val);
+typedef void(*EXP_EvalAtomDtor)(void* ptr);
 
 typedef struct EXP_EvalAtypeInfo
 {
     const char* name;
     EXP_EvalAtomCtorByStr ctorByStr;
-    EXP_EvalAtomDtor dtor;
     bool fromSymAble;
-    u32 ownMemSize;
+    EXP_EvalAtomDtor dtor;
+    u32 allocMemSize;
 } EXP_EvalAtypeInfo;
 
 

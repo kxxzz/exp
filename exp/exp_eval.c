@@ -3,6 +3,13 @@
 
 
 
+enum
+{
+    EXP_EvalAtomAllocMemOffset = 8,
+    EXP_EvalAtomAllocMemAlign = 8,
+};
+
+
 
 typedef enum EXP_EvalBlockCallbackType
 {
@@ -38,6 +45,10 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
+typedef vec_t(vec_ptr) EXP_AtomMemTable;
+
+
+
 typedef struct EXP_EvalContext
 {
     EXP_Space* space;
@@ -46,6 +57,7 @@ typedef struct EXP_EvalContext
     EXP_EvalAfunInfoVec afunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
+    EXP_AtomMemTable atomMemTable;
 
     vec_u32 typeStack;
     EXP_EvalCallStack callStack;
@@ -86,31 +98,50 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
             vec_push(&ctx->afunTable, addAtomTable->funs[i]);
         }
     }
+    vec_resize(&ctx->atomMemTable, ctx->atypeTable.length);
+    memset(ctx->atomMemTable.data, 0, sizeof(ctx->atomMemTable.data[0])*ctx->atomMemTable.length);
     ctx->typeContext = EXP_newEvalTypeContext();
     return ctx;
 }
 
 
-static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* atypeTable, u32 typeId, EXP_EvalValue val);
 
 
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->fileInfoTable);
 
-    vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
-    EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
-    for (u32 i = 0; i < dataStack->length; ++i)
-    {
-        u32 t = typeStack->data[i];
-        EXP_EvalValue v = dataStack->data[i];
-        EXP_evalValueDtor(ctx->typeContext, &ctx->atypeTable, t, v);
-    }
-
     vec_free(&ctx->dataStack);
     vec_free(&ctx->varStack);
     vec_free(&ctx->callStack);
     vec_free(&ctx->typeStack);
+
+    for (u32 i = 0; i < ctx->atomMemTable.length; ++i)
+    {
+        vec_ptr* ptrVec = ctx->atomMemTable.data + i;
+        EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
+        if (atypeInfo->dtor || (atypeInfo->allocMemSize > 0))
+        {
+            for (u32 i = 0; i < ptrVec->length; ++i)
+            {
+                if (atypeInfo->dtor)
+                {
+                    atypeInfo->dtor((char*)ptrVec->data[i] + EXP_EvalAtomAllocMemOffset);
+                }
+                if (atypeInfo->allocMemSize > 0)
+                {
+                    free(ptrVec->data[i]);
+                }
+            }
+        }
+        else
+        {
+            assert(0 == atypeInfo->allocMemSize);
+            assert(0 == ptrVec->length);
+        }
+        vec_free(ptrVec);
+    }
+    vec_free(&ctx->atomMemTable);
 
     vec_free(&ctx->nodeTable);
     EXP_evalTypeContextFree(ctx->typeContext);
@@ -180,45 +211,6 @@ EXP_EvalValueVec* EXP_evalDataStack(EXP_EvalContext* ctx)
 
 
 
-static EXP_EvalValue EXP_evalValueCopier(EXP_EvalTypeContext* ctx, u32 typeId, EXP_EvalValue src)
-{
-    EXP_EvalValue dst = { 0 };
-    return dst;
-}
-
-
-static void EXP_evalValueDtor(EXP_EvalTypeContext* ctx, EXP_EvalAtypeInfoVec* atypeTable, u32 typeId, EXP_EvalValue val)
-{
-    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(ctx, typeId);
-    switch (desc->type)
-    {
-    case EXP_EvalTypeType_Var:
-    {
-        assert(false);
-        break;
-    }
-    case EXP_EvalTypeType_Atom:
-    {
-        EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + desc->atom;
-        if (atypeInfo->dtor)
-        {
-            atypeInfo->dtor(val);
-        }
-        break;
-    }
-    default:
-        // todo
-        assert(false);
-        break;
-    }
-}
-
-
-
-
-
-
-
 
 
 
@@ -240,6 +232,54 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
     vec_pop(&ctx->typeStack);
     vec_pop(&ctx->dataStack);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void EXP_evalGC(EXP_EvalContext* ctx)
+{
+    for (u32 i = 0; i < ctx->atomMemTable.length; ++i)
+    {
+        vec_ptr* ptrVec = ctx->atomMemTable.data + i;
+        EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
+        if (atypeInfo->dtor || (atypeInfo->allocMemSize > 0))
+        {
+            for (u32 i = 0; i < ptrVec->length; ++i)
+            {
+                u32 gcFlag = *(u32*)ptrVec->data[i];
+                if (gcFlag)
+                {
+                    if (atypeInfo->dtor)
+                    {
+                        atypeInfo->dtor(ptrVec->data[i]);
+                    }
+                    if (atypeInfo->allocMemSize > 0)
+                    {
+                        free(ptrVec->data[i]);
+                    }
+                }
+            }
+        }
+        else
+        {
+            assert(0 == atypeInfo->allocMemSize);
+            assert(0 == ptrVec->length);
+        }
+    }
+}
+
+
+
+
 
 
 
@@ -540,9 +580,12 @@ next:
         const char* s = EXP_tokCstr(space, node);
         EXP_EvalValue v = { 0 };
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + enode->atype;
-        if (atypeInfo->ownMemSize > 0)
+        if (atypeInfo->allocMemSize > 0)
         {
-            v.p = zalloc(align(atypeInfo->ownMemSize, 8) + 4);
+            char* ptr = (char*)zalloc(EXP_EvalAtomAllocMemOffset + align(atypeInfo->allocMemSize, EXP_EvalAtomAllocMemAlign));
+            v.p = ptr + EXP_EvalAtomAllocMemOffset;
+            vec_ptr* ptrVec = ctx->atomMemTable.data + enode->atype;
+            vec_push(ptrVec, ptr);
         }
         if (ctx->atypeTable.data[enode->atype].ctorByStr(l, s, &v))
         {
