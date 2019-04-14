@@ -23,13 +23,17 @@ const char** EXP_EvalKeyNameTable(void);
 
 
 
-typedef vec_t(union EXP_EvalValue) EXP_EvalValueVec;
+typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
 
-typedef union EXP_EvalValue
+typedef struct EXP_EvalValue
 {
-    bool b;
-    f64 f;
-    void* p;
+    union
+    {
+        bool b;
+        f64 f;
+        void* p;
+    };
+    bool allocated;
 } EXP_EvalValue;
 
 

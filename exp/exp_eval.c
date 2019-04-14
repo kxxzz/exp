@@ -66,6 +66,7 @@ typedef struct EXP_EvalContext
 
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
+    bool gcMask;
 
     EXP_EvalFileInfoTable fileInfoTable;
 } EXP_EvalContext;
@@ -245,18 +246,53 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
 
 
 
+
+
+
+
+
+
+static void EXP_evalSetGcMask(EXP_EvalContext* ctx, EXP_EvalValue v)
+{
+    if (v.allocated)
+    {
+        u32* pMask = (u32*)((char*)v.p - EXP_EvalAtomAllocMemOffset);
+        if (*pMask != ctx->gcMask)
+        {
+            *pMask = ctx->gcMask;
+        }
+    }
+}
+
+
 static void EXP_evalGC(EXP_EvalContext* ctx)
 {
-    for (u32 i = 0; i < ctx->atomMemTable.length; ++i)
+    EXP_EvalValueVec* varStack = &ctx->varStack;
+    EXP_EvalValueVec* dataStack = &ctx->dataStack;
+    EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
+    EXP_AtomMemTable* atomMemTable = &ctx->atomMemTable;
+
+    ctx->gcMask = !ctx->gcMask;
+
+    for (u32 i = 0; i < varStack->length; ++i)
     {
-        vec_ptr* ptrVec = ctx->atomMemTable.data + i;
-        EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
+        EXP_evalSetGcMask(ctx, varStack->data[i]);
+    }
+    for (u32 i = 0; i < dataStack->length; ++i)
+    {
+        EXP_evalSetGcMask(ctx, dataStack->data[i]);
+    }
+
+    for (u32 i = 0; i < atomMemTable->length; ++i)
+    {
+        vec_ptr* ptrVec = atomMemTable->data + i;
+        EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + i;
         if ((atypeInfo->allocMemSize > 0) || atypeInfo->ptrDtor)
         {
             for (u32 i = 0; i < ptrVec->length; ++i)
             {
-                u32 c = *(u32*)ptrVec->data[i];
-                if (c)
+                u32 mask = *(u32*)ptrVec->data[i];
+                if (mask != ctx->gcMask)
                 {
                     if (atypeInfo->ptrDtor)
                     {
@@ -266,6 +302,8 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
                     {
                         free(ptrVec->data[i]);
                     }
+                    ptrVec->data[i] = vec_last(ptrVec);
+                    vec_pop(ptrVec);
                 }
             }
         }
@@ -586,6 +624,8 @@ next:
             v.p = ptr + EXP_EvalAtomAllocMemOffset;
             vec_ptr* ptrVec = ctx->atomMemTable.data + enode->atype;
             vec_push(ptrVec, ptr);
+            v.allocated = true;
+            *(u32*)ptr = ctx->gcMask;
         }
         if (ctx->atypeTable.data[enode->atype].ctorByStr(l, s, &v))
         {
