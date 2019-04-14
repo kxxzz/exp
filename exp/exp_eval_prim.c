@@ -80,9 +80,9 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 {
     static const EXP_EvalAtypeInfo a[EXP_NumEvalPrimTypes] =
     {
-        { "bool", EXP_evalBoolByStr, true, NULL },
-        { "float", EXP_evalFloatByStr, true, NULL },
-        { "string", EXP_evalStringByStr, false, EXP_evalStringDtor, sizeof(vec_char) },
+        { "bool", EXP_evalBoolByStr, true },
+        { "float", EXP_evalFloatByStr, true },
+        { "string", EXP_evalStringByStr, false, sizeof(vec_char), EXP_evalStringDtor },
     };
     return a;
 }

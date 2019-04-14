@@ -120,13 +120,13 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     {
         vec_ptr* ptrVec = ctx->atomMemTable.data + i;
         EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
-        if (atypeInfo->dtor || (atypeInfo->allocMemSize > 0))
+        if ((atypeInfo->allocMemSize > 0) || atypeInfo->ptrDtor)
         {
             for (u32 i = 0; i < ptrVec->length; ++i)
             {
-                if (atypeInfo->dtor)
+                if (atypeInfo->ptrDtor)
                 {
-                    atypeInfo->dtor((char*)ptrVec->data[i] + EXP_EvalAtomAllocMemOffset);
+                    atypeInfo->ptrDtor((char*)ptrVec->data[i] + EXP_EvalAtomAllocMemOffset);
                 }
                 if (atypeInfo->allocMemSize > 0)
                 {
@@ -251,16 +251,16 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
     {
         vec_ptr* ptrVec = ctx->atomMemTable.data + i;
         EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
-        if (atypeInfo->dtor || (atypeInfo->allocMemSize > 0))
+        if ((atypeInfo->allocMemSize > 0) || atypeInfo->ptrDtor)
         {
             for (u32 i = 0; i < ptrVec->length; ++i)
             {
-                u32 gcFlag = *(u32*)ptrVec->data[i];
-                if (gcFlag)
+                u32 c = *(u32*)ptrVec->data[i];
+                if (c)
                 {
-                    if (atypeInfo->dtor)
+                    if (atypeInfo->ptrDtor)
                     {
-                        atypeInfo->dtor(ptrVec->data[i]);
+                        atypeInfo->ptrDtor(ptrVec->data[i]);
                     }
                     if (atypeInfo->allocMemSize > 0)
                     {
