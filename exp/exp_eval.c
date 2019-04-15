@@ -256,7 +256,7 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
 
 static void EXP_evalSetGcMask(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
-    if (v.allocated)
+    if (v.type > EXP_EvalValueType_AtomV)
     {
         EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)((char*)v.a - offsetof(EXP_EvalAtomMem, a));
         if (m->gcMask != ctx->gcMask)
@@ -626,7 +626,7 @@ next:
             v.a = m->a;
             EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + enode->atype;
             vec_push(mpVec, m);
-            v.allocated = true;
+            v.type = EXP_EvalValueType_AtomA;
             m->gcMask = ctx->gcMask;
         }
         assert(atypeInfo->ctorByStr);

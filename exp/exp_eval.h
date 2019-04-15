@@ -23,7 +23,16 @@ const char** EXP_EvalKeyNameTable(void);
 
 
 
-typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
+typedef enum EXP_EvalValueType
+{
+    EXP_EvalValueType_AtomV = 0,
+    EXP_EvalValueType_AtomA,
+    EXP_EvalValueType_Fun,
+    EXP_EvalValueType_Tuple,
+    EXP_EvalValueType_Array,
+
+    EXP_NumEvalValueTypes
+} EXP_EvalValueType;
 
 typedef struct EXP_EvalValue
 {
@@ -33,8 +42,12 @@ typedef struct EXP_EvalValue
         f64 f;
         void* a;
     };
-    bool allocated;
+    EXP_EvalValueType type;
 } EXP_EvalValue;
+
+
+typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
+
 
 
 typedef bool(*EXP_EvalAtomCtorByStr)(u32 len, const char* str, EXP_EvalValue* pVal);
