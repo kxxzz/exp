@@ -627,7 +627,9 @@ next:
             v.allocated = true;
             *(u32*)ptr = ctx->gcMask;
         }
-        if (ctx->atypeTable.data[enode->atype].ctorByStr(l, s, &v))
+        assert(atypeInfo->fromSymAble);
+        assert(atypeInfo->ctorByStr);
+        if (atypeInfo->ctorByStr(l, s, &v))
         {
             vec_push(dataStack, v);
         }
