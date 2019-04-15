@@ -256,13 +256,19 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
 
 static void EXP_evalSetGcMask(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
-    if (v.type > EXP_EvalValueType_AtomV)
+    switch (v.type)
+    {
+    case EXP_EvalValueType_AtomA:
     {
         EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)((char*)v.a - offsetof(EXP_EvalAtomMem, a));
         if (m->gcMask != ctx->gcMask)
         {
             m->gcMask = ctx->gcMask;
         }
+        break;
+    }
+    default:
+        break;
     }
 }
 
