@@ -31,14 +31,14 @@ typedef struct EXP_EvalValue
     {
         bool b;
         f64 f;
-        void* p;
+        void* a;
     };
     bool allocated;
 } EXP_EvalValue;
 
 
 typedef bool(*EXP_EvalAtomCtorByStr)(u32 len, const char* str, EXP_EvalValue* pVal);
-typedef void(*EXP_EvalAtomPtrDtor)(void* ptr);
+typedef void(*EXP_EvalAtomADtor)(void* ptr);
 
 typedef struct EXP_EvalAtypeInfo
 {
@@ -46,7 +46,7 @@ typedef struct EXP_EvalAtypeInfo
     EXP_EvalAtomCtorByStr ctorByStr;
     bool fromSymAble;
     u32 allocMemSize;
-    EXP_EvalAtomPtrDtor ptrDtor;
+    EXP_EvalAtomADtor aDtor;
 } EXP_EvalAtypeInfo;
 
 

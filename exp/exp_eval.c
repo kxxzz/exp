@@ -3,11 +3,12 @@
 
 
 
-enum
+typedef struct EXP_EvalAtomMem
 {
-    EXP_EvalAtomAllocMemOffset = 8,
-    EXP_EvalAtomAllocMemAlign = 8,
-};
+    bool gcMask;
+    char a[1];
+} EXP_EvalAtomMem;
+
 
 
 
@@ -45,7 +46,8 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
-typedef vec_t(vec_ptr) EXP_AtomMemTable;
+typedef vec_t(EXP_EvalAtomMem*) EXP_EvalAtomMemPtrVec;
+typedef vec_t(EXP_EvalAtomMemPtrVec) EXP_AtomMemTable;
 
 
 
@@ -119,28 +121,28 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 
     for (u32 i = 0; i < ctx->atomMemTable.length; ++i)
     {
-        vec_ptr* ptrVec = ctx->atomMemTable.data + i;
+        EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + i;
         EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
-        if ((atypeInfo->allocMemSize > 0) || atypeInfo->ptrDtor)
+        if ((atypeInfo->allocMemSize > 0) || atypeInfo->aDtor)
         {
-            for (u32 i = 0; i < ptrVec->length; ++i)
+            for (u32 i = 0; i < mpVec->length; ++i)
             {
-                if (atypeInfo->ptrDtor)
+                if (atypeInfo->aDtor)
                 {
-                    atypeInfo->ptrDtor((char*)ptrVec->data[i] + EXP_EvalAtomAllocMemOffset);
+                    atypeInfo->aDtor(mpVec->data[i]->a);
                 }
                 if (atypeInfo->allocMemSize > 0)
                 {
-                    free(ptrVec->data[i]);
+                    free(mpVec->data[i]);
                 }
             }
         }
         else
         {
             assert(0 == atypeInfo->allocMemSize);
-            assert(0 == ptrVec->length);
+            assert(0 == mpVec->length);
         }
-        vec_free(ptrVec);
+        vec_free(mpVec);
     }
     vec_free(&ctx->atomMemTable);
 
@@ -256,10 +258,10 @@ static void EXP_evalSetGcMask(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
     if (v.allocated)
     {
-        u32* pMask = (u32*)((char*)v.p - EXP_EvalAtomAllocMemOffset);
-        if (*pMask != ctx->gcMask)
+        EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)((char*)v.a - offsetof(EXP_EvalAtomMem, a));
+        if (m->gcMask != ctx->gcMask)
         {
-            *pMask = ctx->gcMask;
+            m->gcMask = ctx->gcMask;
         }
     }
 }
@@ -285,32 +287,32 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
 
     for (u32 i = 0; i < atomMemTable->length; ++i)
     {
-        vec_ptr* ptrVec = atomMemTable->data + i;
+        EXP_EvalAtomMemPtrVec* mpVec = atomMemTable->data + i;
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + i;
-        if ((atypeInfo->allocMemSize > 0) || atypeInfo->ptrDtor)
+        if ((atypeInfo->allocMemSize > 0) || atypeInfo->aDtor)
         {
-            for (u32 i = 0; i < ptrVec->length; ++i)
+            for (u32 i = 0; i < mpVec->length; ++i)
             {
-                u32 mask = *(u32*)ptrVec->data[i];
-                if (mask != ctx->gcMask)
+                bool gcMask = &mpVec->data[i]->gcMask;
+                if (gcMask != ctx->gcMask)
                 {
-                    if (atypeInfo->ptrDtor)
+                    if (atypeInfo->aDtor)
                     {
-                        atypeInfo->ptrDtor(ptrVec->data[i]);
+                        atypeInfo->aDtor(mpVec->data[i]->a);
                     }
                     if (atypeInfo->allocMemSize > 0)
                     {
-                        free(ptrVec->data[i]);
+                        free(mpVec->data[i]);
                     }
-                    ptrVec->data[i] = vec_last(ptrVec);
-                    vec_pop(ptrVec);
+                    mpVec->data[i] = vec_last(mpVec);
+                    vec_pop(mpVec);
                 }
             }
         }
         else
         {
             assert(0 == atypeInfo->allocMemSize);
-            assert(0 == ptrVec->length);
+            assert(0 == mpVec->length);
         }
     }
 }
@@ -620,14 +622,13 @@ next:
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + enode->atype;
         if (atypeInfo->allocMemSize > 0)
         {
-            char* ptr = (char*)zalloc(EXP_EvalAtomAllocMemOffset + align(atypeInfo->allocMemSize, EXP_EvalAtomAllocMemAlign));
-            v.p = ptr + EXP_EvalAtomAllocMemOffset;
-            vec_ptr* ptrVec = ctx->atomMemTable.data + enode->atype;
-            vec_push(ptrVec, ptr);
+            EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)zalloc(offsetof(EXP_EvalAtomMem, a) + atypeInfo->allocMemSize);
+            v.a = m->a;
+            EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + enode->atype;
+            vec_push(mpVec, m);
             v.allocated = true;
-            *(u32*)ptr = ctx->gcMask;
+            m->gcMask = ctx->gcMask;
         }
-        assert(atypeInfo->fromSymAble);
         assert(atypeInfo->ctorByStr);
         if (atypeInfo->ctorByStr(l, s, &v))
         {

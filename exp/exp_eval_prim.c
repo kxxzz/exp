@@ -58,7 +58,7 @@ static bool EXP_evalStringByStr(u32 len, const char* str, EXP_EvalValue* pVal)
 {
     if (pVal)
     {
-        vec_char* s = pVal->p;
+        vec_char* s = pVal->a;
         vec_pusharr(s, str, len);
         vec_push(s, 0);
     }
