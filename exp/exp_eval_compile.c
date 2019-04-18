@@ -1009,6 +1009,11 @@ static void EXP_evalCompileNode
                 }
                 return;
             }
+            case EXP_EvalKey_GC:
+            {
+                enode->type = EXP_EvalNodeType_GC;
+                return;
+            }
             default:
                 break;
             }

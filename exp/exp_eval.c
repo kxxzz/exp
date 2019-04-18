@@ -299,7 +299,7 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
         {
             for (u32 i = 0; i < mpVec->length; ++i)
             {
-                bool gcMask = &mpVec->data[i]->gcMask;
+                bool gcMask = mpVec->data[i]->gcMask;
                 if (gcMask != ctx->gcMask)
                 {
                     if (atypeInfo->aDtor)
@@ -312,6 +312,7 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
                     }
                     mpVec->data[i] = vec_last(mpVec);
                     vec_pop(mpVec);
+                    --i;
                 }
             }
         }
@@ -591,6 +592,11 @@ next:
         assert(EXP_isTok(space, node));
         assert(dataStack->length > 0);
         vec_pop(dataStack);
+        goto next;
+    }
+    case EXP_EvalNodeType_GC:
+    {
+        EXP_evalGC(ctx);
         goto next;
     }
     case EXP_EvalNodeType_Afun:
