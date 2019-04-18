@@ -16,6 +16,8 @@ a b +
 
 "aa" "bb"
 
+(def drop -> x :)
+
 (def drop2 drop drop)
 (def drop4 drop2 drop2)
 (def drop12 drop4 drop4 drop4)

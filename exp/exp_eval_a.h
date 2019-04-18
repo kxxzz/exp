@@ -24,7 +24,6 @@ typedef enum EXP_EvalNodeType
 
     EXP_EvalNodeType_VarDefBegin,
     EXP_EvalNodeType_VarDefEnd,
-    EXP_EvalNodeType_Drop,
     EXP_EvalNodeType_GC,
     EXP_EvalNodeType_Afun,
 

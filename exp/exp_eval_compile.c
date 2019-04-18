@@ -985,30 +985,6 @@ static void EXP_evalCompileNode
                     ++n;
                 }
             }
-            case EXP_EvalKey_Drop:
-            {
-                enode->type = EXP_EvalNodeType_Drop;
-                if (!dataStack->length)
-                {
-                    u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
-                    u32 t = EXP_evalTypeVar(typeContext, var);
-                    if (!EXP_evalCompileShiftDataStack(ctx, 1, &t))
-                    {
-                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                        return;
-                    }
-                }
-                u32 t = vec_last(dataStack);
-                vec_pop(dataStack);
-                if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
-                {
-                    u32 n = curCall->dataStackP - dataStack->length;
-                    u32 added = n - curBlock->ins.length;
-                    assert(1 == added);
-                    vec_insert(&curBlock->ins, 0, t);
-                }
-                return;
-            }
             case EXP_EvalKey_GC:
             {
                 enode->type = EXP_EvalNodeType_GC;

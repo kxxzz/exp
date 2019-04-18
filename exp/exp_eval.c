@@ -587,13 +587,6 @@ next:
             ++n;
         }
     }
-    case EXP_EvalNodeType_Drop:
-    {
-        assert(EXP_isTok(space, node));
-        assert(dataStack->length > 0);
-        vec_pop(dataStack);
-        goto next;
-    }
     case EXP_EvalNodeType_GC:
     {
         EXP_evalGC(ctx);
