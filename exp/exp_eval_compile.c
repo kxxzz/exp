@@ -10,18 +10,18 @@ typedef struct EXP_EvalCompileVar
     u32 id;
 } EXP_EvalCompileVar;
 
-typedef struct EXP_EvalCompileDef
+typedef struct EXP_EvalCompileNamed
 {
-    EXP_Node key;
+    EXP_Node name;
     bool isVar;
     union
     {
-        EXP_Node fun;
+        EXP_Node wordDef;
         EXP_EvalCompileVar var;
     };
-} EXP_EvalCompileDef;
+} EXP_EvalCompileNamed;
 
-typedef vec_t(EXP_EvalCompileDef) EXP_EvalCompileDefTable;
+typedef vec_t(EXP_EvalCompileNamed) EXP_EvalCompileNamedTable;
 
 
 
@@ -39,7 +39,7 @@ typedef struct EXP_EvalCompileBlock
 
     EXP_Node parent;
     u32 varsCount;
-    EXP_EvalCompileDefTable defs;
+    EXP_EvalCompileNamedTable dict;
 
     u32 numIns;
     u32 numOuts;
@@ -51,7 +51,7 @@ typedef vec_t(EXP_EvalCompileBlock) EXP_EvalCompileBlockTable;
 static void EXP_evalCompileBlockFree(EXP_EvalCompileBlock* blk)
 {
     vec_free(&blk->inout);
-    vec_free(&blk->defs);
+    vec_free(&blk->dict);
     vec_free(&blk->ins);
 }
 
@@ -76,7 +76,7 @@ typedef struct EXP_EvalCompileBlockCallback
     union
     {
         u32 afun;
-        EXP_Node fun;
+        EXP_Node wordDef;
     };
 } EXP_EvalCompileBlockCallback;
 
@@ -338,20 +338,20 @@ static EXP_EvalCompileBlock* EXP_evalCompileGetBlock(EXP_EvalCompileContext* ctx
 
 static bool EXP_evalCompileGetMatched
 (
-    EXP_EvalCompileContext* ctx, const char* name, EXP_Node blkNode, EXP_EvalCompileDef* outDef
+    EXP_EvalCompileContext* ctx, const char* name, EXP_Node blkNode, EXP_EvalCompileNamed* outDef
 )
 {
     EXP_Space* space = ctx->space;
     while (blkNode.id != EXP_NodeId_Invalid)
     {
         EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, blkNode);
-        for (u32 i = 0; i < blk->defs.length; ++i)
+        for (u32 i = 0; i < blk->dict.length; ++i)
         {
-            EXP_EvalCompileDef* def = blk->defs.data + blk->defs.length - 1 - i;
-            const char* str = EXP_tokCstr(space, def->key);
+            EXP_EvalCompileNamed* named = blk->dict.data + blk->dict.length - 1 - i;
+            const char* str = EXP_tokCstr(space, named->name);
             if (0 == strcmp(str, name))
             {
-                *outDef = *def;
+                *outDef = *named;
                 return true;
             }
         }
@@ -399,13 +399,13 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
 
 
 
-static void EXP_evalCompileDefGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
+static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_seqLen(space, node) >= 2);
     *pLen = EXP_seqLen(space, node) - 2;
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    *pSeq = defCall + 2;
+    EXP_Node* exp = EXP_seqElm(space, node);
+    *pSeq = exp + 2;
 }
 
 
@@ -414,7 +414,7 @@ static void EXP_evalCompileDefGetBody(EXP_EvalCompileContext* ctx, EXP_Node node
 
 
 
-static bool EXP_evalCompileIsFunDef(EXP_EvalCompileContext* ctx, EXP_Node node)
+static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
     if (EXP_isTok(space, node))
@@ -426,16 +426,16 @@ static bool EXP_evalCompileIsFunDef(EXP_EvalCompileContext* ctx, EXP_Node node)
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    const char* kDef = EXP_tokCstr(space, defCall[0]);
+    EXP_Node* exp = EXP_seqElm(space, node);
+    const char* kDef = EXP_tokCstr(space, exp[0]);
     EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
     if (k != EXP_EvalKey_Def)
     {
         return false;
     }
-    if (!EXP_isTok(space, defCall[1]))
+    if (!EXP_isTok(space, exp[1]))
     {
-        EXP_evalCompileErrorAtNode(ctx, defCall[1], EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, exp[1], EXP_EvalErrCode_EvalSyntax);
         return false;
     }
     return true;
@@ -452,15 +452,15 @@ static bool EXP_evalCompileIsFunDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 
 static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileBlock* blk)
 {
-    if (!EXP_evalCompileIsFunDef(ctx, node))
+    if (!EXP_evalCompileIsWordDef(ctx, node))
     {
         return;
     }
     EXP_Space* space = ctx->space;
-    EXP_Node* defCall = EXP_seqElm(space, node);
-    EXP_Node name = defCall[1];
-    EXP_EvalCompileDef def = { name, false, .fun = node };
-    vec_push(&blk->defs, def);
+    EXP_Node* exp = EXP_seqElm(space, node);
+    EXP_Node name = exp[1];
+    EXP_EvalCompileNamed named = { name, false, .wordDef = node };
+    vec_push(&blk->dict, named);
 }
 
 
@@ -513,7 +513,7 @@ static void EXP_evalCompileEnterBlock
     blk->parent = parent;
 
     blk->varsCount = 0;
-    blk->defs.length = 0;
+    blk->dict.length = 0;
     if (isDefScope)
     {
         for (u32 i = 0; i < len; ++i)
@@ -957,8 +957,8 @@ static void EXP_evalCompileNode
                             {
                                 u32 vt = dataStack->data[off + i];
                                 EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                                EXP_EvalCompileDef def = { ctx->varKeyBuf.data[i], true, .var = var };
-                                vec_push(&curBlock->defs, def);
+                                EXP_EvalCompileNamed named = { ctx->varKeyBuf.data[i], true, .var = var };
+                                vec_push(&curBlock->dict, named);
                                 ++curBlock->varsCount;
                             }
                             assert(n <= dataStack->length);
@@ -971,9 +971,9 @@ static void EXP_evalCompileNode
                                 u32 added = n - curBlock->ins.length;
                                 for (u32 i = 0; i < added; ++i)
                                 {
-                                    EXP_EvalCompileDef* def = curBlock->defs.data + curBlock->defs.length - added + i;
-                                    assert(def->isVar);
-                                    vec_insert(&curBlock->ins, i, def->var.valType);
+                                    EXP_EvalCompileNamed* named = curBlock->dict.data + curBlock->dict.length - added + i;
+                                    assert(named->isVar);
+                                    vec_insert(&curBlock->ins, i, named->var.valType);
                                 }
                             }
                             return;
@@ -1004,35 +1004,35 @@ static void EXP_evalCompileNode
                 return;
             }
 
-            EXP_EvalCompileDef def = { 0 };
-            if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
+            EXP_EvalCompileNamed named = { 0 };
+            if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &named))
             {
-                if (def.isVar)
+                if (named.isVar)
                 {
                     enode->type = EXP_EvalNodeType_Var;
-                    enode->var.block = def.var.block;
-                    enode->var.id = def.var.id;
-                    vec_push(dataStack, def.var.valType);
+                    enode->var.block = named.var.block;
+                    enode->var.id = named.var.id;
+                    vec_push(dataStack, named.var.valType);
                     return;
                 }
                 else
                 {
-                    enode->type = EXP_EvalNodeType_Fun;
-                    enode->funDef = def.fun;
-                    EXP_Node fun = def.fun;
-                    EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
-                    if (funBlk->completed)
+                    enode->type = EXP_EvalNodeType_Word;
+                    enode->wordDef = named.wordDef;
+                    EXP_Node wordDef = named.wordDef;
+                    EXP_EvalCompileBlock* blk = blockTable->data + wordDef.id;
+                    if (blk->completed)
                     {
-                        assert(!funBlk->entered);
-                        if (dataStack->length < funBlk->numIns)
+                        assert(!blk->entered);
+                        if (dataStack->length < blk->numIns)
                         {
-                            u32 n = funBlk->numIns - dataStack->length;
+                            u32 n = blk->numIns - dataStack->length;
 
                             EXP_evalCompilePatContextReset(ctx);
                             ctx->typeBuf.length = 0;
                             for (u32 i = 0; i < n; ++i)
                             {
-                                u32 pat = funBlk->inout.data[i];
+                                u32 pat = blk->inout.data[i];
                                 u32 t = EXP_evalCompileTypeFromPat(ctx, pat);
                                 vec_push(&ctx->typeBuf, t);
                             }
@@ -1043,25 +1043,25 @@ static void EXP_evalCompileNode
                                 return;
                             }
                         }
-                        EXP_evalCompileBlockCall(ctx, funBlk, node);
+                        EXP_evalCompileBlockCall(ctx, blk, node);
                         return;
                     }
-                    else if (!funBlk->entered)
+                    else if (!blk->entered)
                     {
                         u32 bodyLen = 0;
                         EXP_Node* body = NULL;
-                        EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
+                        EXP_evalCompileWordGetBody(ctx, wordDef, &bodyLen, &body);
 
                         --curCall->p;
-                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, curCall->srcNode, true);
+                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, wordDef, curCall->srcNode, true);
                         return;
                     }
                     else
                     {
-                        assert(funBlk->entered);
-                        if (funBlk->haveInOut)
+                        assert(blk->entered);
+                        if (blk->haveInOut)
                         {
-                            EXP_evalCompileBlockCall(ctx, funBlk, node);
+                            EXP_evalCompileBlockCall(ctx, blk, node);
                         }
                         else
                         {
@@ -1112,26 +1112,26 @@ static void EXP_evalCompileNode
     u32 len = EXP_seqLen(space, node);
     const char* name = EXP_tokCstr(space, elms[0]);
 
-    EXP_EvalCompileDef def = { 0 };
-    if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &def))
+    EXP_EvalCompileNamed named = { 0 };
+    if (EXP_evalCompileGetMatched(ctx, name, curCall->srcNode, &named))
     {
-        if (def.isVar)
+        if (named.isVar)
         {
             enode->type = EXP_EvalNodeType_CallVar;
-            enode->var.block = def.var.block;
-            enode->var.id = def.var.id;
-            vec_push(dataStack, def.var.valType);
+            enode->var.block = named.var.block;
+            enode->var.id = named.var.id;
+            vec_push(dataStack, named.var.valType);
             return;
         }
         else
         {
-            enode->type = EXP_EvalNodeType_CallFun;
-            enode->funDef = def.fun;
+            enode->type = EXP_EvalNodeType_CallWord;
+            enode->wordDef = named.wordDef;
 
             EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!nodeBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .fun = def.fun };
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .wordDef = named.wordDef };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1276,26 +1276,26 @@ next:
         }
         case EXP_EvalCompileBlockCallbackType_Call:
         {
-            EXP_Node fun = cb->fun;
-            EXP_EvalCompileBlock* funBlk = blockTable->data + fun.id;
-            if (funBlk->completed)
+            EXP_Node wordDef = cb->wordDef;
+            EXP_EvalCompileBlock* blk = blockTable->data + wordDef.id;
+            if (blk->completed)
             {
-                assert(!funBlk->entered);
+                assert(!blk->entered);
                 if (curBlock->numIns > 0)
                 {
                     EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
-                if (curCall->dataStackP != (dataStack->length - funBlk->numIns))
+                if (curCall->dataStackP != (dataStack->length - blk->numIns))
                 {
                     EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
-                EXP_evalCompileBlockCall(ctx, funBlk, srcNode);
+                EXP_evalCompileBlockCall(ctx, blk, srcNode);
                 EXP_evalCompileLeaveBlock(ctx);
                 goto next;
             }
-            else if (!funBlk->entered)
+            else if (!blk->entered)
             {
                 if (curCall->dataStackP > dataStack->length)
                 {
@@ -1304,26 +1304,26 @@ next:
                 }
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
-                EXP_evalCompileDefGetBody(ctx, fun, &bodyLen, &body);
-                EXP_evalCompileEnterWorld(ctx, body, bodyLen, fun, srcNode, true);
+                EXP_evalCompileWordGetBody(ctx, wordDef, &bodyLen, &body);
+                EXP_evalCompileEnterWorld(ctx, body, bodyLen, wordDef, srcNode, true);
                 goto next;
             }
             else
             {
-                assert(funBlk->entered);
-                if (funBlk->haveInOut)
+                assert(blk->entered);
+                if (blk->haveInOut)
                 {
                     if (curBlock->numIns > 0)
                     {
                         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                         goto next;
                     }
-                    if (curCall->dataStackP != (dataStack->length - funBlk->numIns))
+                    if (curCall->dataStackP != (dataStack->length - blk->numIns))
                     {
                         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                         goto next;
                     }
-                    EXP_evalCompileBlockCall(ctx, funBlk, srcNode);
+                    EXP_evalCompileBlockCall(ctx, blk, srcNode);
                     EXP_evalCompileLeaveBlock(ctx);
                 }
                 else
@@ -1460,10 +1460,10 @@ EXP_EvalError EXP_evalCompile
         {
             EXP_EvalCompileBlock* vb = ctx->blockTable.data + i;
             EXP_EvalNode* enode = nodeTable->data + i + ctx->blockTableBase;
-            for (u32 i = 0; i < vb->defs.length; ++i)
+            for (u32 i = 0; i < vb->dict.length; ++i)
             {
-                EXP_EvalCompileDef* vdef = vb->defs.data + i;
-                if (vdef->isVar)
+                EXP_EvalCompileNamed* vnamed = vb->dict.data + i;
+                if (vnamed->isVar)
                 {
                     ++enode->varsCount;
                 }
