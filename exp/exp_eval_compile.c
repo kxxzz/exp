@@ -1097,7 +1097,12 @@ static void EXP_evalCompileNode
         }
     }
 
-    if (!EXP_evalCheckCall(space, node))
+    if (EXP_evalCheckBox(space, node))
+    {
+        //
+        return;
+    }
+    else if (!EXP_evalCheckCall(space, node))
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return;

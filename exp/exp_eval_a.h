@@ -67,6 +67,15 @@ typedef vec_t(EXP_EvalNode) EXP_EvalNodeTable;
 
 
 
+static bool EXP_evalCheckBox(EXP_Space* space, EXP_Node node)
+{
+    if (!EXP_isSeqSquare(space, node))
+    {
+        return false;
+    }
+    return true;
+}
+
 
 
 
