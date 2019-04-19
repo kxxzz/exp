@@ -5,7 +5,7 @@
 
 typedef struct EXP_EvalAtomMem
 {
-    bool gcMask;
+    bool gcFlag;
     char a[1];
 } EXP_EvalAtomMem;
 
@@ -68,7 +68,7 @@ typedef struct EXP_EvalContext
 
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
-    bool gcMask;
+    bool gcFlag;
 
     EXP_EvalFileInfoTable fileInfoTable;
 } EXP_EvalContext;
@@ -254,16 +254,16 @@ void EXP_evalDrop(EXP_EvalContext* ctx)
 
 
 
-static void EXP_evalSetGcMask(EXP_EvalContext* ctx, EXP_EvalValue v)
+static void EXP_evalSetGcFlag(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
     switch (v.type)
     {
     case EXP_EvalValueType_AtomA:
     {
         EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)((char*)v.a - offsetof(EXP_EvalAtomMem, a));
-        if (m->gcMask != ctx->gcMask)
+        if (m->gcFlag != ctx->gcFlag)
         {
-            m->gcMask = ctx->gcMask;
+            m->gcFlag = ctx->gcFlag;
         }
         break;
     }
@@ -280,15 +280,15 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
     EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
     EXP_AtomMemTable* atomMemTable = &ctx->atomMemTable;
 
-    ctx->gcMask = !ctx->gcMask;
+    ctx->gcFlag = !ctx->gcFlag;
 
     for (u32 i = 0; i < varStack->length; ++i)
     {
-        EXP_evalSetGcMask(ctx, varStack->data[i]);
+        EXP_evalSetGcFlag(ctx, varStack->data[i]);
     }
     for (u32 i = 0; i < dataStack->length; ++i)
     {
-        EXP_evalSetGcMask(ctx, dataStack->data[i]);
+        EXP_evalSetGcFlag(ctx, dataStack->data[i]);
     }
 
     for (u32 i = 0; i < atomMemTable->length; ++i)
@@ -299,8 +299,8 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
         {
             for (u32 i = 0; i < mpVec->length; ++i)
             {
-                bool gcMask = mpVec->data[i]->gcMask;
-                if (gcMask != ctx->gcMask)
+                bool gcFlag = mpVec->data[i]->gcFlag;
+                if (gcFlag != ctx->gcFlag)
                 {
                     if (atypeInfo->aDtor)
                     {
@@ -632,7 +632,7 @@ next:
             EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + enode->atype;
             vec_push(mpVec, m);
             v.type = EXP_EvalValueType_AtomA;
-            m->gcMask = ctx->gcMask;
+            m->gcFlag = ctx->gcFlag;
         }
         assert(atypeInfo->ctorByStr);
         if (atypeInfo->ctorByStr(l, s, &v))
