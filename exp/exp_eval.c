@@ -691,12 +691,6 @@ next:
         EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
     }
-    case EXP_EvalNodeType_Block:
-    {
-        assert(EXP_evalCheckCall(space, node));
-        // todo
-        goto next;
-    }
     default:
         assert(false);
     }
