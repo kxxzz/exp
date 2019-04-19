@@ -11,8 +11,7 @@ typedef struct EXP_EvalTypeBuildLevel
     u32 progress;
     union
     {
-        EXP_EvalTypeDescFun fun;
-        EXP_EvalTypeDescList tuple;
+        EXP_EvalTypeDescBox box;
     };
 } EXP_EvalTypeBuildLevel;
 
@@ -73,13 +72,13 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
+u32 EXP_evalTypeBox(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
-    desc.fun.ins.count = numIns;
-    desc.fun.outs.count = numOuts;
-    desc.fun.ins.list = EXP_evalTypeList(ctx, numIns, ins);
-    desc.fun.outs.list = EXP_evalTypeList(ctx, numOuts, outs);
+    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Box };
+    desc.box.ins.count = numIns;
+    desc.box.outs.count = numOuts;
+    desc.box.ins.list = EXP_evalTypeList(ctx, numIns, ins);
+    desc.box.outs.list = EXP_evalTypeList(ctx, numOuts, outs);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 

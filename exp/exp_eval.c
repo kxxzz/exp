@@ -26,7 +26,7 @@ typedef struct EXP_EvalBlockCallback
     union
     {
         u32 afun;
-        EXP_Node fun;
+        EXP_Node box;
     };
 } EXP_EvalBlockCallback;
 
@@ -501,10 +501,10 @@ next:
         }
         case EXP_EvalBlockCallbackType_Call:
         {
-            EXP_Node fun = cb->fun;
+            EXP_Node box = cb->box;
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
-            EXP_evalDefGetBody(ctx, fun, &bodyLen, &body);
+            EXP_evalDefGetBody(ctx, box, &bodyLen, &body);
             if (!EXP_evalLeaveBlock(ctx))
             {
                 return;
@@ -517,7 +517,7 @@ next:
                     break;
                 }
             }
-            EXP_evalEnterBlock(ctx, bodyLen, body, fun);
+            EXP_evalEnterBlock(ctx, bodyLen, body, box);
             goto next;
         }
         case EXP_EvalBlockCallbackType_Cond:
@@ -608,14 +608,14 @@ next:
         vec_push(dataStack, *val);
         goto next;
     }
-    case EXP_EvalNodeType_Fun:
+    case EXP_EvalNodeType_Box:
     {
         assert(EXP_isTok(space, node));
-        EXP_Node funDef = enode->funDef;
+        EXP_Node boxDef = enode->boxDef;
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
-        EXP_evalDefGetBody(ctx, funDef, &bodyLen, &body);
-        EXP_evalEnterBlock(ctx, bodyLen, body, funDef);
+        EXP_evalDefGetBody(ctx, boxDef, &bodyLen, &body);
+        EXP_evalEnterBlock(ctx, bodyLen, body, boxDef);
         goto next;
     }
     case EXP_EvalNodeType_Atom:
@@ -653,12 +653,12 @@ next:
         assert(false);
         goto next;
     }
-    case EXP_EvalNodeType_CallFun:
+    case EXP_EvalNodeType_CallBox:
     {
         assert(EXP_evalCheckCall(space, node));
         EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .fun = enode->funDef };
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .box = enode->boxDef };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
