@@ -10,7 +10,6 @@ typedef enum EXP_EvalTypeType
 {
     EXP_EvalTypeType_Atom,
     EXP_EvalTypeType_Fun,
-    EXP_EvalTypeType_Tuple,
     EXP_EvalTypeType_Array,
     EXP_EvalTypeType_Var,
 
