@@ -73,13 +73,6 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom)
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeBox(EXP_EvalTypeContext* ctx, u32 nodeId)
-{
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Box };
-    desc.nodeId = nodeId;
-    return EXP_evalTypeIdByDesc(ctx, &desc);
-}
-
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
@@ -87,14 +80,6 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 nu
     desc.fun.outs.count = numOuts;
     desc.fun.ins.list = EXP_evalTypeList(ctx, numIns, ins);
     desc.fun.outs.list = EXP_evalTypeList(ctx, numOuts, outs);
-    return EXP_evalTypeIdByDesc(ctx, &desc);
-}
-
-u32 EXP_evalTypeTuple(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
-{
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Tuple };
-    desc.tuple.count = count;
-    desc.tuple.list = EXP_evalTypeList(ctx, count, elms);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
