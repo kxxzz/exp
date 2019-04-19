@@ -1097,7 +1097,7 @@ static void EXP_evalCompileNode
         }
     }
 
-    if (EXP_evalCheckBox(space, node))
+    if (EXP_isSeqSquare(space, node))
     {
         //
         return;
