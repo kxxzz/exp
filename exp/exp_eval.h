@@ -27,7 +27,7 @@ typedef enum EXP_EvalValueType
 {
     EXP_EvalValueType_AtomV = 0,
     EXP_EvalValueType_AtomA,
-    EXP_EvalValueType_Box,
+    EXP_EvalValueType_List,
 
     EXP_NumEvalValueTypes
 } EXP_EvalValueType;
