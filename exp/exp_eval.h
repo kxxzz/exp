@@ -86,7 +86,7 @@ typedef struct EXP_EvalAfunInfo
 typedef enum EXP_EvalPrimType
 {
     EXP_EvalPrimType_BOOL,
-    EXP_EvalPrimType_FLOAT,
+    EXP_EvalPrimType_NUM,
     EXP_EvalPrimType_STRING,
 
     EXP_NumEvalPrimTypes

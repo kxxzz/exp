@@ -31,7 +31,7 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
                 fprintf(f, "%s\n", v.b ? "true" : "false");
                 break;
             }
-            case EXP_EvalPrimType_FLOAT:
+            case EXP_EvalPrimType_NUM:
             {
                 fprintf(f, "%f\n", v.f);
                 break;
