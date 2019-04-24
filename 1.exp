@@ -2,13 +2,13 @@
 (def b 2)
 a b +
 
-(def swap -> a b : {a int, b int} b a)
+(def swap -> a {int} b {int} : b a)
 
 "a" "b" swap
 1 2 swap
 "a" 1 swap
 (swap "b" 2)
-(swap 1 2)
+(swap 1 2)s
 
 (def swap1 -> a b : b a)
 (swap1 3 4)

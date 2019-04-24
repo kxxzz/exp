@@ -423,7 +423,6 @@ static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
     }
     if (!EXP_evalCheckCall(space, node))
     {
-        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
     EXP_Node* exp = EXP_seqElm(space, node);
@@ -923,7 +922,6 @@ static void EXP_evalCompileNode
                     }
                     node = *(curCall->p++);
                     enode = nodeTable->data + node.id;
-                    const char* skey = EXP_tokCstr(space, node);
                     if (!EXP_isTok(space, node))
                     {
                         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
