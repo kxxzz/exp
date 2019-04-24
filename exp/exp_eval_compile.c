@@ -1099,7 +1099,8 @@ static void EXP_evalCompileNode
 
     if (EXP_isSeqSquare(space, node))
     {
-        //
+        // todo
+        assert(false);
         return;
     }
     else if (!EXP_evalCheckCall(space, node))

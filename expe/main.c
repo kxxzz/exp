@@ -70,6 +70,14 @@ void intHandler(int dummy)
 
 
 
+static int mainReturn(int r)
+{
+#if !defined(NDEBUG) && defined(_WIN32)
+    system("pause");
+#endif
+    return r;
+}
+
 
 int main(int argc, char* argv[])
 {
@@ -131,7 +139,7 @@ int main(int argc, char* argv[])
         vec_free(&code);
     }
 
-    return EXIT_SUCCESS;
+    return mainReturn(EXIT_SUCCESS);
 }
 
 
