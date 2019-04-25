@@ -402,10 +402,8 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
 static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
-    assert(EXP_seqLen(space, node) >= 2);
-    *pLen = EXP_seqLen(space, node) - 2;
-    EXP_Node* exp = EXP_seqElm(space, node);
-    *pSeq = exp + 2;
+    *pLen = EXP_seqLen(space, node);
+    *pSeq = EXP_seqElm(space, node);
 }
 
 
@@ -414,31 +412,6 @@ static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node nod
 
 
 
-static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
-{
-    EXP_Space* space = ctx->space;
-    if (EXP_isTok(space, node))
-    {
-        return false;
-    }
-    if (!EXP_evalCheckCall(space, node))
-    {
-        return false;
-    }
-    EXP_Node* exp = EXP_seqElm(space, node);
-    const char* kDef = EXP_tokCstr(space, exp[0]);
-    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
-    if (k != EXP_EvalKey_Def)
-    {
-        return false;
-    }
-    if (!EXP_isTok(space, exp[1]))
-    {
-        EXP_evalCompileErrorAtNode(ctx, exp[1], EXP_EvalErrCode_EvalSyntax);
-        return false;
-    }
-    return true;
-}
 
 
 
@@ -451,17 +424,22 @@ static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 
 static u32 EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, u32 i, EXP_EvalCompileBlock* blk)
 {
-    EXP_Node node = seq[i];
-    if (!EXP_evalCompileIsWordDef(ctx, node))
+    EXP_Space* space = ctx->space;
+    const char* kDef = EXP_tokCstr(space, seq[i]);
+    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
+    if (k != EXP_EvalKey_Def)
     {
         return i + 1;
     }
-    EXP_Space* space = ctx->space;
-    EXP_Node* exp = EXP_seqElm(space, node);
-    EXP_Node name = exp[1];
-    EXP_EvalCompileNamed named = { name, false, .wordDef = node };
+    if (!EXP_isTok(space, seq[i + 1]))
+    {
+        EXP_evalCompileErrorAtNode(ctx, seq[i + 1], EXP_EvalErrCode_EvalSyntax);
+        return i + 1;
+    }
+    EXP_Node name = seq[i + 1];
+    EXP_EvalCompileNamed named = { name, false, .wordDef = seq[i + 2] };
     vec_push(&blk->dict, named);
-    return i + 1;
+    return i + 3;
 }
 
 
@@ -877,7 +855,7 @@ static void EXP_evalCompileEnterWorld
 
 
 
-static void EXP_evalCompileExpr
+static void EXP_evalCompileExp
 (
     EXP_EvalCompileContext* ctx, EXP_EvalCompileCall* curCall, EXP_EvalCompileBlock* curBlock
 )
@@ -1385,7 +1363,7 @@ next:
         }
         return;
     }
-    EXP_evalCompileExpr(ctx, curCall, curBlock);
+    EXP_evalCompileExp(ctx, curCall, curBlock);
     goto next;
 }
 
