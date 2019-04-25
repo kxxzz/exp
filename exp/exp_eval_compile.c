@@ -449,17 +449,19 @@ static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileBlock* blk)
+static u32 EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, u32 i, EXP_EvalCompileBlock* blk)
 {
+    EXP_Node node = seq[i];
     if (!EXP_evalCompileIsWordDef(ctx, node))
     {
-        return;
+        return i + 1;
     }
     EXP_Space* space = ctx->space;
     EXP_Node* exp = EXP_seqElm(space, node);
     EXP_Node name = exp[1];
     EXP_EvalCompileNamed named = { name, false, .wordDef = node };
     vec_push(&blk->dict, named);
+    return i + 1;
 }
 
 
@@ -515,9 +517,9 @@ static void EXP_evalCompileEnterBlock
     blk->dict.length = 0;
     if (isDefScope)
     {
-        for (u32 i = 0; i < len; ++i)
+        for (u32 i = 0; i < len;)
         {
-            EXP_evalCompileLoadDef(ctx, seq[i], blk);
+            i = EXP_evalCompileLoadDef(ctx, seq, len, i, blk);
             if (ctx->error.code)
             {
                 return;
