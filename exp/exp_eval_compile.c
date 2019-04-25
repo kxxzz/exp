@@ -908,7 +908,32 @@ static void EXP_evalCompileExpr
             case EXP_EvalKey_Def:
             {
                 enode->type = EXP_EvalNodeType_Def;
-                break;
+                if (curCall->end - curCall->p < 2)
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
+                return;
+            }
+            case EXP_EvalKey_If:
+            {
+                enode->type = EXP_EvalNodeType_If;
+                if (curCall->end - curCall->p < 2)
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
+                EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
+                if (!nodeBlk->completed)
+                {
+                    EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Cond };
+                    EXP_evalCompileEnterBlock(ctx, curCall->p, 1, node, curCall->srcNode, cb, false);
+                }
+                else
+                {
+                    EXP_evalCompileBlockCall(ctx, nodeBlk, node);
+                }
+                return;
             }
             case EXP_EvalKey_VarDefBegin:
             {
@@ -1169,40 +1194,10 @@ static void EXP_evalCompileExpr
         }
         return;
     }
-
-    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
-    switch (k)
-    {
-    case EXP_EvalKey_Def:
-    {
-        enode->type = EXP_EvalNodeType_Def;
-        return;
-    }
-    case EXP_EvalKey_If:
-    {
-        enode->type = EXP_EvalNodeType_If;
-        if ((len != 3) && (len != 4))
-        {
-            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-            return;
-        }
-        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
-        if (!nodeBlk->completed)
-        {
-            EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Cond };
-            EXP_evalCompileEnterBlock(ctx, elms + 1, 1, node, curCall->srcNode, cb, false);
-        }
-        else
-        {
-            EXP_evalCompileBlockCall(ctx, nodeBlk, node);
-        }
-        return;
-    }
-    default:
+    else
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkCall);
         return;
-    }
     }
 }
 
