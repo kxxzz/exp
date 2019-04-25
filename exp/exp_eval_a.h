@@ -98,22 +98,14 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 
 
 
-static bool EXP_evalIfHasBranch1(EXP_Space* space, EXP_Node node)
+
+static EXP_Node* EXP_evalIfBranch0(EXP_Space* space, EXP_Node* head)
 {
-    EXP_Node* elms = EXP_seqElm(space, node);
-    u32 len = EXP_seqLen(space, node);
-    assert((3 == len) || (4 == len));
-    return 4 == len;
+    return head + 2;
 }
-static EXP_Node* EXP_evalIfBranch0(EXP_Space* space, EXP_Node node)
+static EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node* head)
 {
-    EXP_Node* elms = EXP_seqElm(space, node);
-    return elms + 2;
-}
-static EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
-{
-    EXP_Node* elms = EXP_seqElm(space, node);
-    return elms + 3;
+    return head + 3;
 }
 
 
