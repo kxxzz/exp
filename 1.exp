@@ -2,7 +2,7 @@ def a 1
 def b 2
 a b +
 
-//def swap { -> a {int} b {int} : b a }
+//def swap { -> a (int) b (int) : b a }
 def swap { -> a b : b a }
 
 "a" "b" swap

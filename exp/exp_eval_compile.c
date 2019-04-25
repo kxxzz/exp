@@ -875,9 +875,9 @@ static void EXP_evalCompileEnterWorld
 
 
 
-static void EXP_evalCompileNode
+static void EXP_evalCompileExpr
 (
-    EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_EvalCompileBlock* curBlock
+    EXP_EvalCompileContext* ctx, EXP_EvalCompileCall* curCall, EXP_EvalCompileBlock* curBlock
 )
 {
     EXP_Space* space = ctx->space;
@@ -886,6 +886,7 @@ static void EXP_evalCompileNode
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
+    EXP_Node node = *(curCall->p++);
     EXP_EvalNode* enode = nodeTable->data + node.id;
     if (EXP_isTok(space, node))
     {
@@ -904,6 +905,11 @@ static void EXP_evalCompileNode
             EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
             switch (k)
             {
+            case EXP_EvalKey_Def:
+            {
+                enode->type = EXP_EvalNodeType_Def;
+                break;
+            }
             case EXP_EvalKey_VarDefBegin:
             {
                 enode->type = EXP_EvalNodeType_VarDefBegin;
@@ -1382,8 +1388,7 @@ next:
         }
         return;
     }
-    EXP_Node node = *(curCall->p++);
-    EXP_evalCompileNode(ctx, node, curCall, curBlock);
+    EXP_evalCompileExpr(ctx, curCall, curBlock);
     goto next;
 }
 
