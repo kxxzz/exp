@@ -965,6 +965,15 @@ static bool EXP_evalCompileTypeExp(EXP_EvalCompileContext* ctx, EXP_Node node)
         return false;
     }
 
+    EXP_Node* elms = EXP_seqElm(space, node);
+    u32 len = EXP_seqLen(space, node);
+    if (!len)
+    {
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        return false;
+    }
+    const char* head = EXP_tokCstr(space, elms[0]);
+
     return true;
 }
 
