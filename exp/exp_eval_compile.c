@@ -922,66 +922,68 @@ static void EXP_evalCompileNode
                     }
                     node = *(curCall->p++);
                     enode = nodeTable->data + node.id;
-                    if (!EXP_isTok(space, node))
+                    if (EXP_isTok(space, node))
                     {
-                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                        return;
-                    }
-                    // todo type signature
-                    EXP_EvalKey k = EXP_evalCompileGetKey(ctx, EXP_tokCstr(space, node));
-                    if (k != -1)
-                    {
-                        if (EXP_EvalKey_VarDefEnd == k)
+                        EXP_EvalKey k = EXP_evalCompileGetKey(ctx, EXP_tokCstr(space, node));
+                        if (k != -1)
                         {
-                            enode->type = EXP_EvalNodeType_VarDefEnd;
-                            if (n > dataStack->length)
+                            if (EXP_EvalKey_VarDefEnd == k)
                             {
-                                u32 shiftN = n - dataStack->length;
-                                ctx->typeBuf.length = 0;
-                                for (u32 i = 0; i < shiftN; ++i)
+                                enode->type = EXP_EvalNodeType_VarDefEnd;
+                                if (n > dataStack->length)
                                 {
-                                    u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
-                                    u32 t = EXP_evalTypeVar(typeContext, var);
-                                    vec_push(&ctx->typeBuf, t);
+                                    u32 shiftN = n - dataStack->length;
+                                    ctx->typeBuf.length = 0;
+                                    for (u32 i = 0; i < shiftN; ++i)
+                                    {
+                                        u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
+                                        u32 t = EXP_evalTypeVar(typeContext, var);
+                                        vec_push(&ctx->typeBuf, t);
+                                    }
+                                    if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
+                                    {
+                                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                                        return;
+                                    }
                                 }
-                                if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
-                                {
-                                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                                    return;
-                                }
-                            }
 
-                            u32 off = dataStack->length - n;
-                            for (u32 i = 0; i < n; ++i)
-                            {
-                                u32 vt = dataStack->data[off + i];
-                                EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                                EXP_EvalCompileNamed named = { ctx->varKeyBuf.data[i], true, .var = var };
-                                vec_push(&curBlock->dict, named);
-                                ++curBlock->varsCount;
-                            }
-                            assert(n <= dataStack->length);
-                            vec_resize(dataStack, off);
-                            ctx->varKeyBuf.length = 0;
-
-                            if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
-                            {
-                                u32 n = curCall->dataStackP - dataStack->length - curBlock->ins.length;
-                                u32 added = n - curBlock->ins.length;
-                                for (u32 i = 0; i < added; ++i)
+                                u32 off = dataStack->length - n;
+                                for (u32 i = 0; i < n; ++i)
                                 {
-                                    EXP_EvalCompileNamed* named = curBlock->dict.data + curBlock->dict.length - added + i;
-                                    assert(named->isVar);
-                                    vec_insert(&curBlock->ins, i, named->var.valType);
+                                    u32 vt = dataStack->data[off + i];
+                                    EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
+                                    EXP_EvalCompileNamed named = { ctx->varKeyBuf.data[i], true, .var = var };
+                                    vec_push(&curBlock->dict, named);
+                                    ++curBlock->varsCount;
                                 }
+                                assert(n <= dataStack->length);
+                                vec_resize(dataStack, off);
+                                ctx->varKeyBuf.length = 0;
+
+                                if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
+                                {
+                                    u32 n = curCall->dataStackP - dataStack->length - curBlock->ins.length;
+                                    u32 added = n - curBlock->ins.length;
+                                    for (u32 i = 0; i < added; ++i)
+                                    {
+                                        EXP_EvalCompileNamed* named = curBlock->dict.data + curBlock->dict.length - added + i;
+                                        assert(named->isVar);
+                                        vec_insert(&curBlock->ins, i, named->var.valType);
+                                    }
+                                }
+                                return;
                             }
+                            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                             return;
                         }
-                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                        return;
+                        vec_push(&ctx->varKeyBuf, node);
+                        ++n;
                     }
-                    vec_push(&ctx->varKeyBuf, node);
-                    ++n;
+                    else
+                    {
+                        // todo type signature
+                    }
+
                 }
             }
             case EXP_EvalKey_GC:
