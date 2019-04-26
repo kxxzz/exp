@@ -566,25 +566,27 @@ next:
         {
             assert(curCall->p < curCall->end);
             node = *(curCall->p++);
-            assert(EXP_isTok(space, node));
-            enode = nodeTable->data + node.id;
-            if (EXP_EvalNodeType_VarDefEnd == enode->type)
+            if (EXP_isTok(space, node))
             {
-                assert(n <= dataStack->length);
-                u32 off = dataStack->length - n;
-                for (u32 i = 0; i < n; ++i)
+                enode = nodeTable->data + node.id;
+                if (EXP_EvalNodeType_VarDefEnd == enode->type)
                 {
-                    EXP_EvalValue val = dataStack->data[off + i];
-                    vec_push(&ctx->varStack, val);
+                    assert(n <= dataStack->length);
+                    u32 off = dataStack->length - n;
+                    for (u32 i = 0; i < n; ++i)
+                    {
+                        EXP_EvalValue val = dataStack->data[off + i];
+                        vec_push(&ctx->varStack, val);
+                    }
+                    vec_resize(dataStack, off);
+                    goto next;
                 }
-                vec_resize(dataStack, off);
-                goto next;
+                else
+                {
+                    assert(EXP_EvalNodeType_None == enode->type);
+                }
+                ++n;
             }
-            else
-            {
-                assert(EXP_EvalNodeType_None == enode->type);
-            }
-            ++n;
         }
     }
     case EXP_EvalNodeType_GC:
