@@ -36,7 +36,7 @@ typedef struct EXP_EvalBlockCallback
 
 typedef struct EXP_EvalCall
 {
-    EXP_Node* srcNode;
+    EXP_Node srcNode;
     EXP_Node* p;
     EXP_Node* end;
     EXP_EvalBlockCallback cb;
@@ -371,10 +371,10 @@ static EXP_EvalValue* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar
     for (u32 i = 0; i < callStack->length; ++i)
     {
         EXP_EvalCall* call = callStack->data + callStack->length - 1 - i;
-        EXP_EvalNode* blkEnode = nodeTable->data + call->srcNode->id;
+        EXP_EvalNode* blkEnode = nodeTable->data + call->srcNode.id;
         assert(offset >= blkEnode->varsCount);
         offset -= blkEnode->varsCount;
-        if (evar->block.id == call->srcNode->id)
+        if (evar->block.id == call->srcNode.id)
         {
             offset += evar->id;
             return &varStack->data[offset];
@@ -395,7 +395,7 @@ static EXP_EvalValue* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar
 
 
 
-static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node* srcNode)
+static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
 {
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalCall call = { srcNode, seq, seq + len, nocb };
@@ -404,7 +404,7 @@ static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
 
 static void EXP_evalEnterBlockWithCB
 (
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node* srcNode, EXP_EvalBlockCallback cb
+    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
 {
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
@@ -415,7 +415,7 @@ static void EXP_evalEnterBlockWithCB
 static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
 {
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
-    EXP_EvalNode* enode = ctx->nodeTable.data + curCall->srcNode->id;
+    EXP_EvalNode* enode = ctx->nodeTable.data + curCall->srcNode.id;
     assert(ctx->varStack.length >= enode->varsCount);
     u32 varStackLength1 = ctx->varStack.length - enode->varsCount;
     vec_resize(&ctx->varStack, varStackLength1);
@@ -496,15 +496,15 @@ next:
         {
             EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + cb->afun;
             u32 numIns = afunInfo->numIns;
-            EXP_evalAfunCall(ctx, afunInfo, *curCall->srcNode);
+            EXP_evalAfunCall(ctx, afunInfo, curCall->srcNode);
             break;
         }
         case EXP_EvalBlockCallbackType_Call:
         {
-            EXP_Node* wordDef = &cb->wordDef;
+            EXP_Node wordDef = cb->wordDef;
             u32 bodyLen = 0;
             EXP_Node* body = NULL;
-            EXP_evalWordDefGetBody(ctx, *wordDef, &bodyLen, &body);
+            EXP_evalWordDefGetBody(ctx, wordDef, &bodyLen, &body);
             if (!EXP_evalLeaveBlock(ctx))
             {
                 return;
@@ -528,13 +528,13 @@ next:
             {
                 return;
             }
-            EXP_Node* srcNode = curCall->srcNode;
+            EXP_Node srcNode = curCall->srcNode;
             if (v.b)
             {
                 EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode);
                 goto next;
             }
-            else
+            else if (EXP_evalIfHasBranch1(space, srcNode))
             {
                 EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
                 goto next;
@@ -611,10 +611,10 @@ next:
     case EXP_EvalNodeType_Word:
     {
         assert(EXP_isTok(space, node));
-        EXP_Node* wordDef = &enode->wordDef;
+        EXP_Node wordDef = enode->wordDef;
         u32 bodyLen = 0;
         EXP_Node* body = NULL;
-        EXP_evalWordDefGetBody(ctx, *wordDef, &bodyLen, &body);
+        EXP_evalWordDefGetBody(ctx, wordDef, &bodyLen, &body);
         EXP_evalEnterBlock(ctx, bodyLen, body, wordDef);
         goto next;
     }
@@ -659,7 +659,7 @@ next:
         EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .wordDef = enode->wordDef };
-        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, curCall->p - 1, cb);
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
     case EXP_EvalNodeType_CallAfun:
@@ -672,7 +672,7 @@ next:
         EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + afun;
         assert(afunInfo->call);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Ncall, .afun = afun };
-        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, curCall->p - 1, cb);
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
     case EXP_EvalNodeType_Def:
@@ -688,7 +688,7 @@ next:
         u32 len = EXP_seqLen(space, node);
         assert((3 == len) || (4 == len));
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
-        EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, curCall->p - 1, cb);
+        EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
     }
     default:
@@ -714,11 +714,11 @@ next:
 
 
 
-void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node* root)
+void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 {
     EXP_Space* space = ctx->space;
-    u32 len = EXP_seqLen(space, *root);
-    EXP_Node* seq = EXP_seqElm(space, *root);
+    u32 len = EXP_seqLen(space, root);
+    EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(ctx, len, seq, root);
     EXP_evalCall(ctx);
 }
@@ -801,7 +801,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
         ctx->error = error;
         return false;
     }
-    EXP_evalBlock(ctx, &root);
+    EXP_evalBlock(ctx, root);
     if (ctx->error.code)
     {
         return false;

@@ -190,7 +190,7 @@ void EXP_evalDrop(EXP_EvalContext* ctx);
 
 
 
-void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node* block);
+void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node block);
 bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, bool enableSrcInfo);
 bool EXP_evalFile(EXP_EvalContext* ctx, const char* fileName, bool enableSrcInfo);
 
