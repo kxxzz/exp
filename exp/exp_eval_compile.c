@@ -957,6 +957,7 @@ static bool EXP_evalCompileVarDefTok
 static bool EXP_evalCompileTypeExp(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
+    EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
     if (!EXP_isSeqRound(space, node))
@@ -973,6 +974,13 @@ static bool EXP_evalCompileTypeExp(EXP_EvalCompileContext* ctx, EXP_Node node)
         return false;
     }
     const char* head = EXP_tokCstr(space, elms[0]);
+
+    for (u32 i = 0; i < atypeTable->length; ++i)
+    {
+        if (0 == strcmp(head, atypeTable->data[i].name))
+        {
+        }
+    }
 
     return true;
 }
