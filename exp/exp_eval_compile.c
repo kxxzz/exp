@@ -1018,7 +1018,6 @@ static void EXP_evalCompileNode
                     {
                         // todo type signature
                     }
-
                 }
             }
             case EXP_EvalKey_GC:
