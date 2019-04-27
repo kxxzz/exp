@@ -914,7 +914,16 @@ static bool EXP_evalCompileVarDefTok
                 for (u32 i = 0; i < shiftN; ++i)
                 {
                     u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
-                    u32 t = EXP_evalTypeVar(typeContext, var);
+                    u32 t;
+                    EXP_EvalCompileVarFetch* fetch = ctx->varFetchBuf.data + i;
+                    if (fetch->hasTypeRestrict)
+                    {
+                        t = fetch->type;
+                    }
+                    else
+                    {
+                        t = EXP_evalTypeVar(typeContext, var);
+                    }
                     vec_push(&ctx->typeBuf, t);
                 }
                 if (!EXP_evalCompileShiftDataStack(ctx, shiftN, ctx->typeBuf.data))
@@ -927,9 +936,16 @@ static bool EXP_evalCompileVarDefTok
             u32 off = dataStack->length - n;
             for (u32 i = 0; i < n; ++i)
             {
-                u32 vt = dataStack->data[off + i];
-                EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                EXP_EvalCompileNamed named = { ctx->varFetchBuf.data[i].name, true, .var = var };
+                u32 t = dataStack->data[off + i];
+                EXP_EvalCompileVarFetch* fetch = ctx->varFetchBuf.data + i;
+                if (fetch->hasTypeRestrict)
+                {
+                    u32 a = t;
+                    u32 b = fetch->type;
+                    EXP_evalCompileTypeUnify(ctx, a, b, &t);
+                }
+                EXP_EvalCompileVar var = { t, curCall->srcNode.id, curBlock->varsCount };
+                EXP_EvalCompileNamed named = { fetch->name, true, .var = var };
                 vec_push(&curBlock->dict, named);
                 ++curBlock->varsCount;
             }

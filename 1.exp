@@ -2,7 +2,8 @@
 (def b 2)
 a b +
 
-(def swap -> a (num) b (num) : b a)
+//(def swap -> a (num) b (num) : b a)
+(def swap -> a b : b a)
 
 "a" "b" swap
 1 2 swap
