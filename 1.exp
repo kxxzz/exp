@@ -3,29 +3,20 @@
 a b +
 
 (def swap -> a b (num) : b a)
-//(def swap -> a b : b a)
+(def swap1 -> a b : b a)
 
-//"a" "b" swap
 1 2 swap
-//"a" 1 swap
 (swap "b" 2)
 (swap 1 2)
-
-// (def swap1 -> a b : b a)
-// (swap1 3 4)
-// (swap1 "a" "x")
-
-"aa" "bb"
+"a" "b" swap1
 
 (def drop -> x :)
 
 (def drop2 drop drop)
 (def drop4 drop2 drop2)
-(def drop12 drop4 drop4 drop4)
+(def drop8 drop4 drop4)
 
-drop4
-drop4
-drop
+drop8
 
 (if (= 2 (+ 1 3)) 100 200)
 
@@ -37,7 +28,7 @@ drop
 
 (fib 20)
 
-(def facttail -> n res :
+(def facttail -> n (num) res (num) :
     (if (< n 0)
         0
         (if (= n 0)
