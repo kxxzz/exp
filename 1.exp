@@ -2,18 +2,18 @@
 (def b 2)
 a b +
 
-//(def swap -> a (num) b (num) : b a)
-(def swap -> a b : b a)
+(def swap -> a b (num) : b a)
+//(def swap -> a b : b a)
 
-"a" "b" swap
+//"a" "b" swap
 1 2 swap
-"a" 1 swap
+//"a" 1 swap
 (swap "b" 2)
 (swap 1 2)
 
-(def swap1 -> a b : b a)
-(swap1 3 4)
-(swap1 "a" "x")
+// (def swap1 -> a b : b a)
+// (swap1 3 4)
+// (swap1 "a" "x")
 
 "aa" "bb"
 
@@ -23,7 +23,7 @@ a b +
 (def drop4 drop2 drop2)
 (def drop12 drop4 drop4 drop4)
 
-drop12
+drop4
 drop4
 drop
 
