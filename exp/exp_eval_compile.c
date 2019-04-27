@@ -119,7 +119,7 @@ typedef vec_t(EXP_EvalCompileSnapshot) EXP_EvalCompileWorldStack;
 typedef struct EXP_EvalCompileVarFetch
 {
     EXP_Node name;
-    bool typeRestrict;
+    bool hasTypeRestrict;
     u32 type;
 } EXP_EvalCompileVarFetch;
 
@@ -966,7 +966,7 @@ static bool EXP_evalCompileVarDefTok
 
 
 
-static bool EXP_evalCompileTypeExp(EXP_EvalCompileContext* ctx, EXP_Node node)
+static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
@@ -987,10 +987,14 @@ static bool EXP_evalCompileTypeExp(EXP_EvalCompileContext* ctx, EXP_Node node)
     }
     const char* head = EXP_tokCstr(space, elms[0]);
 
+    EXP_EvalCompileVarFetch* fetch = &vec_last(&ctx->varFetchBuf);
     for (u32 i = 0; i < atypeTable->length; ++i)
     {
         if (0 == strcmp(head, atypeTable->data[i].name))
         {
+            assert(!fetch->hasTypeRestrict);
+            fetch->hasTypeRestrict = true;
+            fetch->type = EXP_evalTypeAtom(typeContext, i);
         }
     }
 
@@ -1063,7 +1067,7 @@ static void EXP_evalCompileNode
                     }
                     else
                     {
-                        if (!EXP_evalCompileTypeExp(ctx, node))
+                        if (!EXP_evalCompileVarDefTypeRestrict(ctx, node))
                         {
                             return;
                         }
