@@ -116,6 +116,17 @@ typedef vec_t(EXP_EvalCompileSnapshot) EXP_EvalCompileWorldStack;
 
 
 
+typedef struct EXP_EvalCompileVarFetch
+{
+    EXP_Node name;
+    bool typeRestrict;
+    u32 type;
+} EXP_EvalCompileVarFetch;
+
+typedef vec_t(EXP_EvalCompileVarFetch) EXP_EvalCompileVarFetchBuf;
+
+
+
 typedef struct EXP_EvalCompileContext
 {
     EXP_Space* space;
@@ -140,7 +151,7 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalCompileWorldStack worldStack;
 
     EXP_EvalError error;
-    EXP_NodeVec varKeyBuf;
+    EXP_EvalCompileVarFetchBuf varFetchBuf;
     vec_u32 typeBuf;
     EXP_EvalTypeVarSpace varRenMap;
 } EXP_EvalCompileContext;
@@ -183,7 +194,7 @@ static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
 {
     EXP_evalTypeVarSpaceFree(&ctx->varRenMap);
     vec_free(&ctx->typeBuf);
-    vec_free(&ctx->varKeyBuf);
+    vec_free(&ctx->varFetchBuf);
 
     vec_free(&ctx->worldStack);
     vec_free(&ctx->tvBuf);
@@ -918,13 +929,13 @@ static bool EXP_evalCompileVarDefTok
             {
                 u32 vt = dataStack->data[off + i];
                 EXP_EvalCompileVar var = { vt, curCall->srcNode.id, curBlock->varsCount };
-                EXP_EvalCompileNamed named = { ctx->varKeyBuf.data[i], true,.var = var };
+                EXP_EvalCompileNamed named = { ctx->varFetchBuf.data[i].name, true, .var = var };
                 vec_push(&curBlock->dict, named);
                 ++curBlock->varsCount;
             }
             assert(n <= dataStack->length);
             vec_resize(dataStack, off);
-            ctx->varKeyBuf.length = 0;
+            ctx->varFetchBuf.length = 0;
 
             if (curCall->dataStackP > dataStack->length + curBlock->ins.length)
             {
@@ -942,7 +953,8 @@ static bool EXP_evalCompileVarDefTok
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
         return false;
     }
-    vec_push(&ctx->varKeyBuf, node);
+    EXP_EvalCompileVarFetch fetch = { node };
+    vec_push(&ctx->varFetchBuf, fetch);
     return true;
 }
 
@@ -1031,7 +1043,7 @@ static void EXP_evalCompileNode
                     EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
                     return;
                 }
-                ctx->varKeyBuf.length = 0;
+                ctx->varFetchBuf.length = 0;
                 for (u32 n = 0;;)
                 {
                     if (curCall->p == curCall->end)
