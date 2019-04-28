@@ -1027,7 +1027,7 @@ static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_N
 
 
 
-static void EXP_evalCompileCallBlock
+static void EXP_evalCompileApply
 (
     EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_Node blkSrc
 )
@@ -1202,7 +1202,7 @@ static void EXP_evalCompileNode
                 {
                     enode->type = EXP_EvalNodeType_Word;
                     enode->blkSrc = named.blkSrc;
-                    EXP_evalCompileCallBlock(ctx, node, curCall, named.blkSrc);
+                    EXP_evalCompileApply(ctx, node, curCall, named.blkSrc);
                     return;
                 }
             }
