@@ -1026,6 +1026,77 @@ static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_N
 
 
 
+
+static void EXP_evalCompileCallBlock
+(
+    EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_Node blkSrc
+)
+{
+    EXP_Space* space = ctx->space;
+    EXP_EvalNodeTable* nodeTable = ctx->nodeTable;
+    EXP_EvalCompileBlockTable* blockTable = &ctx->blockTable;
+    vec_u32* dataStack = &ctx->dataStack;
+
+    EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
+    if (blk->completed)
+    {
+        assert(!blk->entered);
+        if (dataStack->length < blk->numIns)
+        {
+            u32 n = blk->numIns - dataStack->length;
+
+            EXP_evalCompilePatContextReset(ctx);
+            ctx->typeBuf.length = 0;
+            for (u32 i = 0; i < n; ++i)
+            {
+                u32 pat = blk->inout.data[i];
+                u32 t = EXP_evalCompileTypeFromPat(ctx, pat);
+                vec_push(&ctx->typeBuf, t);
+            }
+
+            if (!EXP_evalCompileShiftDataStack(ctx, n, ctx->typeBuf.data))
+            {
+                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
+        }
+        EXP_evalCompileBlockCall(ctx, blk, node);
+    }
+    else if (!blk->entered)
+    {
+        u32 bodyLen = 0;
+        EXP_Node* body = NULL;
+        EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
+
+        --curCall->p;
+        EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, curCall->srcNode, true);
+    }
+    else
+    {
+        assert(blk->entered);
+        if (blk->haveInOut)
+        {
+            EXP_evalCompileBlockCall(ctx, blk, node);
+        }
+        else
+        {
+            EXP_evalCompileRecurFallbackToOtherBranch(ctx);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 static void EXP_evalCompileNode
 (
     EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_EvalCompileBlock* curBlock
@@ -1131,56 +1202,8 @@ static void EXP_evalCompileNode
                 {
                     enode->type = EXP_EvalNodeType_Word;
                     enode->blkSrc = named.blkSrc;
-                    EXP_Node blkSrc = named.blkSrc;
-                    EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
-                    if (blk->completed)
-                    {
-                        assert(!blk->entered);
-                        if (dataStack->length < blk->numIns)
-                        {
-                            u32 n = blk->numIns - dataStack->length;
-
-                            EXP_evalCompilePatContextReset(ctx);
-                            ctx->typeBuf.length = 0;
-                            for (u32 i = 0; i < n; ++i)
-                            {
-                                u32 pat = blk->inout.data[i];
-                                u32 t = EXP_evalCompileTypeFromPat(ctx, pat);
-                                vec_push(&ctx->typeBuf, t);
-                            }
-
-                            if (!EXP_evalCompileShiftDataStack(ctx, n, ctx->typeBuf.data))
-                            {
-                                EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
-                                return;
-                            }
-                        }
-                        EXP_evalCompileBlockCall(ctx, blk, node);
-                        return;
-                    }
-                    else if (!blk->entered)
-                    {
-                        u32 bodyLen = 0;
-                        EXP_Node* body = NULL;
-                        EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
-
-                        --curCall->p;
-                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, curCall->srcNode, true);
-                        return;
-                    }
-                    else
-                    {
-                        assert(blk->entered);
-                        if (blk->haveInOut)
-                        {
-                            EXP_evalCompileBlockCall(ctx, blk, node);
-                        }
-                        else
-                        {
-                            EXP_evalCompileRecurFallbackToOtherBranch(ctx);
-                        }
-                        return;
-                    }
+                    EXP_evalCompileCallBlock(ctx, node, curCall, named.blkSrc);
+                    return;
                 }
             }
             else
