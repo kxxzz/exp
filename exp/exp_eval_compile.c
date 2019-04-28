@@ -16,7 +16,7 @@ typedef struct EXP_EvalCompileNamed
     bool isVar;
     union
     {
-        EXP_Node wordDef;
+        EXP_Node blkSrc;
         EXP_EvalCompileVar var;
     };
 } EXP_EvalCompileNamed;
@@ -76,7 +76,7 @@ typedef struct EXP_EvalCompileBlockCallback
     union
     {
         u32 afun;
-        EXP_Node wordDef;
+        EXP_Node blkSrc;
     };
 } EXP_EvalCompileBlockCallback;
 
@@ -469,7 +469,7 @@ static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, E
     EXP_Space* space = ctx->space;
     EXP_Node* exp = EXP_seqElm(space, node);
     EXP_Node name = exp[1];
-    EXP_EvalCompileNamed named = { name, false, .wordDef = node };
+    EXP_EvalCompileNamed named = { name, false, .blkSrc = node };
     vec_push(&blk->dict, named);
 }
 
@@ -1095,6 +1095,13 @@ static void EXP_evalCompileNode
                 enode->type = EXP_EvalNodeType_GC;
                 return;
             }
+            case EXP_EvalNodeType_Apply:
+            {
+                enode->type = EXP_EvalNodeType_Apply;
+
+                // todo
+                return;
+            }
             default:
                 break;
             }
@@ -1123,9 +1130,9 @@ static void EXP_evalCompileNode
                 else
                 {
                     enode->type = EXP_EvalNodeType_Word;
-                    enode->wordDef = named.wordDef;
-                    EXP_Node wordDef = named.wordDef;
-                    EXP_EvalCompileBlock* blk = blockTable->data + wordDef.id;
+                    enode->blkSrc = named.blkSrc;
+                    EXP_Node blkSrc = named.blkSrc;
+                    EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
                     if (blk->completed)
                     {
                         assert(!blk->entered);
@@ -1155,10 +1162,10 @@ static void EXP_evalCompileNode
                     {
                         u32 bodyLen = 0;
                         EXP_Node* body = NULL;
-                        EXP_evalCompileWordGetBody(ctx, wordDef, &bodyLen, &body);
+                        EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
 
                         --curCall->p;
-                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, wordDef, curCall->srcNode, true);
+                        EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, curCall->srcNode, true);
                         return;
                     }
                     else
@@ -1204,8 +1211,17 @@ static void EXP_evalCompileNode
 
     if (EXP_isSeqSquare(space, node))
     {
-        // todo
-        assert(false);
+        enode->type = EXP_EvalNodeType_Block;
+        enode->blkSrc = node;
+
+        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
+        if (!nodeBlk->completed)
+        {
+            EXP_Node* body = EXP_seqElm(space, node);
+            u32 bodyLen = EXP_seqLen(space, node);
+            --curCall->p;
+            EXP_evalCompileEnterWorld(ctx, body, bodyLen, node, curCall->srcNode, true);
+        }
         return;
     }
     else if (!EXP_evalCheckCall(space, node))
@@ -1232,12 +1248,12 @@ static void EXP_evalCompileNode
         else
         {
             enode->type = EXP_EvalNodeType_CallWord;
-            enode->wordDef = named.wordDef;
+            enode->blkSrc = named.blkSrc;
 
             EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!nodeBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .wordDef = named.wordDef };
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .blkSrc = named.blkSrc };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1382,8 +1398,8 @@ next:
         }
         case EXP_EvalCompileBlockCallbackType_Call:
         {
-            EXP_Node wordDef = cb->wordDef;
-            EXP_EvalCompileBlock* blk = blockTable->data + wordDef.id;
+            EXP_Node blkSrc = cb->blkSrc;
+            EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
             if (blk->completed)
             {
                 assert(!blk->entered);
@@ -1410,8 +1426,8 @@ next:
                 }
                 u32 bodyLen = 0;
                 EXP_Node* body = NULL;
-                EXP_evalCompileWordGetBody(ctx, wordDef, &bodyLen, &body);
-                EXP_evalCompileEnterWorld(ctx, body, bodyLen, wordDef, srcNode, true);
+                EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
+                EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, srcNode, true);
                 goto next;
             }
             else

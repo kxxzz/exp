@@ -26,10 +26,12 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_VarDefEnd,
     EXP_EvalNodeType_GC,
     EXP_EvalNodeType_Afun,
+    EXP_EvalNodeType_Apply,
 
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Word,
     EXP_EvalNodeType_Atom,
+    EXP_EvalNodeType_Block,
 
     EXP_EvalNodeType_CallVar,
     EXP_EvalNodeType_CallWord,
@@ -52,7 +54,7 @@ typedef struct EXP_EvalNode
     {
         u32 afun;
         u32 atype;
-        EXP_Node wordDef;
+        EXP_Node blkSrc;
         EXP_EvalNodeVar var;
     };
     u32 varsCount;
