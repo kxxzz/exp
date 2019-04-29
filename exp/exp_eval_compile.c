@@ -1230,6 +1230,7 @@ static void EXP_evalCompileNode
                     return;
                 }
                 u32 t = vec_last(dataStack);
+                vec_pop(dataStack);
                 const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
                 if (desc->type != EXP_EvalTypeType_Fun)
                 {
@@ -1237,7 +1238,6 @@ static void EXP_evalCompileNode
                     return;
                 }
                 enode->numIns = desc->fun.ins.count;
-                vec_pop(dataStack);
                 EXP_evalCompileFunCall(ctx, t, node);
                 return;
             }
