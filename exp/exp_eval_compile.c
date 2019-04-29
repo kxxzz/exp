@@ -775,6 +775,49 @@ static void EXP_evalCompileAfunCall(EXP_EvalCompileContext* ctx, EXP_EvalAfunInf
 
 
 
+
+static void EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, EXP_Node srcNode)
+{
+    EXP_Space* space = ctx->space;
+    vec_u32* dataStack = &ctx->dataStack;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
+    assert(EXP_EvalTypeType_Fun == desc->type);
+    const EXP_EvalTypeDescFun* fun = &desc->fun;
+
+    assert(dataStack->length >= fun->ins.count);
+    u32 argsOffset = dataStack->length - fun->ins.count;
+    EXP_evalCompileFixCurBlockIns(ctx, argsOffset);
+
+    EXP_evalCompilePatContextReset(ctx);
+
+    const u32* funIns = EXP_evalTypeListById(typeContext, fun->ins.list);
+    for (u32 i = 0; i < fun->ins.count; ++i)
+    {
+        u32 a = dataStack->data[argsOffset + i];
+        u32 pat = funIns[i];
+        u32 u;
+        if (!EXP_evalCompileTypeUnifyPat(ctx, a, pat, &u))
+        {
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            return;
+        }
+    }
+    vec_resize(dataStack, argsOffset);
+
+    const u32* funOuts = EXP_evalTypeListById(typeContext, fun->outs.list);
+    for (u32 i = 0; i < fun->outs.count; ++i)
+    {
+        u32 x = funOuts[i];
+        x = EXP_evalCompileTypeFromPat(ctx, x);
+        vec_push(dataStack, x);
+    }
+}
+
+
+
+
 static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
 {
     EXP_Space* space = ctx->space;
@@ -1188,8 +1231,13 @@ static void EXP_evalCompileNode
                 }
                 u32 t = vec_last(dataStack);
                 const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
+                if (desc->type != EXP_EvalTypeType_Fun)
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                    return;
+                }
                 enode->numIns = desc->fun.ins.count;
-                EXP_evalCompileBlockCall(ctx, curBlock, node);
+                EXP_evalCompileFunCall(ctx, t, node);
                 return;
             }
             default:
