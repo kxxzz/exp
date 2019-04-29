@@ -817,6 +817,21 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
 
 
 
+static u32 EXP_evalCompileBlockType(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
+{
+    return -1;
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1237,14 +1252,17 @@ static void EXP_evalCompileNode
         enode->type = EXP_EvalNodeType_Block;
         enode->blkSrc = node;
 
-        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
-        if (!nodeBlk->completed)
+        EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, node);
+        if (!blk->completed)
         {
             EXP_Node* body = EXP_seqElm(space, node);
             u32 bodyLen = EXP_seqLen(space, node);
             --curCall->p;
             EXP_evalCompileEnterWorld(ctx, body, bodyLen, node, curCall->srcNode, true);
         }
+        // todo
+        u32 t = EXP_evalCompileBlockType(ctx, blk, node);
+        vec_push(dataStack, t);
         return;
     }
     else if (!EXP_evalCheckCall(space, node))
