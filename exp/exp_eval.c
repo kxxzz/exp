@@ -594,6 +594,10 @@ next:
         EXP_evalGC(ctx);
         goto next;
     }
+    case EXP_EvalNodeType_Block:
+    {
+        goto next;
+    }
     case EXP_EvalNodeType_Afun:
     {
         assert(EXP_isTok(space, node));
