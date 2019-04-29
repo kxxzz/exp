@@ -780,6 +780,7 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
     EXP_Space* space = ctx->space;
     vec_u32* dataStack = &ctx->dataStack;
 
+    assert(blk->completed);
     assert(blk->haveInOut);
     assert(dataStack->length >= blk->numIns);
     u32 argsOffset = dataStack->length - blk->numIns;
@@ -814,7 +815,10 @@ static void EXP_evalCompileBlockCall(EXP_EvalCompileContext* ctx, const EXP_Eval
 
 static u32 EXP_evalCompileBlockType(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
 {
-    return -1;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    assert(blk->completed);
+    u32 t = EXP_evalTypeFun(typeContext, blk->numIns, blk->inout.data, blk->numOuts, blk->inout.data + blk->numIns);
+    return t;
 }
 
 
