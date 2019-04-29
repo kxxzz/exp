@@ -46,7 +46,7 @@ gc
 
 drop8
 
-//20 [fib] apply
+20 [fib] apply
 
 
 

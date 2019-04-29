@@ -12,6 +12,7 @@ const char** EXP_EvalKeyNameTable(void)
         ":",
         "if",
         "gc",
+        "apply",
     };
     return a;
 }

@@ -15,6 +15,7 @@ typedef enum EXP_EvalKey
     EXP_EvalKey_VarDefEnd,
     EXP_EvalKey_If,
     EXP_EvalKey_GC,
+    EXP_EvalKey_Apply,
 
     EXP_NumEvalKeys
 } EXP_EvalKey;
