@@ -594,8 +594,9 @@ next:
         EXP_evalGC(ctx);
         goto next;
     }
-    case EXP_EvalNodeType_Block:
+    case EXP_EvalNodeType_Apply:
     {
+        // todo
         goto next;
     }
     case EXP_EvalNodeType_Afun:
@@ -650,6 +651,14 @@ next:
             assert(false);
             //EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalAtomCtorByStr);
         }
+        goto next;
+    }
+    case EXP_EvalNodeType_Block:
+    {
+        assert(EXP_isSeqSquare(space, node));
+        EXP_EvalValue v = { 0 };
+        v.src = enode->blkSrc;
+        vec_push(dataStack, v);
         goto next;
     }
     case EXP_EvalNodeType_CallVar:

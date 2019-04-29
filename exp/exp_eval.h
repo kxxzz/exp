@@ -40,6 +40,7 @@ typedef struct EXP_EvalValue
         bool b;
         f64 f;
         void* a;
+        EXP_Node src;
     };
     EXP_EvalValueType type;
 } EXP_EvalValue;
