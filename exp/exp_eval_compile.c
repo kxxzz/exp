@@ -1237,6 +1237,7 @@ static void EXP_evalCompileNode
                     return;
                 }
                 enode->numIns = desc->fun.ins.count;
+                vec_pop(dataStack);
                 EXP_evalCompileFunCall(ctx, t, node);
                 return;
             }
