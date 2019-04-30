@@ -1326,7 +1326,17 @@ static void EXP_evalCompileNode
             enode->type = EXP_EvalNodeType_CallVar;
             enode->var.block = named.var.block;
             enode->var.id = named.var.id;
-            vec_push(dataStack, named.var.valType);
+
+            EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
+            if (!argBlk->completed)
+            {
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .blkSrc = named.blkSrc }; // todo
+                EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
+            }
+            else
+            {
+                EXP_evalCompileBlockCall(ctx, argBlk, node);
+            }
             return;
         }
         else
@@ -1334,15 +1344,15 @@ static void EXP_evalCompileNode
             enode->type = EXP_EvalNodeType_CallWord;
             enode->blkSrc = named.blkSrc;
 
-            EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
-            if (!nodeBlk->completed)
+            EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
+            if (!argBlk->completed)
             {
                 EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .blkSrc = named.blkSrc };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
             {
-                EXP_evalCompileBlockCall(ctx, nodeBlk, node);
+                EXP_evalCompileBlockCall(ctx, argBlk, node);
             }
             return;
         }
@@ -1357,15 +1367,15 @@ static void EXP_evalCompileNode
         EXP_EvalAfunInfo* afunInfo = ctx->afunTable->data + afun;
         assert(afunInfo->call);
 
-        EXP_EvalCompileBlock* nodeBlk = EXP_evalCompileGetBlock(ctx, node);
-        if (!nodeBlk->completed)
+        EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
+        if (!argBlk->completed)
         {
             EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Ncall, .afun = afun };
             EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
         }
         else
         {
-            EXP_evalCompileBlockCall(ctx, nodeBlk, node);
+            EXP_evalCompileBlockCall(ctx, argBlk, node);
         }
         return;
     }
