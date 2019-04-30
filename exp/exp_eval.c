@@ -596,7 +596,13 @@ next:
     }
     case EXP_EvalNodeType_Apply:
     {
-        // todo
+        EXP_EvalValue v = vec_last(dataStack);
+        vec_pop(dataStack);
+        EXP_Node blkSrc = v.src;
+        assert(EXP_isSeqSquare(space, blkSrc));
+        u32 bodyLen = EXP_seqLen(space, blkSrc);
+        EXP_Node* body = EXP_seqElm(space, blkSrc);
+        EXP_evalEnterBlock(ctx, bodyLen, body, blkSrc);
         goto next;
     }
     case EXP_EvalNodeType_Afun:
