@@ -48,13 +48,11 @@ drop8
 
 (def dup -> x : x x)
 
-20 [fib] dup -> fib1 : apply
-
-
+[fib] -> fib1 :
 
 (fib1 20)
 
-
+20 fib1 apply
 
 
 
