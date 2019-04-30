@@ -63,7 +63,8 @@ typedef enum EXP_EvalCompileBlockCallbackType
 {
     EXP_EvalCompileBlockCallbackType_NONE,
     EXP_EvalCompileBlockCallbackType_Ncall,
-    EXP_EvalCompileBlockCallbackType_Call,
+    EXP_EvalCompileBlockCallbackType_CallBlock,
+    EXP_EvalCompileBlockCallbackType_CallType,
     EXP_EvalCompileBlockCallbackType_Cond,
     EXP_EvalCompileBlockCallbackType_Branch0,
     EXP_EvalCompileBlockCallbackType_Branch1,
@@ -77,6 +78,7 @@ typedef struct EXP_EvalCompileBlockCallback
     {
         u32 afun;
         EXP_Node blkSrc;
+        u32 funType;
     };
 } EXP_EvalCompileBlockCallback;
 
@@ -1330,7 +1332,7 @@ static void EXP_evalCompileNode
             EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!argBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .blkSrc = named.blkSrc }; // todo
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallType, .blkSrc = named.var.valType };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1347,7 +1349,7 @@ static void EXP_evalCompileNode
             EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!argBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_Call, .blkSrc = named.blkSrc };
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallBlock, .blkSrc = named.blkSrc };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1490,7 +1492,7 @@ next:
             EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }
-        case EXP_EvalCompileBlockCallbackType_Call:
+        case EXP_EvalCompileBlockCallbackType_CallBlock:
         {
             EXP_Node blkSrc = cb->blkSrc;
             EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
@@ -1548,6 +1550,11 @@ next:
                 }
                 goto next;
             }
+            return;
+        }
+        case EXP_EvalCompileBlockCallbackType_CallType:
+        {
+            // todo
             return;
         }
         case EXP_EvalCompileBlockCallbackType_Cond:
