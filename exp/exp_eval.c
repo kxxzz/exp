@@ -670,8 +670,13 @@ next:
     case EXP_EvalNodeType_CallVar:
     {
         assert(EXP_evalCheckCall(space, node));
-        // todo
-        assert(false);
+        EXP_EvalValue* val = EXP_evalGetVar(ctx, &enode->var);
+        EXP_Node blkSrc = val->src;
+        assert(EXP_isSeqSquare(space, blkSrc));
+        EXP_Node* elms = EXP_seqElm(space, node);
+        u32 len = EXP_seqLen(space, node);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Call, .blkSrc = blkSrc };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }
     case EXP_EvalNodeType_CallWord:

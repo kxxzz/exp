@@ -46,9 +46,13 @@ gc
 
 drop8
 
-20 [fib] apply
+(def dup -> x : x x)
+
+20 [fib] dup -> fib1 : apply
 
 
+
+//(fib1 20)
 
 
 

@@ -257,6 +257,11 @@ next:
         vec_pop(buildStack);
         break;
     }
+    case EXP_EvalTypeType_Fun:
+    {
+        // todo
+        break;
+    }
     case EXP_EvalTypeType_Var:
     {
         u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
