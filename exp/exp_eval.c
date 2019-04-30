@@ -468,6 +468,21 @@ static void EXP_evalAfunCall
 
 
 
+static void EXP_evalTailCallElimination(EXP_EvalContext* ctx)
+{
+    while (EXP_evalAtTail(ctx))
+    {
+        if (!EXP_evalLeaveBlock(ctx))
+        {
+            break;
+        }
+    }
+}
+
+
+
+
+
 
 
 static void EXP_evalCall(EXP_EvalContext* ctx)
@@ -510,14 +525,7 @@ next:
             {
                 goto next;
             }
-            // tail call optimization
-            while (EXP_evalAtTail(ctx))
-            {
-                if (!EXP_evalLeaveBlock(ctx))
-                {
-                    break;
-                }
-            }
+            EXP_evalTailCallElimination(ctx);
             EXP_evalEnterBlock(ctx, bodyLen, body, blkSrc);
             goto next;
         }
@@ -530,14 +538,7 @@ next:
             {
                 goto next;
             }
-            // tail call optimization
-            while (EXP_evalAtTail(ctx))
-            {
-                if (!EXP_evalLeaveBlock(ctx))
-                {
-                    break;
-                }
-            }
+            EXP_evalTailCallElimination(ctx);
             EXP_evalEnterBlock(ctx, bodyLen, body, blkSrc);
             goto next;
         }
