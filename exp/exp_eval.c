@@ -689,27 +689,6 @@ next:
         vec_push(dataStack, v);
         goto next;
     }
-    case EXP_EvalNodeType_CallVar:
-    {
-        assert(EXP_evalCheckCall(space, node));
-        EXP_EvalValue* val = EXP_evalGetVar(ctx, &enode->var);
-        EXP_Node blkSrc = val->src;
-        assert(EXP_isSeqSquare(space, blkSrc));
-        EXP_Node* elms = EXP_seqElm(space, node);
-        u32 len = EXP_seqLen(space, node);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallVar, .blkSrc = blkSrc };
-        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
-        goto next;
-    }
-    case EXP_EvalNodeType_CallWord:
-    {
-        assert(EXP_evalCheckCall(space, node));
-        EXP_Node* elms = EXP_seqElm(space, node);
-        u32 len = EXP_seqLen(space, node);
-        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallWord, .blkSrc = enode->blkSrc };
-        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
-        goto next;
-    }
     case EXP_EvalNodeType_CallAfun:
     {
         assert(EXP_evalCheckCall(space, node));
@@ -720,6 +699,27 @@ next:
         EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + afun;
         assert(afunInfo->call);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Ncall, .afun = afun };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+        goto next;
+    }
+    case EXP_EvalNodeType_CallWord:
+    {
+        assert(EXP_evalCheckCall(space, node));
+        EXP_Node* elms = EXP_seqElm(space, node);
+        u32 len = EXP_seqLen(space, node);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallWord,.blkSrc = enode->blkSrc };
+        EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
+        goto next;
+    }
+    case EXP_EvalNodeType_CallVar:
+    {
+        assert(EXP_evalCheckCall(space, node));
+        EXP_EvalValue* val = EXP_evalGetVar(ctx, &enode->var);
+        EXP_Node blkSrc = val->src;
+        assert(EXP_isSeqSquare(space, blkSrc));
+        EXP_Node* elms = EXP_seqElm(space, node);
+        u32 len = EXP_seqLen(space, node);
+        EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallVar,.blkSrc = blkSrc };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
         goto next;
     }

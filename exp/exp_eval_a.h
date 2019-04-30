@@ -33,9 +33,9 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_Atom,
     EXP_EvalNodeType_Block,
 
-    EXP_EvalNodeType_CallVar,
-    EXP_EvalNodeType_CallWord,
     EXP_EvalNodeType_CallAfun,
+    EXP_EvalNodeType_CallWord,
+    EXP_EvalNodeType_CallVar,
 
     EXP_EvalNodeType_Def,
     EXP_EvalNodeType_If,
