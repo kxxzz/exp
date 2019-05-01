@@ -129,6 +129,47 @@ typedef vec_t(EXP_EvalCompileVarFetch) EXP_EvalCompileVarFetchBuf;
 
 
 
+
+typedef struct EXP_EvalCompileTypeDeclLevel
+{
+    EXP_Node src;
+    bool hasRet;
+    vec_u32 elms;
+} EXP_EvalCompileTypeDeclLevel;
+
+typedef vec_t(EXP_EvalCompileTypeDeclLevel) EXP_EvalCompileTypeDeclStack;
+
+static void EXP_evalCompileTypeDeclStackPop(EXP_EvalCompileTypeDeclStack* stack)
+{
+    EXP_EvalCompileTypeDeclLevel* l = &vec_last(stack);
+    vec_free(&l->elms);
+    vec_pop(stack);
+}
+
+static void EXP_evalCompileTypeDeclStackResize(EXP_EvalCompileTypeDeclStack* stack, u32 n)
+{
+    assert(n < stack->length);
+    for (u32 i = n; i < stack->length; ++i)
+    {
+        EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
+        vec_free(&l->elms);
+    }
+    vec_resize(stack, n);
+}
+
+static void EXP_evalCompileTypeDeclStackFree(EXP_EvalCompileTypeDeclStack* stack)
+{
+    for (u32 i = 0; i < stack->length; ++i)
+    {
+        EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
+        vec_free(&l->elms);
+    }
+    vec_free(stack);
+}
+
+
+
+
 typedef struct EXP_EvalCompileContext
 {
     EXP_Space* space;
@@ -156,6 +197,7 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalCompileVarFetchBuf varFetchBuf;
     vec_u32 typeBuf;
     EXP_EvalTypeVarSpace varRenMap;
+    EXP_EvalCompileTypeDeclStack typeDeclStack;
 } EXP_EvalCompileContext;
 
 
@@ -194,6 +236,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
 
 static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
 {
+    EXP_evalCompileTypeDeclStackFree(&ctx->typeDeclStack);
     EXP_evalTypeVarSpaceFree(&ctx->varRenMap);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varFetchBuf);
