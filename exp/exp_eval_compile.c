@@ -1072,12 +1072,12 @@ static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx, EXP_Node node)
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return false;
         }
-        if (!EXP_isSeqSquare(space, elms[1]))
+        if (!EXP_isSeqSquare(space, elms[1]) && !EXP_isTok(space, elms[1]))
         {
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return false;
         }
-        if (!EXP_isSeqSquare(space, elms[2]))
+        if (!EXP_isSeqSquare(space, elms[2]) && !EXP_isTok(space, elms[2]))
         {
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return false;
