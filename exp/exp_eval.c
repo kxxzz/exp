@@ -930,6 +930,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalUnkWord",
         "EvalUnkCall",
         "EvalUnkFunType",
+        "EvalUnkTypeDecl",
         "EvalArgs",
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",

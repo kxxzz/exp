@@ -1059,9 +1059,11 @@ static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_N
             fetch->hasTypeRestrict = true;
             fetch->type = EXP_evalTypeAtom(typeContext, i);
         }
+        return true;
     }
 
-    return true;
+    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkTypeDecl);
+    return false;
 }
 
 
