@@ -1046,6 +1046,11 @@ static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx, EXP_Node node)
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
+    if (!EXP_isTok(space, elms[0]))
+    {
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        return false;
+    }
     const char* head = EXP_tokCstr(space, elms[0]);
 
     EXP_EvalCompileVarFetch* fetch = &vec_last(&ctx->varFetchBuf);
