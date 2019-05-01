@@ -108,10 +108,11 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 nu
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Array };
-    desc.aryElm = elm;
+    desc.aryElm.count = count;
+    desc.aryElm.list = EXP_evalTypeList(ctx, count, elms);
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 

@@ -36,7 +36,7 @@ typedef struct EXP_EvalTypeDesc
         u32 atom;
         u32 nodeId;
         EXP_EvalTypeDescFun fun;
-        u32 aryElm;
+        EXP_EvalTypeDescList aryElm;
         u32 varId;
     };
 } EXP_EvalTypeDesc;
@@ -53,7 +53,7 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx);
 
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom);
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs);
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 var);
 
 
