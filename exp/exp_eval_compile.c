@@ -1076,14 +1076,24 @@ static bool EXP_evalCompileVarDefTok
 
 
 
-static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx)
+static void EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalCompileTypeDeclStack* typeDeclStack = &ctx->typeDeclStack;
 
-
+    EXP_EvalCompileVarFetch* fetch = &vec_last(&ctx->varFetchBuf);
+    u32 r = -1;
+next:
+    if (!typeDeclStack->length)
+    {
+        assert(r != -1);
+        assert(!fetch->hasTypeRestrict);
+        fetch->hasTypeRestrict = true;
+        fetch->type = r;
+        return;
+    }
     EXP_EvalCompileTypeDeclLevel* top = &vec_last(typeDeclStack);
     EXP_Node node = top->src;
     EXP_Node* elms = EXP_seqElm(space, node);
@@ -1091,25 +1101,28 @@ static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx)
     if (!len)
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return false;
+        return;
     }
     if (!EXP_isTok(space, elms[0]))
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return false;
+        return;
     }
     const char* head = EXP_tokCstr(space, elms[0]);
 
-    EXP_EvalCompileVarFetch* fetch = &vec_last(&ctx->varFetchBuf);
-    for (u32 i = 0; i < atypeTable->length; ++i)
+    if (1 == len)
     {
-        if (0 == strcmp(head, atypeTable->data[i].name))
+        for (u32 i = 0; i < atypeTable->length; ++i)
         {
-            assert(!fetch->hasTypeRestrict);
-            fetch->hasTypeRestrict = true;
-            fetch->type = EXP_evalTypeAtom(typeContext, i);
+            if (0 == strcmp(head, atypeTable->data[i].name))
+            {
+                EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+                r = EXP_evalTypeAtom(typeContext, i);
+                goto next;
+            }
         }
-        return true;
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+        return;
     }
 
     if (0 == strcmp(head, "fn"))
@@ -1117,43 +1130,67 @@ static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx)
         if (EXP_seqLen(space, node) != 3)
         {
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-            return false;
+            return;
         }
-        if (!EXP_isSeqSquare(space, elms[1]) && !EXP_isTok(space, elms[1]))
+        u32 numIns = 0;
+        u32 numOuts = 0;
+        if (EXP_isSeqSquare(space, elms[1]))
         {
-            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-            return false;
         }
-        if (!EXP_isSeqSquare(space, elms[2]) && !EXP_isTok(space, elms[2]))
+        else
         {
-            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-            return false;
+
+        }
+        if (EXP_isSeqSquare(space, elms[2]))
+        {
+        }
+        else
+        {
+
+        }
+        if (top->hasRet)
+        {
+            vec_push(&top->elms, r);
+        }
+        else
+        {
+            top->hasRet = true;
+        }
+        u32 numAll = numIns + numOuts;
+        u32 p = top->elms.length;
+        if (p < numAll)
+        {
+            EXP_EvalCompileTypeDeclLevel l = { 0 };
+            vec_push(typeDeclStack, l);
+        }
+        else
+        {
+            r = EXP_evalTypeFun(typeContext, numIns, top->elms.data, numOuts, top->elms.data + numIns);
+            EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
     }
     else
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkTypeDecl);
-        return false;
+        return;
     }
-    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkTypeDecl);
-    return false;
 }
 
 
 
 
-static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_Node node)
+static void EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
     EXP_Space* space = ctx->space;
     if (!EXP_isSeqRound(space, node))
     {
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
-        return false;
+        return;
     }
     assert(0 == ctx->typeDeclStack.length);
     EXP_EvalCompileTypeDeclLevel l = { node };
     vec_push(&ctx->typeDeclStack, l);
-    return EXP_evalCompileTypeDecl(ctx);
+    EXP_evalCompileTypeDecl(ctx);
 }
 
 
@@ -1293,7 +1330,8 @@ static void EXP_evalCompileNode
                     }
                     else
                     {
-                        if (!EXP_evalCompileVarDefTypeRestrict(ctx, node))
+                        EXP_evalCompileVarDefTypeRestrict(ctx, node);
+                        if (ctx->error.code)
                         {
                             return;
                         }
