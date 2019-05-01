@@ -16,6 +16,19 @@ typedef enum EXP_EvalTypeType
     EXP_NumEvalTypeTypes
 } EXP_EvalTypeType;
 
+static const char** EXP_EvalTypeTypeNameTable(void)
+{
+    static const char* a[EXP_NumEvalTypeTypes] =
+    {
+        "Atom",
+        "Fun",
+        "Array",
+        "Var",
+    };
+    return a;
+}
+
+
 typedef struct EXP_EvalTypeDescList
 {
     u32 count;

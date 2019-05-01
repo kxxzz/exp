@@ -1065,6 +1065,29 @@ static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx, EXP_Node node)
         return true;
     }
 
+    if (0 == strcmp(head, "fn"))
+    {
+        if (EXP_seqLen(space, node) != 3)
+        {
+            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+            return false;
+        }
+        if (!EXP_isSeqSquare(space, elms[1]))
+        {
+            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+            return false;
+        }
+        if (!EXP_isSeqSquare(space, elms[2]))
+        {
+            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+            return false;
+        }
+    }
+    else
+    {
+        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkTypeDecl);
+        return false;
+    }
     EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalUnkTypeDecl);
     return false;
 }
