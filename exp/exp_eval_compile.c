@@ -1555,14 +1555,9 @@ next:
         case EXP_EvalCompileBlockCallbackType_CallType:
         {
             const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, cb->funType);
-            if (EXP_EvalTypeType_Var == desc->type)
-            {
-                // todo
-                goto next;
-            }
             if (desc->type != EXP_EvalTypeType_Fun)
             {
-                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalUnkFunType);
                 goto next;
             }
             EXP_evalCompileLeaveBlock(ctx);

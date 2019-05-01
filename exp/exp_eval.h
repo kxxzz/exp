@@ -145,6 +145,7 @@ typedef enum EXP_EvalErrCode
     EXP_EvalErrCode_EvalSyntax,
     EXP_EvalErrCode_EvalUnkWord,
     EXP_EvalErrCode_EvalUnkCall,
+    EXP_EvalErrCode_EvalUnkFunType,
     EXP_EvalErrCode_EvalArgs,
     EXP_EvalErrCode_EvalBranchUneq,
     EXP_EvalErrCode_EvalRecurNoBaseCase,

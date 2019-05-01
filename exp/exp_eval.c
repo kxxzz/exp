@@ -929,6 +929,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalSyntax",
         "EvalUnkWord",
         "EvalUnkCall",
+        "EvalUnkFunType",
         "EvalArgs",
         "EvalBranchUneq",
         "EvalRecurNoBaseCase",
