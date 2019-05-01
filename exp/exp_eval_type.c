@@ -91,10 +91,10 @@ static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms
 
 
 
-u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atom)
+u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
 {
     EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Atom };
-    desc.atom = atom;
+    desc.atype = atype;
     return EXP_evalTypeIdByDesc(ctx, &desc);
 }
 
@@ -391,7 +391,7 @@ next:
         {
         case EXP_EvalTypeType_Atom:
         {
-            assert(descA->atom != descB->atom);
+            assert(descA->atype != descB->atype);
             goto failed;
         }
         case EXP_EvalTypeType_Fun:

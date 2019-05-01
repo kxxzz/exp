@@ -24,7 +24,7 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
         {
         case EXP_EvalTypeType_Atom:
         {
-            switch (desc->atom)
+            switch (desc->atype)
             {
             case EXP_EvalPrimType_BOOL:
             {
