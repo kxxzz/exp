@@ -1076,12 +1076,16 @@ static bool EXP_evalCompileVarDefTok
 
 
 
-static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx, EXP_Node node)
+static bool EXP_evalCompileTypeDecl(EXP_EvalCompileContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalCompileTypeDeclStack* typeDeclStack = &ctx->typeDeclStack;
 
+
+    EXP_EvalCompileTypeDeclLevel* top = &vec_last(typeDeclStack);
+    EXP_Node node = top->src;
     EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
     if (!len)
@@ -1146,7 +1150,10 @@ static bool EXP_evalCompileVarDefTypeRestrict(EXP_EvalCompileContext* ctx, EXP_N
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return false;
     }
-    return EXP_evalCompileTypeDecl(ctx, node);
+    assert(0 == ctx->typeDeclStack.length);
+    EXP_EvalCompileTypeDeclLevel l = { node };
+    vec_push(&ctx->typeDeclStack, l);
+    return EXP_evalCompileTypeDecl(ctx);
 }
 
 
