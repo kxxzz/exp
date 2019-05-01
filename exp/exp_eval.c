@@ -3,11 +3,11 @@
 
 
 
-typedef struct EXP_EvalAtomMem
+typedef struct EXP_EvalObject
 {
     bool gcFlag;
     char a[1];
-} EXP_EvalAtomMem;
+} EXP_EvalObject;
 
 
 
@@ -47,8 +47,8 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
-typedef vec_t(EXP_EvalAtomMem*) EXP_EvalAtomMemPtrVec;
-typedef vec_t(EXP_EvalAtomMemPtrVec) EXP_AtomMemTable;
+typedef vec_t(EXP_EvalObject*) EXP_EvalObjectPtrVec;
+typedef vec_t(EXP_EvalObjectPtrVec) EXP_EvalObjectTable;
 
 
 
@@ -60,7 +60,7 @@ typedef struct EXP_EvalContext
     EXP_EvalAfunInfoVec afunTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
-    EXP_AtomMemTable atomMemTable;
+    EXP_EvalObjectTable objectTable;
 
     vec_u32 typeStack;
     EXP_EvalCallStack callStack;
@@ -102,8 +102,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
             vec_push(&ctx->afunTable, addAtomTable->funs[i]);
         }
     }
-    vec_resize(&ctx->atomMemTable, ctx->atypeTable.length);
-    memset(ctx->atomMemTable.data, 0, sizeof(ctx->atomMemTable.data[0])*ctx->atomMemTable.length);
+    vec_resize(&ctx->objectTable, ctx->atypeTable.length);
+    memset(ctx->objectTable.data, 0, sizeof(ctx->objectTable.data[0])*ctx->objectTable.length);
     ctx->typeContext = EXP_newEvalTypeContext();
     return ctx;
 }
@@ -120,9 +120,9 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->typeStack);
 
-    for (u32 i = 0; i < ctx->atomMemTable.length; ++i)
+    for (u32 i = 0; i < ctx->atypeTable.length; ++i)
     {
-        EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + i;
+        EXP_EvalObjectPtrVec* mpVec = ctx->objectTable.data + i;
         EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
         if ((atypeInfo->allocMemSize > 0) || atypeInfo->aDtor)
         {
@@ -145,7 +145,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
         }
         vec_free(mpVec);
     }
-    vec_free(&ctx->atomMemTable);
+    vec_free(&ctx->objectTable);
 
     vec_free(&ctx->nodeTable);
     EXP_evalTypeContextFree(ctx->typeContext);
@@ -259,9 +259,9 @@ static void EXP_evalSetGcFlag(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
     switch (v.type)
     {
-    case EXP_EvalValueType_AtomA:
+    case EXP_EvalValueType_AtomObj:
     {
-        EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)((char*)v.a - offsetof(EXP_EvalAtomMem, a));
+        EXP_EvalObject* m = (EXP_EvalObject*)((char*)v.a - offsetof(EXP_EvalObject, a));
         if (m->gcFlag != ctx->gcFlag)
         {
             m->gcFlag = ctx->gcFlag;
@@ -279,7 +279,7 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
     EXP_EvalValueVec* varStack = &ctx->varStack;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
     EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
-    EXP_AtomMemTable* atomMemTable = &ctx->atomMemTable;
+    EXP_EvalObjectTable* objectTable = &ctx->objectTable;
 
     ctx->gcFlag = !ctx->gcFlag;
 
@@ -292,9 +292,9 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
         EXP_evalSetGcFlag(ctx, dataStack->data[i]);
     }
 
-    for (u32 i = 0; i < atomMemTable->length; ++i)
+    for (u32 i = 0; i < objectTable->length; ++i)
     {
-        EXP_EvalAtomMemPtrVec* mpVec = atomMemTable->data + i;
+        EXP_EvalObjectPtrVec* mpVec = objectTable->data + i;
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + i;
         if ((atypeInfo->allocMemSize > 0) || atypeInfo->aDtor)
         {
@@ -662,11 +662,11 @@ next:
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + enode->atype;
         if (atypeInfo->allocMemSize > 0)
         {
-            EXP_EvalAtomMem* m = (EXP_EvalAtomMem*)zalloc(offsetof(EXP_EvalAtomMem, a) + atypeInfo->allocMemSize);
+            EXP_EvalObject* m = (EXP_EvalObject*)zalloc(offsetof(EXP_EvalObject, a) + atypeInfo->allocMemSize);
             v.a = m->a;
-            EXP_EvalAtomMemPtrVec* mpVec = ctx->atomMemTable.data + enode->atype;
+            EXP_EvalObjectPtrVec* mpVec = ctx->objectTable.data + enode->atype;
             vec_push(mpVec, m);
-            v.type = EXP_EvalValueType_AtomA;
+            v.type = EXP_EvalValueType_AtomObj;
             m->gcFlag = ctx->gcFlag;
         }
         assert(atypeInfo->ctorByStr);
