@@ -1145,7 +1145,7 @@ next:
                 if (EXP_isTok(space, elms[i]))
                 {
                     const char* name = EXP_tokCstr(space, elms[i]);
-                    if (0 == strcmp("-->", name))
+                    if (0 == strcmp("->", name))
                     {
                         if (arrowPos != -1)
                         {
