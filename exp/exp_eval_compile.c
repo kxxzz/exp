@@ -1395,6 +1395,27 @@ static void EXP_evalCompileNode
                     return;
                 }
                 enode->numIns = desc->fun.ins.count;
+
+                if (dataStack->length < desc->fun.ins.count)
+                {
+                    const u32* funIns = EXP_evalTypeListById(typeContext, desc->fun.ins.list);
+                    u32 n = desc->fun.ins.count - dataStack->length;
+
+                    EXP_evalCompilePatContextReset(ctx);
+                    ctx->typeBuf.length = 0;
+                    for (u32 i = 0; i < n; ++i)
+                    {
+                        u32 pat = funIns[i];
+                        u32 t = EXP_evalCompileTypeFromPat(ctx, pat);
+                        vec_push(&ctx->typeBuf, t);
+                    }
+
+                    if (!EXP_evalCompileShiftDataStack(ctx, n, ctx->typeBuf.data))
+                    {
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
+                        return;
+                    }
+                }
                 EXP_evalCompileFunCall(ctx, t, node);
                 return;
             }
