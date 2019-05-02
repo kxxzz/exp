@@ -1191,7 +1191,6 @@ next:
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
         goto next;
-
     }
     else
     {
