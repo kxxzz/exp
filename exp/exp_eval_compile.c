@@ -1131,8 +1131,6 @@ next:
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return;
         }
-        u32 numIns = 0;
-        u32 numOuts = 0;
         if (top->hasRet)
         {
             vec_push(&top->elms, r);
@@ -1144,14 +1142,6 @@ next:
             u32 arrowPos = -1;
             for (u32 i = 0; i < len; ++i)
             {
-                if (-1 == arrowPos)
-                {
-                    ++numIns;
-                }
-                else
-                {
-                    ++numOuts;
-                }
                 if (EXP_isTok(space, elms[i]))
                 {
                     const char* name = EXP_tokCstr(space, elms[i]);
@@ -1163,7 +1153,16 @@ next:
                             return;
                         }
                         arrowPos = i;
+                        continue;
                     }
+                }
+                if (-1 == arrowPos)
+                {
+                    ++top->fun.numIns;
+                }
+                else
+                {
+                    ++top->fun.numOuts;
                 }
             }
             if (-1 == arrowPos)
@@ -1171,11 +1170,10 @@ next:
                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
                 return;
             }
-            assert(numIns == arrowPos);
-
-            top->fun.numIns = numIns;
-            top->fun.numOuts = numOuts;
+            assert(top->fun.numIns == arrowPos);
         }
+        u32 numIns = top->fun.numIns;
+        u32 numOuts = top->fun.numOuts;
         u32 numAll = numIns + numOuts;
         u32 p = top->elms.length;
         if (p < numAll)

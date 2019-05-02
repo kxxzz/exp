@@ -55,9 +55,9 @@ drop8
 20 fib1 apply
 
 
+(def apply-num -> f (num --> num) : f apply)
 
-
-
+20 fib1 apply-num
 
 
 
