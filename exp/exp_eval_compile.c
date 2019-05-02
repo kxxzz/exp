@@ -938,15 +938,12 @@ static void EXP_evalCompileRecurFallbackToOtherBranch(EXP_EvalCompileContext* ct
         // quit this branch until next enter
         if (EXP_EvalCompileBlockCallbackType_Branch0 == cb->type)
         {
-            if (EXP_evalIfHasBranch1(space, srcNode))
-            {
-                curBlock->incomplete = true;
-                EXP_evalCompileBlockRevert(ctx);
-                curCall->p = EXP_evalIfBranch1(space, srcNode);
-                curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
-                cb->type = EXP_EvalCompileBlockCallbackType_NONE;
-                return;
-            }
+            curBlock->incomplete = true;
+            EXP_evalCompileBlockRevert(ctx);
+            curCall->p = EXP_evalIfBranch1(space, srcNode);
+            curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
+            cb->type = EXP_EvalCompileBlockCallbackType_NONE;
+            return;
         }
         else if (EXP_EvalCompileBlockCallbackType_BranchUnify == cb->type)
         {
@@ -1624,7 +1621,7 @@ static void EXP_evalCompileBlockMarch
     case EXP_EvalKey_If:
     {
         enode->type = EXP_EvalNodeType_If;
-        if ((len != 3) && (len != 4))
+        if (len != 4)
         {
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalArgs);
             return;
@@ -1819,21 +1816,15 @@ next:
         }
         case EXP_EvalCompileBlockCallbackType_Branch0:
         {
-            if (EXP_evalIfHasBranch1(space, srcNode))
-            {
-                EXP_evalCompileSaveBlock(ctx);
-                EXP_evalCompileBlockRevert(ctx);
-                curCall->p = EXP_evalIfBranch1(space, srcNode);
-                curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
-                cb->type = EXP_EvalCompileBlockCallbackType_BranchUnify;
-                goto next;
-            }
-            EXP_evalCompileLeaveBlock(ctx);
+            EXP_evalCompileSaveBlock(ctx);
+            EXP_evalCompileBlockRevert(ctx);
+            curCall->p = EXP_evalIfBranch1(space, srcNode);
+            curCall->end = EXP_evalIfBranch1(space, srcNode) + 1;
+            cb->type = EXP_EvalCompileBlockCallbackType_BranchUnify;
             goto next;
         }
         case EXP_EvalCompileBlockCallbackType_BranchUnify:
         {
-            assert(EXP_evalIfHasBranch1(space, srcNode));
             EXP_evalCompileLeaveBlock(ctx);
             goto next;
         }

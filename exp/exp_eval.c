@@ -563,11 +563,8 @@ next:
                 EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch0(space, srcNode), srcNode);
                 goto next;
             }
-            else if (EXP_evalIfHasBranch1(space, srcNode))
-            {
-                EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
-                goto next;
-            }
+            EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
+            goto next;
         }
         default:
             assert(false);
@@ -751,7 +748,7 @@ next:
         assert(EXP_evalCheckCall(space, node));
         EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
-        assert((3 == len) || (4 == len));
+        assert(4 == len);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
         EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
