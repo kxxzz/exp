@@ -77,7 +77,7 @@ typedef struct EXP_EvalCompileBlockCallback
     union
     {
         u32 afun;
-        EXP_Node blkSrc;
+        EXP_Node* blkSrc;
         u32 funType;
     };
 } EXP_EvalCompileBlockCallback;
@@ -465,13 +465,20 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
 
 
 
-static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
+static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node* src, EXP_Node** pSeq, u32* pLen)
 {
     EXP_Space* space = ctx->space;
-    assert(EXP_seqLen(space, node) >= 2);
-    *pLen = EXP_seqLen(space, node) - 2;
-    EXP_Node* exp = EXP_seqElm(space, node);
-    *pSeq = exp + 2;
+    if (EXP_isSeqCurly(space, *src))
+    {
+        EXP_Node* exp = EXP_seqElm(space, *src);
+        *pSeq = exp;
+        *pLen = EXP_seqLen(space, *src);
+    }
+    else
+    {
+        *pSeq = src;
+        *pLen = 1;
+    }
 }
 
 
@@ -480,27 +487,26 @@ static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node nod
 
 
 
-static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
+static bool EXP_evalCompileIsDefHere(EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, u32 p)
 {
+    if (p + 3 > len)
+    {
+        return false;
+    }
     EXP_Space* space = ctx->space;
-    if (EXP_isTok(space, node))
+    if (!EXP_isTok(space, seq[p]))
     {
         return false;
     }
-    if (!EXP_evalCheckCall(space, node))
-    {
-        return false;
-    }
-    EXP_Node* exp = EXP_seqElm(space, node);
-    const char* kDef = EXP_tokCstr(space, exp[0]);
+    const char* kDef = EXP_tokCstr(space, seq[p]);
     EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
     if (k != EXP_EvalKey_Def)
     {
         return false;
     }
-    if (!EXP_isTok(space, exp[1]))
+    if (!EXP_isTok(space, seq[p + 1]))
     {
-        EXP_evalCompileErrorAtNode(ctx, exp[1], EXP_EvalErrCode_EvalSyntax);
+        EXP_evalCompileErrorAtNode(ctx, seq[p + 1], EXP_EvalErrCode_EvalSyntax);
         return false;
     }
     return true;
@@ -515,17 +521,17 @@ static bool EXP_evalCompileIsWordDef(EXP_EvalCompileContext* ctx, EXP_Node node)
 
 
 
-static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileBlock* blk)
+static u32 EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, u32 p, EXP_EvalCompileBlock* blk)
 {
-    if (!EXP_evalCompileIsWordDef(ctx, node))
+    if (!EXP_evalCompileIsDefHere(ctx, seq, len, p))
     {
-        return;
+        return p + 1;
     }
     EXP_Space* space = ctx->space;
-    EXP_Node* exp = EXP_seqElm(space, node);
-    EXP_Node name = exp[1];
-    EXP_EvalCompileNamed named = { name, false, .blkSrc = node };
+    EXP_Node name = seq[p + 1];
+    EXP_EvalCompileNamed named = { name, false, .blkSrc = seq[p + 2] };
     vec_push(&blk->dict, named);
+    return p + 3;
 }
 
 
@@ -581,9 +587,9 @@ static void EXP_evalCompileEnterBlock
     blk->dict.length = 0;
     if (isDefScope)
     {
-        for (u32 i = 0; i < len; ++i)
+        for (u32 i = 0; i < len;)
         {
-            EXP_evalCompileLoadDef(ctx, seq[i], blk);
+            i = EXP_evalCompileLoadDef(ctx, seq, len, i, blk);
             if (ctx->error.code)
             {
                 return;
@@ -1239,7 +1245,7 @@ static void EXP_evalCompileVarDefTypeSignature(EXP_EvalCompileContext* ctx, EXP_
 
 static void EXP_evalCompileApply
 (
-    EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_Node blkSrc
+    EXP_EvalCompileContext* ctx, EXP_Node node, EXP_EvalCompileCall* curCall, EXP_Node* blkSrc
 )
 {
     EXP_Space* space = ctx->space;
@@ -1247,7 +1253,7 @@ static void EXP_evalCompileApply
     EXP_EvalCompileBlockTable* blockTable = &ctx->blockTable;
     vec_u32* dataStack = &ctx->dataStack;
 
-    EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
+    EXP_EvalCompileBlock* blk = blockTable->data + blkSrc->id;
     if (blk->completed)
     {
         assert(!blk->entered);
@@ -1274,12 +1280,12 @@ static void EXP_evalCompileApply
     }
     else if (!blk->entered)
     {
-        u32 bodyLen = 0;
         EXP_Node* body = NULL;
-        EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
+        u32 bodyLen = 0;
+        EXP_evalCompileWordGetBody(ctx, blkSrc, &body, &bodyLen);
 
         --curCall->p;
-        EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, curCall->srcNode, true);
+        EXP_evalCompileEnterWorld(ctx, body, bodyLen, *blkSrc, curCall->srcNode, true);
     }
     else
     {
@@ -1336,6 +1342,21 @@ static void EXP_evalCompileNode
             EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
             switch (k)
             {
+            case EXP_EvalKey_Def:
+            {
+                enode->type = EXP_EvalNodeType_Def;
+                if (curCall->p + 2 > curCall->end)
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                    return;
+                }
+                if (!EXP_isTok(space, curCall->p[0]))
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                    return;
+                }
+                return;
+            }
             case EXP_EvalKey_VarDefBegin:
             {
                 enode->type = EXP_EvalNodeType_VarDefBegin;
@@ -1447,7 +1468,7 @@ static void EXP_evalCompileNode
                 {
                     enode->type = EXP_EvalNodeType_Word;
                     enode->blkSrc = named.blkSrc;
-                    EXP_evalCompileApply(ctx, node, curCall, named.blkSrc);
+                    EXP_evalCompileApply(ctx, node, curCall, &named.blkSrc);
                     return;
                 }
             }
@@ -1477,7 +1498,36 @@ static void EXP_evalCompileNode
         }
     }
 
-    if (EXP_isSeqSquare(space, node))
+    if (EXP_isSeqCurly(space, node))
+    {
+        EXP_EvalCompileBlock* blk = blockTable->data + node.id;
+        if (blk->completed)
+        {
+            assert(!blk->entered);
+            EXP_evalCompileBlockCall(ctx, blk, node);
+        }
+        else if (!blk->entered)
+        {
+            EXP_Node* body = EXP_seqElm(space, node);
+            u32 bodyLen = EXP_seqLen(space, node);
+            --curCall->p;
+            EXP_evalCompileEnterWorld(ctx, body, bodyLen, node, curCall->srcNode, true);
+        }
+        else
+        {
+            assert(blk->entered);
+            if (blk->haveInOut)
+            {
+                EXP_evalCompileBlockCall(ctx, blk, node);
+            }
+            else
+            {
+                EXP_evalCompileRecurFallbackToOtherBranch(ctx);
+            }
+        }
+        return;
+    }
+    else if (EXP_isSeqSquare(space, node))
     {
         EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, node);
         if (!blk->completed)
@@ -1517,7 +1567,7 @@ static void EXP_evalCompileNode
             EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!argBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallType, .blkSrc = named.var.valType };
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallType, .funType = named.var.valType };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1534,7 +1584,7 @@ static void EXP_evalCompileNode
             EXP_EvalCompileBlock* argBlk = EXP_evalCompileGetBlock(ctx, node);
             if (!argBlk->completed)
             {
-                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallBlock, .blkSrc = named.blkSrc };
+                EXP_EvalCompileBlockCallback cb = { EXP_EvalCompileBlockCallbackType_CallBlock, .blkSrc = &named.blkSrc };
                 EXP_evalCompileEnterBlock(ctx, elms + 1, len - 1, node, curCall->srcNode, cb, false);
             }
             else
@@ -1570,11 +1620,6 @@ static void EXP_evalCompileNode
     EXP_EvalKey k = EXP_evalCompileGetKey(ctx, name);
     switch (k)
     {
-    case EXP_EvalKey_Def:
-    {
-        enode->type = EXP_EvalNodeType_Def;
-        return;
-    }
     case EXP_EvalKey_If:
     {
         enode->type = EXP_EvalNodeType_If;
@@ -1679,8 +1724,8 @@ next:
         }
         case EXP_EvalCompileBlockCallbackType_CallBlock:
         {
-            EXP_Node blkSrc = cb->blkSrc;
-            EXP_EvalCompileBlock* blk = blockTable->data + blkSrc.id;
+            EXP_Node* blkSrc = cb->blkSrc;
+            EXP_EvalCompileBlock* blk = blockTable->data + blkSrc->id;
             if (blk->completed)
             {
                 assert(!blk->entered);
@@ -1705,10 +1750,10 @@ next:
                     EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                     goto next;
                 }
-                u32 bodyLen = 0;
                 EXP_Node* body = NULL;
-                EXP_evalCompileWordGetBody(ctx, blkSrc, &bodyLen, &body);
-                EXP_evalCompileEnterWorld(ctx, body, bodyLen, blkSrc, srcNode, true);
+                u32 bodyLen = 0;
+                EXP_evalCompileWordGetBody(ctx, blkSrc, &body, &bodyLen);
+                EXP_evalCompileEnterWorld(ctx, body, bodyLen, *blkSrc, srcNode, true);
                 goto next;
             }
             else
