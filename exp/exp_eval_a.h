@@ -27,6 +27,7 @@ typedef enum EXP_EvalNodeType
     EXP_EvalNodeType_GC,
     EXP_EvalNodeType_Afun,
     EXP_EvalNodeType_Apply,
+    EXP_EvalNodeType_BlockExe,
 
     EXP_EvalNodeType_Var,
     EXP_EvalNodeType_Word,

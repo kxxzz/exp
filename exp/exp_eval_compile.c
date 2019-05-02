@@ -1498,6 +1498,9 @@ static void EXP_evalCompileBlockMarch
 
     if (EXP_isSeqCurly(space, node))
     {
+        enode->type = EXP_EvalNodeType_BlockExe;
+        enode->blkSrc = curCall->p;
+
         EXP_EvalCompileBlock* blk = blockTable->data + node.id;
         if (blk->completed)
         {

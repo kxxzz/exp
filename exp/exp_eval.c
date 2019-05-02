@@ -642,6 +642,14 @@ next:
         EXP_evalEnterBlock(ctx, bodyLen, body, blkSrc);
         goto next;
     }
+    case EXP_EvalNodeType_BlockExe:
+    {
+        assert(EXP_isSeqCurly(space, node));
+        u32 bodyLen = EXP_seqLen(space, node);
+        EXP_Node* body = EXP_seqElm(space, node);
+        EXP_evalEnterBlock(ctx, bodyLen, body, node);
+        goto next;
+    }
     case EXP_EvalNodeType_Afun:
     {
         assert(EXP_isTok(space, node));
