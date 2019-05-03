@@ -5,7 +5,6 @@
 #include "exp_a.h"
 
 #include <nstr.h>
-#include <upool.h>
 
 
 
@@ -87,7 +86,7 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
     {
         return false;
     }
-    EXP_Node* elms = EXP_seqElm(space, node);
+    const EXP_Node* elms = EXP_seqElm(space, node);
     if (!EXP_isTok(space, elms[0]))
     {
         return false;
@@ -103,14 +102,14 @@ static bool EXP_evalCheckCall(EXP_Space* space, EXP_Node node)
 
 
 
-static EXP_Node* EXP_evalIfBranch0(EXP_Space* space, EXP_Node node)
+static const EXP_Node* EXP_evalIfBranch0(EXP_Space* space, EXP_Node node)
 {
-    EXP_Node* elms = EXP_seqElm(space, node);
+    const EXP_Node* elms = EXP_seqElm(space, node);
     return elms + 2;
 }
-static EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
+static const EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
 {
-    EXP_Node* elms = EXP_seqElm(space, node);
+    const EXP_Node* elms = EXP_seqElm(space, node);
     return elms + 3;
 }
 

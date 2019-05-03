@@ -92,8 +92,8 @@ typedef struct EXP_EvalCompileCall
 {
     EXP_Node srcNode;
     u32 dataStackP;
-    EXP_Node* p;
-    EXP_Node* end;
+    const EXP_Node* p;
+    const EXP_Node* end;
     EXP_EvalCompileBlockCallback cb;
 } EXP_EvalCompileCall;
 
@@ -461,12 +461,12 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
 
 
 
-static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, EXP_Node** pSeq, u32* pLen)
+static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, const EXP_Node** pSeq, u32* pLen)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_seqLen(space, node) >= 2);
     *pLen = EXP_seqLen(space, node) - 2;
-    EXP_Node* exp = EXP_seqElm(space, node);
+    const EXP_Node* exp = EXP_seqElm(space, node);
     *pSeq = exp + 2;
 }
 
@@ -487,7 +487,7 @@ static bool EXP_evalCompileIsDefCall(EXP_EvalCompileContext* ctx, EXP_Node node)
     {
         return false;
     }
-    EXP_Node* exp = EXP_seqElm(space, node);
+    const EXP_Node* exp = EXP_seqElm(space, node);
     const char* kDef = EXP_tokCstr(space, exp[0]);
     EXP_EvalKey k = EXP_evalCompileGetKey(ctx, kDef);
     if (k != EXP_EvalKey_Def)
@@ -518,7 +518,7 @@ static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, E
         return;
     }
     EXP_Space* space = ctx->space;
-    EXP_Node* exp = EXP_seqElm(space, node);
+    const EXP_Node* exp = EXP_seqElm(space, node);
     EXP_Node name = exp[1];
     EXP_EvalCompileNamed named = { name, false, .blkSrc = node };
     vec_push(&blk->dict, named);
@@ -557,7 +557,7 @@ static void EXP_evalCompileSetCallersIncomplete(EXP_EvalCompileContext* ctx)
 
 static void EXP_evalCompileEnterBlock
 (
-    EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent,
+    EXP_EvalCompileContext* ctx, const EXP_Node* seq, u32 len, EXP_Node srcNode, EXP_Node parent,
     EXP_EvalCompileBlockCallback cb, bool isDefScope
 )
 {
@@ -967,7 +967,7 @@ static void EXP_evalCompileRecurFallbackToOtherBranch(EXP_EvalCompileContext* ct
 
 static void EXP_evalCompileEnterWorld
 (
-    EXP_EvalCompileContext* ctx, EXP_Node* seq, u32 len, EXP_Node src, EXP_Node parent, bool allowDsShift
+    EXP_EvalCompileContext* ctx, const EXP_Node* seq, u32 len, EXP_Node src, EXP_Node parent, bool allowDsShift
 )
 {
     EXP_evalCompilePushWorld(ctx, allowDsShift);
@@ -1117,7 +1117,7 @@ next:
     }
     else if (EXP_isSeqRound(space, node))
     {
-        EXP_Node* elms = EXP_seqElm(space, node);
+        const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         if (0 == len)
         {
@@ -1203,7 +1203,7 @@ static void EXP_evalCompileVarDefTypeSignature(EXP_EvalCompileContext* ctx, EXP_
         EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
         return;
     }
-    EXP_Node* elms = EXP_seqElm(space, node);
+    const EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
 
     assert(0 == ctx->typeDeclStack.length);
@@ -1484,7 +1484,7 @@ static void EXP_evalCompileBlockMarch
         }
         else if (!blk->entered)
         {
-            EXP_Node* body = EXP_seqElm(space, node);
+            const EXP_Node* body = EXP_seqElm(space, node);
             u32 bodyLen = EXP_seqLen(space, node);
             --curCall->p;
             EXP_evalCompileEnterWorld(ctx, body, bodyLen, node, curCall->srcNode, true);
@@ -1508,7 +1508,7 @@ static void EXP_evalCompileBlockMarch
         EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, node);
         if (!blk->completed)
         {
-            EXP_Node* body = EXP_seqElm(space, node);
+            const EXP_Node* body = EXP_seqElm(space, node);
             u32 bodyLen = EXP_seqLen(space, node);
             --curCall->p;
             EXP_evalCompileEnterWorld(ctx, body, bodyLen, node, curCall->srcNode, true);
@@ -1527,7 +1527,7 @@ static void EXP_evalCompileBlockMarch
         return;
     }
 
-    EXP_Node* elms = EXP_seqElm(space, node);
+    const EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
     const char* name = EXP_tokCstr(space, elms[0]);
 
@@ -1869,7 +1869,7 @@ EXP_EvalError EXP_evalCompile
     ctx->allowDsShift = false;
     vec_dup(&ctx->dataStack, typeStack);
 
-    EXP_Node* seq = EXP_seqElm(space, root);
+    const EXP_Node* seq = EXP_seqElm(space, root);
     u32 len = EXP_seqLen(space, root);
     EXP_evalCompileEnterBlock(ctx, seq, len, root, EXP_Node_Invalid, EXP_EvalBlockCallback_NONE, true);
     if (ctx->error.code)

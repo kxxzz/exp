@@ -38,8 +38,8 @@ typedef struct EXP_EvalBlockCallback
 typedef struct EXP_EvalCall
 {
     EXP_Node srcNode;
-    EXP_Node* p;
-    EXP_Node* end;
+    const EXP_Node* p;
+    const EXP_Node* end;
     EXP_EvalBlockCallback cb;
 } EXP_EvalCall;
 
@@ -341,12 +341,12 @@ static void EXP_evalGC(EXP_EvalContext* ctx)
 
 
 
-static void EXP_evalWordDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, EXP_Node** pSeq)
+static void EXP_evalWordDefGetBody(EXP_EvalContext* ctx, EXP_Node node, u32* pLen, const EXP_Node** pSeq)
 {
     EXP_Space* space = ctx->space;
     assert(EXP_seqLen(space, node) >= 2);
     *pLen = EXP_seqLen(space, node) - 2;
-    EXP_Node* exp = EXP_seqElm(space, node);
+    const EXP_Node* exp = EXP_seqElm(space, node);
     *pSeq = exp + 2;
 }
 
@@ -396,7 +396,7 @@ static EXP_EvalValue* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar
 
 
 
-static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode)
+static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, const EXP_Node* seq, EXP_Node srcNode)
 {
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
     EXP_EvalCall call = { srcNode, seq, seq + len, nocb };
@@ -405,7 +405,7 @@ static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP
 
 static void EXP_evalEnterBlockWithCB
 (
-    EXP_EvalContext* ctx, u32 len, EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
+    EXP_EvalContext* ctx, u32 len, const EXP_Node* seq, EXP_Node srcNode, EXP_EvalBlockCallback cb
 )
 {
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
@@ -533,7 +533,7 @@ next:
         {
             EXP_Node blkSrc = cb->blkSrc;
             u32 bodyLen = EXP_seqLen(space, blkSrc);
-            EXP_Node* body = EXP_seqElm(space, blkSrc);
+            const EXP_Node* body = EXP_seqElm(space, blkSrc);
             if (!EXP_evalLeaveBlock(ctx))
             {
                 goto next;
@@ -580,7 +580,7 @@ next:
     {
         assert(EXP_isTok(space, node));
         assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
-        EXP_Node* begin = curCall->p;
+        const EXP_Node* begin = curCall->p;
         for (u32 n = 0;;)
         {
             assert(curCall->p < curCall->end);
@@ -620,7 +620,7 @@ next:
         EXP_Node blkSrc = v.src;
         assert(EXP_isSeqSquare(space, blkSrc));
         u32 bodyLen = EXP_seqLen(space, blkSrc);
-        EXP_Node* body = EXP_seqElm(space, blkSrc);
+        const EXP_Node* body = EXP_seqElm(space, blkSrc);
         EXP_evalEnterBlock(ctx, bodyLen, body, blkSrc);
         goto next;
     }
@@ -628,7 +628,7 @@ next:
     {
         assert(EXP_isSeqCurly(space, node));
         u32 bodyLen = EXP_seqLen(space, node);
-        EXP_Node* body = EXP_seqElm(space, node);
+        const EXP_Node* body = EXP_seqElm(space, node);
         EXP_evalEnterBlock(ctx, bodyLen, body, node);
         goto next;
     }
@@ -697,7 +697,7 @@ next:
     case EXP_EvalNodeType_CallAfun:
     {
         assert(EXP_evalCheckCall(space, node));
-        EXP_Node* elms = EXP_seqElm(space, node);
+        const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         u32 afun = enode->afun;
         assert(afun != -1);
@@ -710,7 +710,7 @@ next:
     case EXP_EvalNodeType_CallWord:
     {
         assert(EXP_evalCheckCall(space, node));
-        EXP_Node* elms = EXP_seqElm(space, node);
+        const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallWord, .blkSrc = enode->blkSrc };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
@@ -722,7 +722,7 @@ next:
         EXP_EvalValue* val = EXP_evalGetVar(ctx, &enode->var);
         EXP_Node blkSrc = val->src;
         assert(EXP_isSeqSquare(space, blkSrc));
-        EXP_Node* elms = EXP_seqElm(space, node);
+        const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_CallVar, .blkSrc = blkSrc };
         EXP_evalEnterBlockWithCB(ctx, len - 1, elms + 1, node, cb);
@@ -737,7 +737,7 @@ next:
     case EXP_EvalNodeType_If:
     {
         assert(EXP_evalCheckCall(space, node));
-        EXP_Node* elms = EXP_seqElm(space, node);
+        const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         assert(4 == len);
         EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_Cond };
@@ -771,7 +771,7 @@ void EXP_evalBlock(EXP_EvalContext* ctx, EXP_Node root)
 {
     EXP_Space* space = ctx->space;
     u32 len = EXP_seqLen(space, root);
-    EXP_Node* seq = EXP_seqElm(space, root);
+    const EXP_Node* seq = EXP_seqElm(space, root);
     EXP_evalEnterBlock(ctx, len, seq, root);
     EXP_evalCall(ctx);
 }

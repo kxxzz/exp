@@ -55,9 +55,9 @@ gc
 { 20 fib1 ! }
 
 
-(# !-num >> f (num -> num) : f !)
+(# !num >> f (num -> num) : f !)
 
-20 fib1 !-num
+20 fib1 !num
 
 dup
 drop8
