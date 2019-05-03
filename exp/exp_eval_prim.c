@@ -7,12 +7,12 @@ const char** EXP_EvalKeyNameTable(void)
 {
     static const char* a[EXP_NumEvalKeys] =
     {
-        "def",
+        "#",
         ">>",
         ":",
         "if",
         "gc",
-        "apply",
+        "!",
     };
     return a;
 }
