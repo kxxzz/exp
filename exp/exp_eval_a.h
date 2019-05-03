@@ -56,7 +56,7 @@ typedef struct EXP_EvalNode
         u32 afun;
         u32 atype;
         u32 numIns;
-        EXP_Node* blkSrc;
+        EXP_Node blkSrc;
         EXP_EvalNodeVar var;
     };
     u32 varsCount;
