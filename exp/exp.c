@@ -145,10 +145,10 @@ EXP_Node EXP_addSeqDone(EXP_Space* space)
     u32 lenSeq = space->seqDefStack.length - f.p;
     EXP_Node* seq = space->seqDefStack.data + f.p;
     u32 offset = upoolAddElm(space->seqPool, seq, sizeof(EXP_Node)*lenSeq, NULL);
-    EXP_NodeInfo seqInfo = { f.seqType, offset, lenSeq };
+    EXP_NodeInfo nodeInfo = { f.seqType, offset, lenSeq };
     vec_resize(&space->seqDefStack, f.p);
     EXP_Node node = { space->nodes.length };
-    vec_push(&space->nodes, seqInfo);
+    vec_push(&space->nodes, nodeInfo);
     return node;
 }
 
