@@ -59,6 +59,9 @@ gc
 
 20 fib1 !-num
 
+dup
+drop8
+drop4
 
 
 
