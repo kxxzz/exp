@@ -121,7 +121,7 @@ typedef vec_t(EXP_EvalCompileSnapshot) EXP_EvalCompileWorldStack;
 typedef struct EXP_EvalCompileVarFetch
 {
     EXP_Node name;
-    bool hasTypeRestrict;
+    bool hasTypeSignature;
     u32 type;
 } EXP_EvalCompileVarFetch;
 
@@ -140,7 +140,7 @@ typedef struct EXP_EvalCompileTypeDeclLevelFun
 
 typedef struct EXP_EvalCompileTypeDeclVar
 {
-    EXP_Node src;
+    EXP_Node name;
     u32 type;
 } EXP_EvalCompileTypeDeclVar;
 
@@ -1034,7 +1034,7 @@ static bool EXP_evalCompileVarDefTok
                     u32 var = EXP_evalTypeNewVar(&ctx->typeVarSpace);
                     u32 t;
                     EXP_EvalCompileVarFetch* fetch = ctx->varFetchBuf.data + i;
-                    if (fetch->hasTypeRestrict)
+                    if (fetch->hasTypeSignature)
                     {
                         t = fetch->type;
                     }
@@ -1056,7 +1056,7 @@ static bool EXP_evalCompileVarDefTok
             {
                 u32 t = dataStack->data[off + i];
                 EXP_EvalCompileVarFetch* fetch = ctx->varFetchBuf.data + i;
-                if (fetch->hasTypeRestrict)
+                if (fetch->hasTypeSignature)
                 {
                     u32 a = t;
                     u32 b = fetch->type;
@@ -1117,8 +1117,8 @@ next:
     if (!typeDeclStack->length)
     {
         assert(r != -1);
-        assert(!fetch->hasTypeRestrict);
-        fetch->hasTypeRestrict = true;
+        assert(!fetch->hasTypeSignature);
+        fetch->hasTypeSignature = true;
         fetch->type = r;
         return;
     }
@@ -1157,13 +1157,39 @@ next:
         {
             top->hasRet = true;
 
+            if (EXP_isSeqCurly(space, elms[0]))
+            {
+                const EXP_Node* names = EXP_seqElm(space, elms[0]);
+                u32 len = EXP_seqLen(space, elms[0]);
+                for (u32 i = 0; i < len; ++i)
+                {
+                    EXP_Node name = names[i];
+                    if (!EXP_isTok(space, name))
+                    {
+                        EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                        return;
+                    }
+                    for (u32 i = 0; i < top->varSpace.length; ++i)
+                    {
+                        EXP_Node name0 = top->varSpace.data[i].name;
+                        if (EXP_nodeDataEq(space, name0, name))
+                        {
+                            EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
+                            return;
+                        }
+                    }
+                    EXP_EvalCompileTypeDeclVar v = { name, i };
+                    vec_push(&top->varSpace, v);
+                }
+            }
+
             u32 arrowPos = -1;
             for (u32 i = 0; i < len; ++i)
             {
                 if (EXP_isTok(space, elms[i]))
                 {
-                    const char* name = EXP_tokCstr(space, elms[i]);
-                    if (0 == strcmp("->", name))
+                    const char* str = EXP_tokCstr(space, elms[i]);
+                    if (0 == strcmp("->", str))
                     {
                         if (arrowPos != -1)
                         {
