@@ -111,7 +111,7 @@ u32 EXP_seqLen(EXP_Space* space, EXP_Node node);
 const EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);
 
 
-bool EXP_nodeEq(EXP_Space* space, EXP_Node a, EXP_Node b);
+bool EXP_nodeDataEq(EXP_Space* space, EXP_Node a, EXP_Node b);
 
 
 
