@@ -830,6 +830,12 @@ static void EXP_evalCompileAfunCall(EXP_EvalCompileContext* ctx, EXP_EvalAfunInf
 
 
 
+
+
+
+
+
+
 static void EXP_evalCompileCallInOut
 (
     EXP_EvalCompileContext* ctx,
@@ -865,6 +871,7 @@ static void EXP_evalCompileCallInOut
         vec_push(dataStack, x);
     }
 }
+
 
 
 static void EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, EXP_Node srcNode)
