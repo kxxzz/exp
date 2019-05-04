@@ -1142,6 +1142,7 @@ next:
     }
     else if (EXP_isSeqRound(space, node))
     {
+        u32 p = top->elms.length;
         const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         if (0 == len)
@@ -1159,6 +1160,9 @@ next:
 
             if (EXP_isSeqCurly(space, elms[0]))
             {
+                assert(0 == p);
+                p = 1;
+
                 const EXP_Node* names = EXP_seqElm(space, elms[0]);
                 u32 len = EXP_seqLen(space, elms[0]);
                 for (u32 i = 0; i < len; ++i)
@@ -1219,7 +1223,6 @@ next:
         u32 numIns = top->fun.numIns;
         u32 numOuts = top->fun.numOuts;
         u32 numAll = numIns + numOuts;
-        u32 p = top->elms.length;
         if (p < numAll)
         {
             if (p >= numIns)
