@@ -32,7 +32,9 @@ gc
 (fib 20)
 
 (# tailtest
-    => n (num) res (num) :
+    =>
+    n (num) res (num)
+    :
     (if (lt n 0)
         0
         (if (eq n 0)
