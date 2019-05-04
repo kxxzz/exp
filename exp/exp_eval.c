@@ -40,6 +40,7 @@ typedef struct EXP_EvalCall
     EXP_Node srcNode;
     const EXP_Node* p;
     const EXP_Node* end;
+    u32 varBase;
     EXP_EvalBlockCallback cb;
 } EXP_EvalCall;
 
@@ -368,16 +369,13 @@ static EXP_EvalValue* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar
     EXP_EvalNodeTable* nodeTable = &ctx->nodeTable;
     EXP_EvalCallStack* callStack = &ctx->callStack;
     EXP_EvalValueVec* varStack = &ctx->varStack;
-    u32 offset = varStack->length;
     for (u32 i = 0; i < callStack->length; ++i)
     {
         EXP_EvalCall* call = callStack->data + callStack->length - 1 - i;
         EXP_EvalNode* blkEnode = nodeTable->data + call->srcNode.id;
-        assert(offset >= blkEnode->varsCount);
-        offset -= blkEnode->varsCount;
         if (evar->block.id == call->srcNode.id)
         {
-            offset += evar->id;
+            u32 offset = call->varBase + evar->id;
             return &varStack->data[offset];
         }
     }
@@ -399,7 +397,7 @@ static EXP_EvalValue* EXP_evalGetVar(EXP_EvalContext* ctx, const EXP_EvalNodeVar
 static void EXP_evalEnterBlock(EXP_EvalContext* ctx, u32 len, const EXP_Node* seq, EXP_Node srcNode)
 {
     EXP_EvalBlockCallback nocb = { EXP_EvalBlockCallbackType_NONE };
-    EXP_EvalCall call = { srcNode, seq, seq + len, nocb };
+    EXP_EvalCall call = { srcNode, seq, seq + len, ctx->varStack.length, nocb };
     vec_push(&ctx->callStack, call);
 }
 
@@ -409,7 +407,7 @@ static void EXP_evalEnterBlockWithCB
 )
 {
     assert(cb.type != EXP_EvalBlockCallbackType_NONE);
-    EXP_EvalCall call = { srcNode, seq, seq + len, cb };
+    EXP_EvalCall call = { srcNode, seq, seq + len, ctx->varStack.length, cb };
     vec_push(&ctx->callStack, call);
 }
 
@@ -418,8 +416,7 @@ static bool EXP_evalLeaveBlock(EXP_EvalContext* ctx)
     EXP_EvalCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalNode* enode = ctx->nodeTable.data + curCall->srcNode.id;
     assert(ctx->varStack.length >= enode->varsCount);
-    u32 varStackLength1 = ctx->varStack.length - enode->varsCount;
-    vec_resize(&ctx->varStack, varStackLength1);
+    vec_resize(&ctx->varStack, curCall->varBase);
     vec_pop(&ctx->callStack);
     return ctx->callStack.length > 0;
 }

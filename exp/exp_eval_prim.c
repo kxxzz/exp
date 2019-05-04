@@ -8,7 +8,7 @@ const char** EXP_EvalKeyNameTable(void)
     static const char* a[EXP_NumEvalKeys] =
     {
         "#",
-        ">>",
+        "=>",
         ":",
         "if",
         "gc",
@@ -198,7 +198,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
     static const EXP_EvalAfunInfo a[EXP_NumEvalPrimFuns] =
     {
         {
-            "!",
+            "not",
             EXP_evalAfunCall_Not,
             1, { EXP_EvalPrimType_BOOL },
             1, { EXP_EvalPrimType_BOOL },
@@ -237,38 +237,38 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
         },
 
         {
-            "=",
+            "eq",
             EXP_evalAfunCall_NumEQ,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
         {
-            "!=",
+            "ineq",
             EXP_evalAfunCall_NumINEQ,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
 
         {
-            ">",
+            "gt",
             EXP_evalAfunCall_NumGT,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
         {
-            "<",
+            "lt",
             EXP_evalAfunCall_NumLT,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
         {
-            ">=",
+            "ge",
             EXP_evalAfunCall_NumGE,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
         {
-            "<=",
+            "le",
             EXP_evalAfunCall_NumLE,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
