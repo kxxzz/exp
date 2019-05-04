@@ -110,7 +110,6 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_Neg,
 
     EXP_EvalPrimFun_EQ,
-    EXP_EvalPrimFun_INEQ,
 
     EXP_EvalPrimFun_GT,
     EXP_EvalPrimFun_LT,

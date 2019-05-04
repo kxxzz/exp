@@ -242,12 +242,6 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
         },
-        {
-            "ineq",
-            EXP_evalAfunCall_NumINEQ,
-            2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
-            1, { EXP_EvalPrimType_BOOL },
-        },
 
         {
             "gt",
