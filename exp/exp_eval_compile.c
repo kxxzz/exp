@@ -142,6 +142,7 @@ typedef struct EXP_EvalCompileTypeDeclVar
 {
     EXP_Node name;
     u32 type;
+    bool inInput;
 } EXP_EvalCompileTypeDeclVar;
 
 typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
@@ -1182,7 +1183,8 @@ next:
                             return;
                         }
                     }
-                    EXP_EvalCompileTypeDeclVar v = { name, i };
+                    u32 t = EXP_evalTypeVar(typeContext, i);
+                    EXP_EvalCompileTypeDeclVar v = { name, t };
                     vec_push(&top->varSpace, v);
                 }
             }
