@@ -77,13 +77,13 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 static u32 EXP_evalTypeIdByDesc(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
 {
-    u32 id = upoolAddElm(ctx->typePool, desc, sizeof(*desc), NULL);
+    u32 id = upoolElm(ctx->typePool, desc, sizeof(*desc), NULL);
     return id;
 }
 
 static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
-    u32 id = upoolAddElm(ctx->listPool, elms, sizeof(*elms)*count, NULL);
+    u32 id = upoolElm(ctx->listPool, elms, sizeof(*elms)*count, NULL);
     return id;
 }
 

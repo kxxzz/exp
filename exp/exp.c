@@ -97,7 +97,7 @@ EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node)
 EXP_Node EXP_addTok(EXP_Space* space, const char* str, bool quoted)
 {
     u32 len = (u32)strlen(str);
-    u32 offset = upoolAddElm(space->tokPool, str, len, NULL);
+    u32 offset = upoolElm(space->tokPool, str, len, NULL);
     EXP_NodeInfo info = { EXP_NodeType_Tok, offset, len, quoted };
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
@@ -106,7 +106,7 @@ EXP_Node EXP_addTok(EXP_Space* space, const char* str, bool quoted)
 
 EXP_Node EXP_addTokL(EXP_Space* space, const char* str, u32 len, bool quoted)
 {
-    u32 offset = upoolAddElm(space->tokPool, str, len, NULL);
+    u32 offset = upoolElm(space->tokPool, str, len, NULL);
     EXP_NodeInfo info = { EXP_NodeType_Tok, offset, len, quoted };
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
@@ -144,7 +144,7 @@ EXP_Node EXP_addSeqDone(EXP_Space* space)
     vec_pop(&space->seqDefFrameStack);
     u32 lenSeq = space->seqDefStack.length - f.p;
     EXP_Node* seq = space->seqDefStack.data + f.p;
-    u32 offset = upoolAddElm(space->seqPool, seq, sizeof(EXP_Node)*lenSeq, NULL);
+    u32 offset = upoolElm(space->seqPool, seq, sizeof(EXP_Node)*lenSeq, NULL);
     EXP_NodeInfo nodeInfo = { f.seqType, offset, lenSeq };
     vec_resize(&space->seqDefStack, f.p);
     EXP_Node node = { space->nodes.length };
