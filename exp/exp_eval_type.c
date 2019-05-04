@@ -48,8 +48,7 @@ static void EXP_evalTypeBuildStackFree(EXP_EvalTypeBuildStack* stack)
 
 typedef struct EXP_EvalTypeContext
 {
-    Upool* listPool;
-    Upool* typePool;
+    Upool* dataPool;
     EXP_EvalTypeBuildStack buildStack;
 } EXP_EvalTypeContext;
 
@@ -57,16 +56,14 @@ typedef struct EXP_EvalTypeContext
 EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 {
     EXP_EvalTypeContext* ctx = zalloc(sizeof(EXP_EvalTypeContext));
-    ctx->listPool = newUpool(256);
-    ctx->typePool = newUpool(256);
+    ctx->dataPool = newUpool(256);
     return ctx;
 }
 
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
     vec_free(&ctx->buildStack);
-    upoolFree(ctx->typePool);
-    upoolFree(ctx->listPool);
+    upoolFree(ctx->dataPool);
     free(ctx);
 }
 
@@ -77,13 +74,13 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 static u32 EXP_evalTypeIdByDesc(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
 {
-    u32 id = upoolElm(ctx->typePool, desc, sizeof(*desc), NULL);
+    u32 id = upoolElm(ctx->dataPool, desc, sizeof(*desc), NULL);
     return id;
 }
 
 static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
-    u32 id = upoolElm(ctx->listPool, elms, sizeof(*elms)*count, NULL);
+    u32 id = upoolElm(ctx->dataPool, elms, sizeof(*elms)*count, NULL);
     return id;
 }
 
@@ -132,12 +129,12 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 
 const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId)
 {
-    return upoolElmData(ctx->typePool, typeId);
+    return upoolElmData(ctx->dataPool, typeId);
 }
 
 const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
 {
-    return upoolElmData(ctx->listPool, listId);
+    return upoolElmData(ctx->dataPool, listId);
 }
 
 

@@ -58,9 +58,9 @@ gc
 { 20 fib1 ! }
 
 
-//(# apply121 => f (num -> num) : f !)
+(# apply121 => f (num -> num) : f !)
 
-(# apply121 => f ({t} t -> t) : f !)
+//(# apply121 => f ({t} t -> t) : f !)
 
 20 fib1 apply121
 

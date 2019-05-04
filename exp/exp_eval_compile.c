@@ -402,7 +402,7 @@ static EXP_EvalCompileBlock* EXP_evalCompileGetBlock(EXP_EvalCompileContext* ctx
 
 
 
-static EXP_EvalCompileNamed* EXP_evalCompileGetMatched(EXP_EvalCompileContext* ctx, const char* name, EXP_Node blkNode)
+static EXP_EvalCompileNamed* EXP_evalCompileGetMatched(EXP_EvalCompileContext* ctx, EXP_Node name, EXP_Node blkNode)
 {
     EXP_Space* space = ctx->space;
     while (blkNode.id != EXP_NodeId_Invalid)
@@ -411,8 +411,7 @@ static EXP_EvalCompileNamed* EXP_evalCompileGetMatched(EXP_EvalCompileContext* c
         for (u32 i = 0; i < blk->dict.length; ++i)
         {
             EXP_EvalCompileNamed* named = blk->dict.data + blk->dict.length - 1 - i;
-            const char* str = EXP_tokCstr(space, named->name);
-            if (0 == strcmp(str, name))
+            if (EXP_nodeDataEq(space, name, named->name))
             {
                 return named;
             }
@@ -1434,7 +1433,7 @@ static void EXP_evalCompileBlockMarch
             }
 
             EXP_EvalCompileNamed* named;
-            if (named = EXP_evalCompileGetMatched(ctx, name, curCall->srcNode))
+            if (named = EXP_evalCompileGetMatched(ctx, node, curCall->srcNode))
             {
                 if (named->isVar)
                 {
@@ -1539,7 +1538,7 @@ static void EXP_evalCompileBlockMarch
     const char* name = EXP_tokCstr(space, elms[0]);
 
     EXP_EvalCompileNamed* named;
-    if (named = EXP_evalCompileGetMatched(ctx, name, curCall->srcNode))
+    if (named = EXP_evalCompileGetMatched(ctx, elms[0], curCall->srcNode))
     {
         if (named->isVar)
         {
