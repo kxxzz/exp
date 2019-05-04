@@ -130,11 +130,22 @@ typedef vec_t(EXP_EvalCompileVarFetch) EXP_EvalCompileVarFetchBuf;
 
 
 
+
 typedef struct EXP_EvalCompileTypeDeclLevelFun
 {
     u32 numIns;
     u32 numOuts;
 } EXP_EvalCompileTypeDeclLevelFun;
+
+
+typedef struct EXP_EvalCompileTypeDeclVar
+{
+    EXP_Node src;
+    u32 type;
+} EXP_EvalCompileTypeDeclVar;
+
+typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
+
 
 typedef struct EXP_EvalCompileTypeDeclLevel
 {
@@ -145,14 +156,22 @@ typedef struct EXP_EvalCompileTypeDeclLevel
     {
         EXP_EvalCompileTypeDeclLevelFun fun;
     };
+    EXP_EvalCompileTypeDeclVarSpace varSpace;
 } EXP_EvalCompileTypeDeclLevel;
 
 typedef vec_t(EXP_EvalCompileTypeDeclLevel) EXP_EvalCompileTypeDeclStack;
 
+
+static void EXP_evalCompileTypeDeclLevelFree(EXP_EvalCompileTypeDeclLevel* l)
+{
+    vec_free(&l->varSpace);
+    vec_free(&l->elms);
+}
+
 static void EXP_evalCompileTypeDeclStackPop(EXP_EvalCompileTypeDeclStack* stack)
 {
     EXP_EvalCompileTypeDeclLevel* l = &vec_last(stack);
-    vec_free(&l->elms);
+    EXP_evalCompileTypeDeclLevelFree(l);
     vec_pop(stack);
 }
 
@@ -162,7 +181,7 @@ static void EXP_evalCompileTypeDeclStackResize(EXP_EvalCompileTypeDeclStack* sta
     for (u32 i = n; i < stack->length; ++i)
     {
         EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
-        vec_free(&l->elms);
+        EXP_evalCompileTypeDeclLevelFree(l);
     }
     vec_resize(stack, n);
 }
@@ -172,7 +191,7 @@ static void EXP_evalCompileTypeDeclStackFree(EXP_EvalCompileTypeDeclStack* stack
     for (u32 i = 0; i < stack->length; ++i)
     {
         EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
-        vec_free(&l->elms);
+        EXP_evalCompileTypeDeclLevelFree(l);
     }
     vec_free(stack);
 }
