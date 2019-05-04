@@ -1127,10 +1127,10 @@ next:
 
     if (EXP_isTok(space, node))
     {
-        const char* name = EXP_tokCstr(space, node);
+        const char* cstr = EXP_tokCstr(space, node);
         for (u32 i = 0; i < atypeTable->length; ++i)
         {
-            if (0 == strcmp(name, atypeTable->data[i].name))
+            if (0 == strcmp(cstr, atypeTable->data[i].name))
             {
                 r = EXP_evalTypeAtom(typeContext, i);
                 EXP_evalCompileTypeDeclStackPop(typeDeclStack);
@@ -1192,8 +1192,8 @@ next:
             {
                 if (EXP_isTok(space, elms[i]))
                 {
-                    const char* str = EXP_tokCstr(space, elms[i]);
-                    if (0 == strcmp("->", str))
+                    const char* cstr = EXP_tokCstr(space, elms[i]);
+                    if (0 == strcmp("->", cstr))
                     {
                         if (arrowPos != -1)
                         {
