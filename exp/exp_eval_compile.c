@@ -1163,7 +1163,6 @@ next:
     }
     else if (EXP_isSeqRound(space, node))
     {
-        u32 p = top->elms.length;
         const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
         if (0 == len)
@@ -1171,10 +1170,8 @@ next:
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return;
         }
-        if (EXP_isSeqCurly(space, elms[0]))
-        {
-            p += 1;
-        }
+        u32 elmsOffset = EXP_isSeqCurly(space, elms[0]) ? 1 : 0;
+
         if (top->hasRet)
         {
             vec_push(&top->elms, r);
@@ -1211,7 +1208,7 @@ next:
             }
 
             u32 arrowPos = -1;
-            for (u32 i = 0; i < len; ++i)
+            for (u32 i = elmsOffset; i < len; ++i)
             {
                 if (EXP_isTok(space, elms[i]))
                 {
@@ -1241,19 +1238,21 @@ next:
                 EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
                 return;
             }
-            assert(top->fun.numIns == arrowPos);
+            assert(elmsOffset + top->fun.numIns == arrowPos);
         }
+
+        u32 p = elmsOffset + top->elms.length;
         u32 numIns = top->fun.numIns;
         u32 numOuts = top->fun.numOuts;
         u32 numAll = numIns + numOuts;
-        if (p < numAll)
+        bool inInput = true;
+        if (p >= elmsOffset + numIns)
         {
-            bool inInput = true;
-            if (p >= numIns)
-            {
-                p += 1;
-                inInput = false;
-            }
+            p += 1;
+            inInput = false;
+        }
+        if (p < elmsOffset + 1 + numAll)
+        {
             EXP_EvalCompileTypeDeclLevel l = { elms[p], inInput };
             vec_push(typeDeclStack, l);
         }
