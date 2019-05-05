@@ -151,6 +151,7 @@ typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
 typedef struct EXP_EvalCompileTypeDeclLevel
 {
     EXP_Node src;
+    bool inInput;
     bool hasRet;
     vec_u32 elms;
     union
@@ -1128,6 +1129,25 @@ next:
 
     if (EXP_isTok(space, node))
     {
+        if (typeDeclStack->length > 1)
+        {
+            EXP_EvalCompileTypeDeclLevel* fun = typeDeclStack->data + typeDeclStack->length - 2;
+            if (EXP_isSeqRound(space, fun->src))
+            {
+                for (u32 i = 0; i < fun->varSpace.length; ++i)
+                {
+                    EXP_EvalCompileTypeDeclVar* var = fun->varSpace.data + i;
+                    EXP_Node varName = var->name;
+                    if (EXP_nodeDataEq(space, node, varName))
+                    {
+                        r = var->type;
+                        var->inInput = var->inInput || top->inInput;
+                        EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+                        goto next;
+                    }
+                }
+            }
+        }
         const char* cstr = EXP_tokCstr(space, node);
         for (u32 i = 0; i < atypeTable->length; ++i)
         {
@@ -1151,6 +1171,10 @@ next:
             EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalSyntax);
             return;
         }
+        if (EXP_isSeqCurly(space, elms[0]))
+        {
+            p += 1;
+        }
         if (top->hasRet)
         {
             vec_push(&top->elms, r);
@@ -1161,9 +1185,6 @@ next:
 
             if (EXP_isSeqCurly(space, elms[0]))
             {
-                assert(0 == p);
-                p = 1;
-
                 const EXP_Node* names = EXP_seqElm(space, elms[0]);
                 u32 len = EXP_seqLen(space, elms[0]);
                 for (u32 i = 0; i < len; ++i)
@@ -1227,15 +1248,26 @@ next:
         u32 numAll = numIns + numOuts;
         if (p < numAll)
         {
+            bool inInput = true;
             if (p >= numIns)
             {
                 p += 1;
+                inInput = false;
             }
-            EXP_EvalCompileTypeDeclLevel l = { elms[p] };
+            EXP_EvalCompileTypeDeclLevel l = { elms[p], inInput };
             vec_push(typeDeclStack, l);
         }
         else
         {
+            for (u32 i = 0; i < top->varSpace.length; ++i)
+            {
+                EXP_EvalCompileTypeDeclVar* var = top->varSpace.data + i;
+                if (!var->inInput)
+                {
+                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalTypeDeclVarUnsolvable);
+                    return;
+                }
+            }
             r = EXP_evalTypeFun(typeContext, numIns, top->elms.data, numOuts, top->elms.data + numIns);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
