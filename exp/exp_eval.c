@@ -162,26 +162,6 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 
 
 
-static void EXP_evalErrorAtNode(EXP_EvalContext* ctx, EXP_Node node, EXP_EvalErrCode errCode)
-{
-    ctx->error.code = errCode;
-    EXP_SpaceSrcInfo* srcInfo = &ctx->srcInfo;
-    if (srcInfo)
-    {
-        assert(node.id < srcInfo->nodes.length);
-        EXP_NodeSrcInfo* nodeSrcInfo = srcInfo->nodes.data + node.id;
-        ctx->error.file = nodeSrcInfo->file;
-        ctx->error.line = nodeSrcInfo->line;
-        ctx->error.column = nodeSrcInfo->column;
-    }
-}
-
-
-
-
-
-
-
 
 
 EXP_EvalError EXP_evalLastError(EXP_EvalContext* ctx)
@@ -679,7 +659,6 @@ next:
         else
         {
             assert(false);
-            //EXP_evalErrorAtNode(ctx, node, EXP_EvalErrCode_EvalAtomCtorByStr);
         }
         goto next;
     }

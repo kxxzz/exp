@@ -120,7 +120,21 @@ static const EXP_Node* EXP_evalIfBranch1(EXP_Space* space, EXP_Node node)
 
 
 
-
+static void EXP_evalErrorFound
+(
+    EXP_EvalError* err, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalErrCode errCode, EXP_Node node
+)
+{
+    err->code = errCode;
+    if (srcInfo)
+    {
+        assert(node.id < srcInfo->nodes.length);
+        const EXP_NodeSrcInfo* nodeSrcInfo = srcInfo->nodes.data + node.id;
+        err->file = nodeSrcInfo->file;
+        err->line = nodeSrcInfo->line;
+        err->column = nodeSrcInfo->column;
+    }
+}
 
 
 
