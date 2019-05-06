@@ -72,11 +72,15 @@ dup
 drop8
 drop4
 
+(# _100doors
+    (# loop => i :
+        (if (le (* i i) 100)
+            (loop (+ i 1))
+            {})))
+
+_100doors
+
 r
-
-
-
-
 
 
 

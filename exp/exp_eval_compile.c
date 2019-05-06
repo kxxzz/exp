@@ -142,7 +142,6 @@ typedef struct EXP_EvalCompileTypeDeclVar
 {
     EXP_Node name;
     u32 type;
-    bool inInput;
 } EXP_EvalCompileTypeDeclVar;
 
 typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
@@ -151,7 +150,6 @@ typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
 typedef struct EXP_EvalCompileTypeDeclLevel
 {
     EXP_Node src;
-    bool inInput;
     bool hasRet;
     vec_u32 elms;
     union
@@ -1129,9 +1127,9 @@ next:
 
     if (EXP_isTok(space, node))
     {
-        if (typeDeclStack->length > 1)
+        for (u32 i = 0; i + 1 < typeDeclStack->length; ++i)
         {
-            EXP_EvalCompileTypeDeclLevel* fun = typeDeclStack->data + typeDeclStack->length - 2;
+            EXP_EvalCompileTypeDeclLevel* fun = typeDeclStack->data + typeDeclStack->length - 2 - i;
             if (EXP_isSeqRound(space, fun->src))
             {
                 for (u32 i = 0; i < fun->varSpace.length; ++i)
@@ -1141,7 +1139,6 @@ next:
                     if (EXP_nodeDataEq(space, node, varName))
                     {
                         r = var->type;
-                        var->inInput = var->inInput || top->inInput;
                         EXP_evalCompileTypeDeclStackPop(typeDeclStack);
                         goto next;
                     }
@@ -1258,15 +1255,6 @@ next:
         }
         else
         {
-            for (u32 i = 0; i < top->varSpace.length; ++i)
-            {
-                EXP_EvalCompileTypeDeclVar* var = top->varSpace.data + i;
-                if (!var->inInput)
-                {
-                    EXP_evalCompileErrorAtNode(ctx, node, EXP_EvalErrCode_EvalTypeDeclVarUnsolvable);
-                    return;
-                }
-            }
             r = EXP_evalTypeFun(typeContext, numIns, top->elms.data, numOuts, top->elms.data + numIns);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
