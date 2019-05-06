@@ -202,6 +202,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_Not,
             1, { EXP_EvalPrimType_BOOL },
             1, { EXP_EvalPrimType_BOOL },
+            "bool -> bool",
         },
 
         {
@@ -209,24 +210,28 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_NumAdd,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_NUM },
+            "num num -> num",
         },
         {
             "-",
             EXP_evalAfunCall_NumSub,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_NUM },
+            "num num -> num",
         },
         {
             "*",
             EXP_evalAfunCall_NumMul,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_NUM },
+            "num num -> num",
         },
         {
             "/",
             EXP_evalAfunCall_NumDiv,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_NUM },
+            "num num -> num",
         },
 
         {
@@ -234,6 +239,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_NumNeg,
             1, { EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_NUM },
+            "num -> num",
         },
 
         {
@@ -241,6 +247,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_NumEQ,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
+            "num num -> bool",
         },
 
         {
@@ -248,24 +255,28 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_NumGT,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
+            "num num -> bool",
         },
         {
             "lt",
             EXP_evalAfunCall_NumLT,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
+            "num num -> bool",
         },
         {
             "ge",
             EXP_evalAfunCall_NumGE,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
+            "num num -> bool",
         },
         {
             "le",
             EXP_evalAfunCall_NumLE,
             2, { EXP_EvalPrimType_NUM, EXP_EvalPrimType_NUM },
             1, { EXP_EvalPrimType_BOOL },
+            "num num -> bool",
         },
     };
     return a;
