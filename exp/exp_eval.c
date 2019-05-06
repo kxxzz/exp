@@ -57,9 +57,9 @@ typedef struct EXP_EvalContext
 {
     EXP_Space* space;
     EXP_SpaceSrcInfo srcInfo;
+    EXP_EvalTypeContext* typeContext;
     EXP_EvalAtypeInfoVec atypeTable;
     EXP_EvalAfunInfoVec afunTable;
-    EXP_EvalTypeContext* typeContext;
     EXP_EvalNodeTable nodeTable;
     EXP_EvalObjectTable objectTable;
 
@@ -84,6 +84,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
     ctx->space = EXP_newSpace();
+    ctx->typeContext = EXP_newEvalTypeContext();
+
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
         vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable()[i]);
@@ -103,9 +105,9 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
             vec_push(&ctx->afunTable, addAtomTable->funs[i]);
         }
     }
+
     vec_resize(&ctx->objectTable, ctx->atypeTable.length);
     memset(ctx->objectTable.data, 0, sizeof(ctx->objectTable.data[0])*ctx->objectTable.length);
-    ctx->typeContext = EXP_newEvalTypeContext();
     return ctx;
 }
 
@@ -147,11 +149,11 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
         vec_free(mpVec);
     }
     vec_free(&ctx->objectTable);
-
     vec_free(&ctx->nodeTable);
-    EXP_evalTypeContextFree(ctx->typeContext);
     vec_free(&ctx->afunTable);
     vec_free(&ctx->atypeTable);
+
+    EXP_evalTypeContextFree(ctx->typeContext);
     EXP_spaceSrcInfoFree(&ctx->srcInfo);
     EXP_spaceFree(ctx->space);
     free(ctx);
