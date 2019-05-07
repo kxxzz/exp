@@ -116,6 +116,8 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_GE,
     EXP_EvalPrimFun_LE,
 
+    EXP_EvalPrimFun_NewAry,
+
     EXP_NumEvalPrimFuns
 } EXP_EvalPrimFun;
 
