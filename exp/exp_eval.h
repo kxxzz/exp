@@ -77,9 +77,7 @@ typedef struct EXP_EvalAfunInfo
     const char* name;
     EXP_EvalAfunCall call;
     u32 numIns;
-    u32 inAtype[EXP_EvalAfunIns_MAX];
     u32 numOuts;
-    u32 outAtype[EXP_EvalAfunOuts_MAX];
     const char* typeDecl;
 } EXP_EvalAfunInfo;
 
