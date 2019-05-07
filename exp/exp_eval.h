@@ -33,6 +33,8 @@ typedef enum EXP_EvalValueType
     EXP_NumEvalValueTypes
 } EXP_EvalValueType;
 
+typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
+
 typedef struct EXP_EvalValue
 {
     union
@@ -41,12 +43,11 @@ typedef struct EXP_EvalValue
         f64 f;
         void* a;
         EXP_Node src;
+        EXP_EvalValueVec* ary;
     };
     EXP_EvalValueType type;
 } EXP_EvalValue;
 
-
-typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
 
 
 
