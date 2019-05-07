@@ -1,5 +1,6 @@
 #include "exp_eval_a.h"
 #include "exp_eval_type_a.h"
+#include "exp_eval_typedecl.h"
 
 
 
@@ -60,6 +61,7 @@ typedef struct EXP_EvalContext
     EXP_EvalTypeContext* typeContext;
     EXP_EvalAtypeInfoVec atypeTable;
     EXP_EvalAfunInfoVec afunTable;
+    vec_u32 afunTypeTable;
     EXP_EvalNodeTable nodeTable;
     EXP_EvalObjectTable objectTable;
 
@@ -71,6 +73,7 @@ typedef struct EXP_EvalContext
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
     bool gcFlag;
+    EXP_EvalCompileTypeDeclStack typeDeclStack;
 
     EXP_EvalFileInfoTable fileInfoTable;
 } EXP_EvalContext;
@@ -83,31 +86,48 @@ typedef struct EXP_EvalContext
 EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 {
     EXP_EvalContext* ctx = zalloc(sizeof(*ctx));
-    ctx->space = EXP_newSpace();
-    ctx->typeContext = EXP_newEvalTypeContext();
+    EXP_Space* space = ctx->space = EXP_newSpace();
+    EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
+    EXP_EvalAfunInfoVec* afunTable = &ctx->afunTable;
+    vec_u32* afunTypeTable = &ctx->afunTypeTable;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext = EXP_newEvalTypeContext();
+    EXP_EvalObjectTable* objectTable = &ctx->objectTable;
+    EXP_EvalCompileTypeDeclStack* typeDeclStack = &ctx->typeDeclStack;
 
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
-        vec_push(&ctx->atypeTable, EXP_EvalPrimTypeInfoTable()[i]);
+        vec_push(atypeTable, EXP_EvalPrimTypeInfoTable()[i]);
     }
     for (u32 i = 0; i < EXP_NumEvalPrimFuns; ++i)
     {
-        vec_push(&ctx->afunTable, EXP_EvalPrimFunInfoTable()[i]);
+        const EXP_EvalAfunInfo* info = EXP_EvalPrimFunInfoTable() + i;
+        vec_push(afunTable, *info);
+        EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
+        assert(node.id != EXP_NodeId_Invalid);
+        u32 t = EXP_evalCompileTypeDecl(space, atypeTable, typeContext, typeDeclStack, node, NULL, NULL);
+        assert(t != -1);
+        vec_push(afunTypeTable, t);
     }
     if (addAtomTable)
     {
         for (u32 i = 0; i < addAtomTable->numTypes; ++i)
         {
-            vec_push(&ctx->atypeTable, addAtomTable->types[i]);
+            vec_push(atypeTable, addAtomTable->types[i]);
         }
         for (u32 i = 0; i < addAtomTable->numFuns; ++i)
         {
-            vec_push(&ctx->afunTable, addAtomTable->funs[i]);
+            const EXP_EvalAfunInfo* info = addAtomTable->funs + i;
+            vec_push(afunTable, *info);
+            EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
+            assert(node.id != EXP_NodeId_Invalid);
+            u32 t = EXP_evalCompileTypeDecl(space, atypeTable, typeContext, typeDeclStack, node, NULL, NULL);
+            assert(t != -1);
+            vec_push(afunTypeTable, t);
         }
     }
 
-    vec_resize(&ctx->objectTable, ctx->atypeTable.length);
-    memset(ctx->objectTable.data, 0, sizeof(ctx->objectTable.data[0])*ctx->objectTable.length);
+    vec_resize(objectTable, atypeTable->length);
+    memset(objectTable->data, 0, sizeof(objectTable->data[0])*objectTable->length);
     return ctx;
 }
 
@@ -117,6 +137,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->fileInfoTable);
+
+    EXP_evalCompileTypeDeclStackFree(&ctx->typeDeclStack);
 
     vec_free(&ctx->dataStack);
     vec_free(&ctx->varStack);
@@ -150,6 +172,8 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     }
     vec_free(&ctx->objectTable);
     vec_free(&ctx->nodeTable);
+
+    vec_free(&ctx->afunTypeTable);
     vec_free(&ctx->afunTable);
     vec_free(&ctx->atypeTable);
 

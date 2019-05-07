@@ -141,7 +141,7 @@ next:
         EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
         return -1;
     }
-    else if (EXP_isSeqRound(space, node))
+    else if (EXP_isSeqRound(space, node) || EXP_isSeqNaked(space, node))
     {
         const EXP_Node* elms = EXP_seqElm(space, node);
         u32 len = EXP_seqLen(space, node);
@@ -268,7 +268,7 @@ u32 EXP_evalCompileTypeDecl
     EXP_EvalError* outError
 )
 {
-    if (!EXP_isSeqRound(space, node))
+    if (!EXP_isSeqRound(space, node) && !EXP_isSeqNaked(space, node))
     {
         EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
         return -1;
