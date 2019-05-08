@@ -16,10 +16,6 @@ typedef enum EXP_EvalKey
     EXP_EvalKey_If,
     EXP_EvalKey_GC,
     EXP_EvalKey_Apply,
-    EXP_EvalKey_Array,
-    EXP_EvalKey_Map,
-    EXP_EvalKey_Filter,
-    EXP_EvalKey_Reduce,
 
     EXP_NumEvalKeys
 } EXP_EvalKey;
@@ -106,6 +102,12 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void);
 
 typedef enum EXP_EvalPrimFun
 {
+
+    EXP_EvalPrimFun_Array,
+    EXP_EvalPrimFun_Map,
+    EXP_EvalPrimFun_Filter,
+    EXP_EvalPrimFun_Reduce,
+
     EXP_EvalPrimFun_Not,
 
     EXP_EvalPrimFun_Add,

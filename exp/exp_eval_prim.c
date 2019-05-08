@@ -13,10 +13,6 @@ const char** EXP_EvalKeyNameTable(void)
         "if",
         "gc",
         "!",
-        "@",
-        "map",
-        "filter",
-        "reduce",
     };
     return a;
 }
@@ -91,6 +87,46 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
     };
     return a;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+{
+
+}
+
+
+static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+{
+
+}
+
+
+static void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+{
+
+}
+
+static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+{
+
+}
+
+
 
 
 
@@ -197,10 +233,58 @@ static void EXP_evalAfunCall_NumLE(EXP_Space* space, EXP_EvalValue* ins, EXP_Eva
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
 {
     static const EXP_EvalAfunInfo a[EXP_NumEvalPrimFuns] =
     {
+
+        {
+            "%",
+            EXP_evalAfunCall_Array,
+            1, 1,
+            "num -> num"
+        },
+        {
+            "map",
+            EXP_evalAfunCall_Map,
+            2, 1,
+            "num (num -> num) -> num"
+        },
+        {
+            "filter",
+            EXP_evalAfunCall_Filter,
+            2, 1,
+            "num (num -> bool) -> num"
+        },
+        {
+            "reduce",
+            EXP_evalAfunCall_Reduce,
+            2, 1,
+            "num (num num -> num) -> num"
+        },
+
         {
             "not",
             EXP_evalAfunCall_Not,

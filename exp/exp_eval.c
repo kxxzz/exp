@@ -746,26 +746,6 @@ next:
         EXP_evalEnterBlockWithCB(ctx, 1, elms + 1, node, cb);
         goto next;
     }
-    case EXP_EvalNodeType_Array:
-    {
-        assert(false);
-        break;
-    }
-    case EXP_EvalNodeType_Map:
-    {
-        assert(false);
-        break;
-    }
-    case EXP_EvalNodeType_Filter:
-    {
-        assert(false);
-        break;
-    }
-    case EXP_EvalNodeType_Reduce:
-    {
-        assert(false);
-        break;
-    }
     default:
         assert(false);
     }
