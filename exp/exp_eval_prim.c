@@ -261,7 +261,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
     {
 
         {
-            "%",
+            "&",
             EXP_evalAfunCall_Array,
             1, 1,
             "num -> num"

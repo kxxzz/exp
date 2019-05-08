@@ -72,7 +72,7 @@ dup
 drop8
 drop4
 
-//(% 100) [1 +] map
+//(& 100) [1 +] map
 
 
 // (# _100doors
