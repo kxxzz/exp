@@ -17,9 +17,9 @@ typedef enum EXP_EvalKey
     EXP_EvalKey_GC,
     EXP_EvalKey_Apply,
     EXP_EvalKey_Array,
-    EXP_EvalKey_Each,
-    EXP_EvalKey_FoldL,
-    EXP_EvalKey_FoldR,
+    EXP_EvalKey_Map,
+    EXP_EvalKey_Filter,
+    EXP_EvalKey_Reduce,
 
     EXP_NumEvalKeys
 } EXP_EvalKey;

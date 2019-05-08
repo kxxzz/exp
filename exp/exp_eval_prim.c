@@ -14,9 +14,9 @@ const char** EXP_EvalKeyNameTable(void)
         "gc",
         "!",
         "@",
-        "each",
-        "foldl",
-        "foldr",
+        "map",
+        "filter",
+        "reduce",
     };
     return a;
 }
