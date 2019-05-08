@@ -16,6 +16,10 @@ typedef enum EXP_EvalKey
     EXP_EvalKey_If,
     EXP_EvalKey_GC,
     EXP_EvalKey_Apply,
+    EXP_EvalKey_Array,
+    EXP_EvalKey_Each,
+    EXP_EvalKey_FoldL,
+    EXP_EvalKey_FoldR,
 
     EXP_NumEvalKeys
 } EXP_EvalKey;
@@ -33,7 +37,7 @@ typedef enum EXP_EvalValueType
     EXP_NumEvalValueTypes
 } EXP_EvalValueType;
 
-typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
+typedef struct EXP_EvalArray EXP_EvalArray;
 
 typedef struct EXP_EvalValue
 {
@@ -43,10 +47,12 @@ typedef struct EXP_EvalValue
         f64 f;
         void* a;
         EXP_Node src;
-        EXP_EvalValueVec* ary;
+        EXP_EvalArray* ary;
     };
     EXP_EvalValueType type;
 } EXP_EvalValue;
+
+typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
 
 
 
@@ -115,8 +121,6 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_LT,
     EXP_EvalPrimFun_GE,
     EXP_EvalPrimFun_LE,
-
-    //EXP_EvalPrimFun_NewAry,
 
     EXP_NumEvalPrimFuns
 } EXP_EvalPrimFun;

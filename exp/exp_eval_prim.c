@@ -13,6 +13,10 @@ const char** EXP_EvalKeyNameTable(void)
         "if",
         "gc",
         "!",
+        "@",
+        "each",
+        "foldl",
+        "foldr",
     };
     return a;
 }

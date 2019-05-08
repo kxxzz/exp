@@ -67,10 +67,13 @@ gc
 
 => r :
 
-// dup
-// dup
-// drop8
-// drop4
+dup
+dup
+drop8
+drop4
+
+(@ 100) [1 +] each
+
 
 // (# _100doors
 //     (# loop => i :
@@ -80,7 +83,7 @@ gc
 
 // _100doors
 
-r
+
 
 
 
