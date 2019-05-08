@@ -259,7 +259,6 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
 {
     static const EXP_EvalAfunInfo a[EXP_NumEvalPrimFuns] =
     {
-
         {
             "&",
             EXP_evalAfunCall_Array,
