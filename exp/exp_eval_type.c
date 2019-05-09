@@ -459,7 +459,7 @@ next:
                 r = EXP_evalTypeList(ctx, listA->count, top->elms.data);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
-            break;
+            goto next;
         }
         case EXP_EvalTypeType_Var:
         {
@@ -472,25 +472,22 @@ next:
                 b = *bV;
                 EXP_EvalTypeBuildLevel l = { a, b };
                 vec_push(buildStack, l);
-                goto next;
             }
             else if (aV && !bV)
             {
                 r = EXP_evalTypeReduct(ctx, varSpace, *aV);
-                goto next;
             }
             else if (!aV && bV)
             {
                 r = EXP_evalTypeReduct(ctx, varSpace, *bV);
-                goto next;
             }
             else
             {
                 assert(!aV && !bV);
                 r = a;
                 EXP_evalTypeVarBind(varSpace, descA->varId, b);
-                goto next;
             }
+            goto next;
         }
         case EXP_EvalTypeType_Fun:
         {
