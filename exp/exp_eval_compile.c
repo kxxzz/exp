@@ -1448,7 +1448,7 @@ next:
         EXP_EvalCompileBlockCallback* cb = &curCall->cb;
         EXP_Node srcNode = curCall->srcNode;
 #ifndef NDEBUG
-        EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo->nodes.data + srcNode.id - ctx->srcInfo->baseNodeId;
+        const EXP_NodeSrcInfo* nodeSrcInfo = EXP_nodeSrcInfo(ctx->srcInfo, srcNode);
 #endif
         switch (cb->type)
         {

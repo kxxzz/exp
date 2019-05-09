@@ -138,6 +138,7 @@ typedef struct EXP_SpaceSrcInfo
 
 void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo);
 
+const EXP_NodeSrcInfo* EXP_nodeSrcInfo(const EXP_SpaceSrcInfo* srcInfo, EXP_Node node);
 
 EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
 EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);

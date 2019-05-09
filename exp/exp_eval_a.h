@@ -128,8 +128,7 @@ static void EXP_evalErrorFound
     err->code = errCode;
     if (srcInfo)
     {
-        assert(node.id - srcInfo->baseNodeId < srcInfo->nodes.length);
-        const EXP_NodeSrcInfo* nodeSrcInfo = srcInfo->nodes.data + node.id - srcInfo->baseNodeId;
+        const EXP_NodeSrcInfo* nodeSrcInfo = EXP_nodeSrcInfo(srcInfo, node);
         err->file = nodeSrcInfo->file;
         err->line = nodeSrcInfo->line;
         err->column = nodeSrcInfo->column;

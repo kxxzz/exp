@@ -63,6 +63,13 @@ void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo)
 }
 
 
+const EXP_NodeSrcInfo* EXP_nodeSrcInfo(const EXP_SpaceSrcInfo* srcInfo, EXP_Node node)
+{
+    assert(node.id - srcInfo->baseNodeId < srcInfo->nodes.length);
+    return srcInfo->nodes.data + node.id - srcInfo->baseNodeId;
+}
+
+
 
 
 
