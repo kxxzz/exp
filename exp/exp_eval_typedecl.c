@@ -221,6 +221,14 @@ next:
                 return -1;
             }
             assert(elmsOffset + top->fun.numIns == arrowPos);
+            if (top->fun.insIsListVar)
+            {
+                assert(1 == top->fun.numIns);
+            }
+            if (top->fun.outsIsListVar)
+            {
+                assert(1 == top->fun.numOuts);
+            }
         }
 
         u32 p = elmsOffset + top->elms.length;
