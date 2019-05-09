@@ -238,7 +238,9 @@ next:
         }
         else
         {
-            r = EXP_evalTypeFun(typeContext, numIns, top->elms.data, numOuts, top->elms.data + numIns);
+            u32 ins = EXP_evalTypeList(typeContext, numIns, top->elms.data);
+            u32 outs = EXP_evalTypeList(typeContext, numOuts, top->elms.data + numIns);
+            r = EXP_evalTypeFun(typeContext, ins, outs);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
         goto next;
