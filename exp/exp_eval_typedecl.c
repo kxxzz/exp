@@ -8,8 +8,8 @@
 
 typedef struct EXP_EvalCompileTypeDeclLevelFun
 {
-    u32 numIns;
-    u32 numOuts;
+    u32 insCount;
+    u32 outsCount;
 } EXP_EvalCompileTypeDeclLevelFun;
 
 
@@ -206,11 +206,11 @@ next:
                 }
                 if (-1 == arrowPos)
                 {
-                    ++top->fun.numIns;
+                    ++top->fun.insCount;
                 }
                 else
                 {
-                    ++top->fun.numOuts;
+                    ++top->fun.outsCount;
                 }
             }
             if (-1 == arrowPos)
@@ -218,26 +218,26 @@ next:
                 EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
                 return -1;
             }
-            assert(elmsOffset + top->fun.numIns == arrowPos);
+            assert(elmsOffset + top->fun.insCount == arrowPos);
         }
 
         u32 p = elmsOffset + top->elms.length;
-        u32 numIns = top->fun.numIns;
-        u32 numOuts = top->fun.numOuts;
-        u32 numAll = numIns + numOuts;
-        if (p >= elmsOffset + numIns)
+        u32 insCount = top->fun.insCount;
+        u32 outsCount = top->fun.outsCount;
+        u32 allCount = insCount + outsCount;
+        if (p >= elmsOffset + insCount)
         {
             p += 1;
         }
-        if (p < elmsOffset + 1 + numAll)
+        if (p < elmsOffset + 1 + allCount)
         {
             EXP_EvalCompileTypeDeclLevel l = { elms[p] };
             vec_push(typeDeclStack, l);
         }
         else
         {
-            u32 ins = EXP_evalTypeList(typeContext, numIns, top->elms.data);
-            u32 outs = EXP_evalTypeList(typeContext, numOuts, top->elms.data + numIns);
+            u32 ins = EXP_evalTypeList(typeContext, insCount, top->elms.data);
+            u32 outs = EXP_evalTypeList(typeContext, outsCount, top->elms.data + insCount);
             r = EXP_evalTypeFun(typeContext, ins, outs);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
