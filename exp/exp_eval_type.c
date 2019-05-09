@@ -74,7 +74,7 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 
 
-static u32 EXP_evalTypeNew(EXP_EvalTypeContext* ctx)
+static u32 EXP_evalTypeId(EXP_EvalTypeContext* ctx)
 {
     u32 id = upoolElm(ctx->dataPool, ctx->descBuffer.data, ctx->descBuffer.length, NULL);
     return id;
@@ -96,7 +96,7 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Atom;
     desc->atype = atype;
-    return EXP_evalTypeNew(ctx);
+    return EXP_evalTypeId(ctx);
 }
 
 u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
@@ -106,7 +106,7 @@ u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
     desc->type = EXP_EvalTypeType_List;
     desc->list.count = count;
     memcpy(desc->list.elms, elms, sizeof(elms[0])*count);
-    return EXP_evalTypeNew(ctx);
+    return EXP_evalTypeId(ctx);
 }
 
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
@@ -114,7 +114,7 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Var;
     desc->varId = varId;
-    return EXP_evalTypeNew(ctx);
+    return EXP_evalTypeId(ctx);
 }
 
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
@@ -123,7 +123,7 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
     desc->type = EXP_EvalTypeType_Fun;
     desc->fun.ins = ins;
     desc->fun.outs = outs;
-    return EXP_evalTypeNew(ctx);
+    return EXP_evalTypeId(ctx);
 }
 
 u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
@@ -131,7 +131,7 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Array;
     desc->elm = elm;
-    return EXP_evalTypeNew(ctx);
+    return EXP_evalTypeId(ctx);
 }
 
 
