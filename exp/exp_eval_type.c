@@ -49,6 +49,7 @@ static void EXP_evalTypeBuildStackFree(EXP_EvalTypeBuildStack* stack)
 typedef struct EXP_EvalTypeContext
 {
     Upool* dataPool;
+    vec_char descBuffer;
     EXP_EvalTypeBuildStack buildStack;
 } EXP_EvalTypeContext;
 
@@ -63,6 +64,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
     vec_free(&ctx->buildStack);
+    vec_free(&ctx->descBuffer);
     upoolFree(ctx->dataPool);
     free(ctx);
 }
@@ -72,17 +74,18 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 
 
-static u32 EXP_evalTypeIdByDesc(EXP_EvalTypeContext* ctx, const EXP_EvalTypeDesc* desc)
+static u32 EXP_evalTypeNew(EXP_EvalTypeContext* ctx)
 {
-    u32 id = upoolElm(ctx->dataPool, desc, sizeof(*desc), NULL);
+    u32 id = upoolElm(ctx->dataPool, ctx->descBuffer.data, ctx->descBuffer.length, NULL);
     return id;
 }
 
-static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
+static EXP_EvalTypeDesc* EXP_evalTypeDescBufferResize(EXP_EvalTypeContext* ctx, u32 size)
 {
-    u32 id = upoolElm(ctx->dataPool, elms, sizeof(*elms)*count, NULL);
-    return id;
+    vec_resize(&ctx->descBuffer, size);
+    return (EXP_EvalTypeDesc*)ctx->descBuffer.data;
 }
+
 
 
 
@@ -90,35 +93,48 @@ static u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms
 
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Atom };
-    desc.atype = atype;
-    return EXP_evalTypeIdByDesc(ctx, &desc);
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    desc->type = EXP_EvalTypeType_Atom;
+    desc->atype = atype;
+    return EXP_evalTypeNew(ctx);
 }
 
-u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 numIns, const u32* ins, u32 numOuts, const u32* outs)
+u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Fun };
-    desc.fun.ins.count = numIns;
-    desc.fun.outs.count = numOuts;
-    desc.fun.ins.list = EXP_evalTypeList(ctx, numIns, ins);
-    desc.fun.outs.list = EXP_evalTypeList(ctx, numOuts, outs);
-    return EXP_evalTypeIdByDesc(ctx, &desc);
-}
-
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
-{
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Array };
-    desc.aryElm.count = count;
-    desc.aryElm.list = EXP_evalTypeList(ctx, count, elms);
-    return EXP_evalTypeIdByDesc(ctx, &desc);
+    u32 size = offsetof(EXP_EvalTypeDesc, list.elms) + sizeof(elms[0])*count;
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, size);
+    desc->type = EXP_EvalTypeType_List;
+    desc->list.count = count;
+    memcpy(desc->list.elms, elms, sizeof(elms[0])*count);
+    return EXP_evalTypeNew(ctx);
 }
 
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 {
-    EXP_EvalTypeDesc desc = { EXP_EvalTypeType_Var };
-    desc.varId = varId;
-    return EXP_evalTypeIdByDesc(ctx, &desc);
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    desc->type = EXP_EvalTypeType_Var;
+    desc->varId = varId;
+    return EXP_evalTypeNew(ctx);
 }
+
+u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
+{
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    desc->type = EXP_EvalTypeType_Fun;
+    desc->fun.ins = ins;
+    desc->fun.outs = outs;
+    return EXP_evalTypeNew(ctx);
+}
+
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
+{
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    desc->type = EXP_EvalTypeType_Array;
+    desc->elm = elm;
+    return EXP_evalTypeNew(ctx);
+}
+
+
 
 
 
@@ -132,10 +148,7 @@ const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeI
     return upoolElmData(ctx->dataPool, typeId);
 }
 
-const u32* EXP_evalTypeListById(EXP_EvalTypeContext* ctx, u32 listId)
-{
-    return upoolElmData(ctx->dataPool, listId);
-}
+
 
 
 
@@ -281,9 +294,9 @@ next:
         EXP_evalTypeBuildStackPop(buildStack);
         break;
     }
-    case EXP_EvalTypeType_Fun:
+    case EXP_EvalTypeType_List:
     {
-        const EXP_EvalTypeDescFun* fun = &desc->fun;
+        const EXP_EvalTypeDescList* list = &desc->list;
         if (top->hasRet)
         {
             vec_push(&top->elms, r);
@@ -293,24 +306,14 @@ next:
             top->hasRet = true;
         }
         u32 p = top->elms.length;
-        if (p < fun->ins.count + fun->outs.count)
+        if (p < list->count)
         {
-            const u32* funIns = EXP_evalTypeListById(ctx, fun->ins.list);
-            const u32* funOuts = EXP_evalTypeListById(ctx, fun->outs.list);
-            EXP_EvalTypeBuildLevel l = { 0 };
-            if (p < fun->ins.count)
-            {
-                l.src = funIns[p];
-            }
-            else
-            {
-                l.src = funOuts[p - fun->ins.count];
-            }
+            EXP_EvalTypeBuildLevel l = { list->elms[p] };
             vec_push(buildStack, l);
         }
         else
         {
-            r = EXP_evalTypeFun(ctx, fun->ins.count, top->elms.data, fun->outs.count, top->elms.data + fun->ins.count);
+            r = EXP_evalTypeList(ctx, list->count, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -327,6 +330,39 @@ next:
         else
         {
             r = top->src;
+            EXP_evalTypeBuildStackPop(buildStack);
+        }
+        break;
+    }
+    case EXP_EvalTypeType_Fun:
+    {
+        const EXP_EvalTypeDescFun* fun = &desc->fun;
+        if (top->hasRet)
+        {
+            vec_push(&top->elms, r);
+        }
+        else
+        {
+            top->hasRet = true;
+        }
+        u32 p = top->elms.length;
+        if (p < 2)
+        {
+            EXP_EvalTypeBuildLevel l = { 0 };
+            if (p < 1)
+            {
+                l.src = fun->ins;
+            }
+            else
+            {
+                l.src = fun->outs;
+            }
+            vec_push(buildStack, l);
+        }
+        else
+        {
+            assert(2 == p);
+            r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -391,54 +427,35 @@ next:
             assert(descA->atype != descB->atype);
             goto failed;
         }
-        case EXP_EvalTypeType_Fun:
+        case EXP_EvalTypeType_List:
         {
-            const EXP_EvalTypeDescFun* funA = &descA->fun;
-            const EXP_EvalTypeDescFun* funB = &descB->fun;
+            const EXP_EvalTypeDescList* listA = &descA->list;
+            const EXP_EvalTypeDescList* listB = &descB->list;
             if (top->hasRet)
             {
                 vec_push(&top->elms, r);
-                assert(funA->ins.count == funB->ins.count);
-                assert(funA->outs.count == funB->outs.count);
+                assert(listA->count == listB->count);
             }
             else
             {
                 top->hasRet = true;
-                if (funA->ins.count != funB->ins.count)
-                {
-                    goto failed;
-                }
-                if (funA->outs.count != funB->outs.count)
+                if (listA->count != listB->count)
                 {
                     goto failed;
                 }
             }
             u32 p = top->elms.length;
-            if (p < funA->ins.count + funA->outs.count)
+            if (p < listA->count)
             {
-                const u32* funInsA = EXP_evalTypeListById(ctx, funA->ins.list);
-                const u32* funOutsA = EXP_evalTypeListById(ctx, funA->outs.list);
-                const u32* funInsB = EXP_evalTypeListById(ctx, funB->ins.list);
-                const u32* funOutsB = EXP_evalTypeListById(ctx, funB->outs.list);
-                EXP_EvalTypeBuildLevel l = { 0 };
-                if (p < funA->ins.count)
-                {
-                    l.src = funInsA[p];
-                    l.src1 = funInsB[p];
-                }
-                else
-                {
-                    l.src = funOutsA[p - funA->ins.count];
-                    l.src1 = funOutsB[p - funA->ins.count];
-                }
+                EXP_EvalTypeBuildLevel l = { listA->elms[p], listB->elms[p] };
                 vec_push(buildStack, l);
             }
             else
             {
-                r = EXP_evalTypeFun(ctx, funA->ins.count, top->elms.data, funA->outs.count, top->elms.data + funA->ins.count);
+                r = EXP_evalTypeList(ctx, listA->count, top->elms.data);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
-            goto next;
+            break;
         }
         case EXP_EvalTypeType_Var:
         {
@@ -470,6 +487,42 @@ next:
                 EXP_evalTypeVarBind(varSpace, descA->varId, b);
                 goto next;
             }
+        }
+        case EXP_EvalTypeType_Fun:
+        {
+            const EXP_EvalTypeDescFun* funA = &descA->fun;
+            const EXP_EvalTypeDescFun* funB = &descB->fun;
+            if (top->hasRet)
+            {
+                vec_push(&top->elms, r);
+            }
+            else
+            {
+                top->hasRet = true;
+            }
+            u32 p = top->elms.length;
+            if (p < 2)
+            {
+                EXP_EvalTypeBuildLevel l = { 0 };
+                if (p < 1)
+                {
+                    l.src = funA->ins;
+                    l.src1 = funB->ins;
+                }
+                else
+                {
+                    l.src = funA->outs;
+                    l.src1 = funB->outs;
+                }
+                vec_push(buildStack, l);
+            }
+            else
+            {
+                assert(2 == p);
+                r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
+                EXP_evalTypeBuildStackPop(buildStack);
+            }
+            goto next;
         }
         default:
             goto failed;
@@ -561,9 +614,9 @@ next:
         EXP_evalTypeBuildStackPop(buildStack);
         break;
     }
-    case EXP_EvalTypeType_Fun:
+    case EXP_EvalTypeType_List:
     {
-        const EXP_EvalTypeDescFun* fun = &desc->fun;
+        const EXP_EvalTypeDescList* list = &desc->list;
         if (top->hasRet)
         {
             vec_push(&top->elms, r);
@@ -573,24 +626,14 @@ next:
             top->hasRet = true;
         }
         u32 p = top->elms.length;
-        if (p < fun->ins.count + fun->outs.count)
+        if (p < list->count)
         {
-            const u32* funIns = EXP_evalTypeListById(ctx, fun->ins.list);
-            const u32* funOuts = EXP_evalTypeListById(ctx, fun->outs.list);
-            EXP_EvalTypeBuildLevel l = { 0 };
-            if (p < fun->ins.count)
-            {
-                l.src = funIns[p];
-            }
-            else
-            {
-                l.src = funOuts[p - fun->ins.count];
-            }
+            EXP_EvalTypeBuildLevel l = { list->elms[p] };
             vec_push(buildStack, l);
         }
         else
         {
-            r = EXP_evalTypeFun(ctx, fun->ins.count, top->elms.data, fun->outs.count, top->elms.data + fun->ins.count);
+            r = EXP_evalTypeList(ctx, list->count, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -609,6 +652,39 @@ next:
             EXP_evalTypeVarBind(varRenMap, desc->varId, r);
         }
         EXP_evalTypeBuildStackPop(buildStack);
+        break;
+    }
+    case EXP_EvalTypeType_Fun:
+    {
+        const EXP_EvalTypeDescFun* fun = &desc->fun;
+        if (top->hasRet)
+        {
+            vec_push(&top->elms, r);
+        }
+        else
+        {
+            top->hasRet = true;
+        }
+        u32 p = top->elms.length;
+        if (p < 2)
+        {
+            EXP_EvalTypeBuildLevel l = { 0 };
+            if (p < 1)
+            {
+                l.src = fun->ins;
+            }
+            else
+            {
+                l.src = fun->outs;
+            }
+            vec_push(buildStack, l);
+        }
+        else
+        {
+            assert(2 == p);
+            r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
+            EXP_evalTypeBuildStackPop(buildStack);
+        }
         break;
     }
     default:
