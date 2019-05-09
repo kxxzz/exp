@@ -50,6 +50,7 @@ static EXP_LoadContext EXP_newLoadContext
     assert(strSize == strlen(srcStr));
     if (srcInfo)
     {
+        srcInfo->baseNodeId = EXP_spaceNodesTotal(space);
         ++srcInfo->fileCount;
     }
     EXP_LoadContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };

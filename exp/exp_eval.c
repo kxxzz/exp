@@ -574,7 +574,7 @@ next:
     }
     EXP_Node node = *(curCall->p++);
 #ifndef NDEBUG
-    EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo.nodes.data + node.id;
+    EXP_NodeSrcInfo* nodeSrcInfo = ctx->srcInfo.nodes.data + node.id - ctx->srcInfo.baseNodeId;
 #endif
     EXP_EvalNode* enode = nodeTable->data + node.id;
     switch (enode->type)

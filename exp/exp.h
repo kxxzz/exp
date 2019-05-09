@@ -131,6 +131,7 @@ typedef vec_t(EXP_NodeSrcInfo) EXP_NodeSrcInfoVec;
 
 typedef struct EXP_SpaceSrcInfo
 {
+    u32 baseNodeId;
     u32 fileCount;
     EXP_NodeSrcInfoVec nodes;
 } EXP_SpaceSrcInfo;

@@ -74,16 +74,18 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 
 
 
+static EXP_EvalTypeDesc* EXP_evalTypeDescBufferReset(EXP_EvalTypeContext* ctx, u32 size)
+{
+    vec_resize(&ctx->descBuffer, size);
+    memset(ctx->descBuffer.data, 0, sizeof(ctx->descBuffer.data[0])*size);
+    return (EXP_EvalTypeDesc*)ctx->descBuffer.data;
+}
+
+
 static u32 EXP_evalTypeId(EXP_EvalTypeContext* ctx)
 {
     u32 id = upoolElm(ctx->dataPool, ctx->descBuffer.data, ctx->descBuffer.length, NULL);
     return id;
-}
-
-static EXP_EvalTypeDesc* EXP_evalTypeDescBufferResize(EXP_EvalTypeContext* ctx, u32 size)
-{
-    vec_resize(&ctx->descBuffer, size);
-    return (EXP_EvalTypeDesc*)ctx->descBuffer.data;
 }
 
 
@@ -93,7 +95,7 @@ static EXP_EvalTypeDesc* EXP_evalTypeDescBufferResize(EXP_EvalTypeContext* ctx, 
 
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
 {
-    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Atom;
     desc->atype = atype;
     return EXP_evalTypeId(ctx);
@@ -102,7 +104,7 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
 u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 {
     u32 size = offsetof(EXP_EvalTypeDesc, list.elms) + sizeof(elms[0])*count;
-    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, size);
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, size);
     desc->type = EXP_EvalTypeType_List;
     desc->list.count = count;
     memcpy(desc->list.elms, elms, sizeof(elms[0])*count);
@@ -111,7 +113,7 @@ u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
 
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 {
-    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Var;
     desc->varId = varId;
     return EXP_evalTypeId(ctx);
@@ -119,7 +121,7 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
 
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
 {
-    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Fun;
     desc->fun.ins = ins;
     desc->fun.outs = outs;
@@ -128,7 +130,7 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
 
 u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 {
-    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferResize(ctx, sizeof(EXP_EvalTypeDesc));
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Array;
     desc->elm = elm;
     return EXP_evalTypeId(ctx);
@@ -313,6 +315,7 @@ next:
         }
         else
         {
+            assert(p == list->count);
             r = EXP_evalTypeList(ctx, list->count, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }
@@ -452,6 +455,7 @@ next:
             }
             else
             {
+                assert(p == listA->count);
                 r = EXP_evalTypeList(ctx, listA->count, top->elms.data);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
@@ -633,6 +637,7 @@ next:
         }
         else
         {
+            assert(p == list->count);
             r = EXP_evalTypeList(ctx, list->count, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }

@@ -225,15 +225,13 @@ next:
         u32 numIns = top->fun.numIns;
         u32 numOuts = top->fun.numOuts;
         u32 numAll = numIns + numOuts;
-        bool inInput = true;
         if (p >= elmsOffset + numIns)
         {
             p += 1;
-            inInput = false;
         }
         if (p < elmsOffset + 1 + numAll)
         {
-            EXP_EvalCompileTypeDeclLevel l = { elms[p], inInput };
+            EXP_EvalCompileTypeDeclLevel l = { elms[p] };
             vec_push(typeDeclStack, l);
         }
         else
