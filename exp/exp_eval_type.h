@@ -43,6 +43,12 @@ typedef struct EXP_EvalTypeDescFun
     u32 outs;
 } EXP_EvalTypeDescFun;
 
+typedef struct EXP_EvalTypeDescArray
+{
+    u32 elm;
+    u32 size;
+} EXP_EvalTypeDescArray;
+
 typedef struct EXP_EvalTypeDesc
 {
     EXP_EvalTypeType type;
@@ -52,7 +58,7 @@ typedef struct EXP_EvalTypeDesc
         EXP_EvalTypeDescList list;
         u32 varId;
         EXP_EvalTypeDescFun fun;
-        u32 elm;
+        EXP_EvalTypeDescArray ary;
     };
 } EXP_EvalTypeDesc;
 
@@ -70,7 +76,7 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype);
 u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId);
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs);
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm, u32 size);
 
 
 

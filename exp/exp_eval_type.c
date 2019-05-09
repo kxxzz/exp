@@ -128,11 +128,12 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
     return EXP_evalTypeId(ctx);
 }
 
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm, u32 size)
 {
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Array;
-    desc->elm = elm;
+    desc->ary.elm = elm;
+    desc->ary.size = size;
     return EXP_evalTypeId(ctx);
 }
 
