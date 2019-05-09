@@ -67,12 +67,12 @@ gc
 
 => r :
 
-dup
-dup
-drop8
-drop4
+// dup
+// dup
+// drop8
+// drop4
 
-//(& 100) [1 +] map
+//(<> 100) [1 +] map
 
 
 // (# _100doors
