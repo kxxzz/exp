@@ -371,6 +371,22 @@ next:
         }
         break;
     }
+    case EXP_EvalTypeType_Array:
+    {
+        const EXP_EvalTypeDescArray* ary = &desc->ary;
+        if (top->hasRet)
+        {
+            r = EXP_evalTypeArray(ctx, r, ary->size);
+            EXP_evalTypeBuildStackPop(buildStack);
+        }
+        else
+        {
+            top->hasRet = true;
+            EXP_EvalTypeBuildLevel l = { ary->elm };
+            vec_push(buildStack, l);
+        }
+        break;
+    }
     default:
         assert(false);
         break;
@@ -525,6 +541,27 @@ next:
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             goto next;
+        }
+        case EXP_EvalTypeType_Array:
+        {
+            const EXP_EvalTypeDescArray* aryA = &descA->ary;
+            const EXP_EvalTypeDescArray* aryB = &descB->ary;
+            if (top->hasRet)
+            {
+                r = EXP_evalTypeArray(ctx, r, aryA->size);
+                EXP_evalTypeBuildStackPop(buildStack);
+            }
+            else
+            {
+                if (aryA->size != aryB->size)
+                {
+                    goto failed;
+                }
+                top->hasRet = true;
+                EXP_EvalTypeBuildLevel l = { aryA->elm, aryB->elm };
+                vec_push(buildStack, l);
+            }
+            break;
         }
         default:
             goto failed;
@@ -687,6 +724,22 @@ next:
             assert(2 == p);
             r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
             EXP_evalTypeBuildStackPop(buildStack);
+        }
+        break;
+    }
+    case EXP_EvalTypeType_Array:
+    {
+        const EXP_EvalTypeDescArray* ary = &desc->ary;
+        if (top->hasRet)
+        {
+            r = EXP_evalTypeArray(ctx, r, ary->size);
+            EXP_evalTypeBuildStackPop(buildStack);
+        }
+        else
+        {
+            top->hasRet = true;
+            EXP_EvalTypeBuildLevel l = { ary->elm };
+            vec_push(buildStack, l);
         }
         break;
     }
