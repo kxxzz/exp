@@ -8,8 +8,10 @@
 
 typedef struct EXP_EvalCompileTypeDeclLevelFun
 {
-    u32 insCount;
-    u32 outsCount;
+    bool insIsListVar;
+    bool outsIsListVar;
+    u32 numIns;
+    u32 numOuts;
 } EXP_EvalCompileTypeDeclLevelFun;
 
 
@@ -206,11 +208,11 @@ next:
                 }
                 if (-1 == arrowPos)
                 {
-                    ++top->fun.insCount;
+                    ++top->fun.numIns;
                 }
                 else
                 {
-                    ++top->fun.outsCount;
+                    ++top->fun.numOuts;
                 }
             }
             if (-1 == arrowPos)
@@ -218,26 +220,41 @@ next:
                 EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
                 return -1;
             }
-            assert(elmsOffset + top->fun.insCount == arrowPos);
+            assert(elmsOffset + top->fun.numIns == arrowPos);
         }
 
         u32 p = elmsOffset + top->elms.length;
-        u32 insCount = top->fun.insCount;
-        u32 outsCount = top->fun.outsCount;
-        u32 allCount = insCount + outsCount;
-        if (p >= elmsOffset + insCount)
+        u32 numIns = top->fun.numIns;
+        u32 numOuts = top->fun.numOuts;
+        u32 numAll = numIns + numOuts;
+        if (p >= elmsOffset + numIns)
         {
             p += 1;
         }
-        if (p < elmsOffset + 1 + allCount)
+        if (p < elmsOffset + 1 + numAll)
         {
             EXP_EvalCompileTypeDeclLevel l = { elms[p] };
             vec_push(typeDeclStack, l);
         }
         else
         {
-            u32 ins = EXP_evalTypeList(typeContext, insCount, top->elms.data);
-            u32 outs = EXP_evalTypeList(typeContext, outsCount, top->elms.data + insCount);
+            u32 ins, outs;
+            if (top->fun.insIsListVar)
+            {
+                ins = top->elms.data[0];
+            }
+            else
+            {
+                ins = EXP_evalTypeList(typeContext, numIns, top->elms.data);
+            }
+            if (top->fun.outsIsListVar)
+            {
+                outs = top->elms.data[numIns];
+            }
+            else
+            {
+                outs = EXP_evalTypeList(typeContext, numOuts, top->elms.data + numIns);
+            }
             r = EXP_evalTypeFun(typeContext, ins, outs);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
