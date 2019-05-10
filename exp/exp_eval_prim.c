@@ -106,7 +106,9 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 
 static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-
+    u64 n = (u64)ins[0].f;
+    //outs[0].ary;
+    outs[0].type = EXP_EvalValueType_Array;
 }
 
 
