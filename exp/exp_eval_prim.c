@@ -263,25 +263,28 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             "&",
             EXP_evalAfunCall_Array,
             1, 1,
-            "num -> [num]"
+            "num -> [num]",
         },
         {
             "map",
             EXP_evalAfunCall_Map,
             2, 1,
-            "{A B} [A] (A -> B) -> [B]"
+            "num -> [num]",
+            //"{A B} [A] (A -> B) -> [B]",
         },
         {
             "filter",
             EXP_evalAfunCall_Filter,
             2, 1,
-            "{A} [A] (A -> bool) -> [A]"
+            "num -> [num]",
+            //"{A} [A] (A -> bool) -> [A]",
         },
         {
             "reduce",
             EXP_evalAfunCall_Reduce,
             2, 1,
-            "{A} [A] (A A -> A) -> [A]"
+            "num -> [num]",
+            //"{A} [A] (A A -> A) -> [A]",
         },
 
         {
