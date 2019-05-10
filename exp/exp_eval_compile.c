@@ -765,7 +765,7 @@ static void EXP_evalCompileCallInOut
 
 
 
-static void EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, EXP_Node srcNode)
+static bool EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, EXP_Node srcNode, u32 numIns)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
@@ -774,7 +774,14 @@ static void EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, EXP
 
     const EXP_EvalTypeDesc* funIns = EXP_evalTypeDescById(typeContext, desc->fun.ins);
     const EXP_EvalTypeDesc* funOuts = EXP_evalTypeDescById(typeContext, desc->fun.outs);
+
+    if ((numIns != -1) && (funIns->list.count != numIns))
+    {
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        return false;
+    }
     EXP_evalCompileCallInOut(ctx, funIns->list.count, funIns->list.elms, funOuts->list.count, funOuts->list.elms, srcNode);
+    return true;
 }
 
 
@@ -1187,7 +1194,7 @@ static void EXP_evalCompileBlockMarch
                         return;
                     }
                 }
-                EXP_evalCompileFunCall(ctx, t, node);
+                EXP_evalCompileFunCall(ctx, t, node, -1);
                 return;
             }
             default:
@@ -1199,7 +1206,7 @@ static void EXP_evalCompileBlockMarch
             {
                 enode->type = EXP_EvalNodeType_Afun;
                 enode->afun = afun;
-                EXP_evalCompileFunCall(ctx, ctx->afunTypeTable->data[afun], node);
+                EXP_evalCompileFunCall(ctx, ctx->afunTypeTable->data[afun], node, -1);
                 return;
             }
 
@@ -1476,8 +1483,10 @@ next:
                 EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
                 goto next;
             }
-            EXP_evalCompileFunCall(ctx, ctx->afunTypeTable->data[cb->afun], srcNode);
-            EXP_evalCompileLeaveBlock(ctx);
+            if (EXP_evalCompileFunCall(ctx, ctx->afunTypeTable->data[cb->afun], srcNode, numIns))
+            {
+                EXP_evalCompileLeaveBlock(ctx);
+            }
             goto next;
         }
         case EXP_EvalCompileBlockCallbackType_CallBlock:
@@ -1542,6 +1551,12 @@ next:
         }
         case EXP_EvalCompileBlockCallbackType_CallType:
         {
+            if (dataStack->length < curCall->dataStackP)
+            {
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                goto next;
+            }
+            u32 numIns = dataStack->length - curCall->dataStackP;
             const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, cb->funType);
             if (desc->type != EXP_EvalTypeType_Fun)
             {
@@ -1549,7 +1564,7 @@ next:
                 goto next;
             }
             EXP_evalCompileLeaveBlock(ctx);
-            EXP_evalCompileFunCall(ctx, cb->funType, srcNode);
+            EXP_evalCompileFunCall(ctx, cb->funType, srcNode, numIns);
             goto next;
         }
         case EXP_EvalCompileBlockCallbackType_Cond:
