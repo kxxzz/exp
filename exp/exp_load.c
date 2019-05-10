@@ -377,10 +377,6 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
         }
         EXP_addSeqPush(ctx->space, e);
     }
-    if (EXP_loadEnd(ctx))
-    {
-        return EXP_Node_Invalid;
-    }
     EXP_Node node = EXP_addSeqDone(space);
     return node;
 }

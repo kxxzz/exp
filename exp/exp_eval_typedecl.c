@@ -14,7 +14,6 @@ typedef struct EXP_EvalCompileTypeDeclLevelFun
     u32 numOuts;
 } EXP_EvalCompileTypeDeclLevelFun;
 
-
 typedef struct EXP_EvalCompileTypeDeclVar
 {
     EXP_Node name;
@@ -264,6 +263,38 @@ next:
                 outs = EXP_evalTypeList(typeContext, numOuts, top->elms.data + numIns);
             }
             r = EXP_evalTypeFun(typeContext, ins, outs);
+            EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+        }
+        goto next;
+    }
+    else if (EXP_isSeqSquare(space, node))
+    {
+        const EXP_Node* elms = EXP_seqElm(space, node);
+        u32 len = EXP_seqLen(space, node);
+        if (0 == len)
+        {
+            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+            return -1;
+        }
+
+        if (top->hasRet)
+        {
+            vec_push(&top->elms, r);
+        }
+        else
+        {
+            top->hasRet = true;
+        }
+        u32 p = top->elms.length;
+        if (p < len)
+        {
+            EXP_EvalCompileTypeDeclLevel l = { elms[p] };
+            vec_push(typeDeclStack, l);
+        }
+        else
+        {
+            u32 elm = EXP_evalTypeList(typeContext, len, top->elms.data);
+            r = EXP_evalTypeArray(typeContext, elm);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
         goto next;
