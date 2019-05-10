@@ -4,6 +4,7 @@
 
 
 #include "exp_eval_type.h"
+#include "exp_eval_array.h"
 
 
 
@@ -32,8 +33,6 @@ typedef enum EXP_EvalValueType
 
     EXP_NumEvalValueTypes
 } EXP_EvalValueType;
-
-typedef struct EXP_EvalArray EXP_EvalArray;
 
 typedef struct EXP_EvalValue
 {
