@@ -88,6 +88,10 @@ void EXP_evalCompileTypeDeclStackFree(EXP_EvalCompileTypeDeclStack* stack)
 
 
 
+
+
+
+
 static u32 EXP_evalCompileTypeDeclLoop
 (
     EXP_Space* space,
@@ -111,10 +115,11 @@ next:
 
     if (EXP_isTok(space, node))
     {
+        const char* cstr = EXP_tokCstr(space, node);
         for (u32 i = 0; i + 1 < typeDeclStack->length; ++i)
         {
             EXP_EvalCompileTypeDeclLevel* fun = typeDeclStack->data + typeDeclStack->length - 2 - i;
-            if (EXP_isSeqRound(space, fun->src))
+            if (EXP_isSeqRound(space, fun->src) || EXP_isSeqNaked(space, fun->src))
             {
                 for (u32 i = 0; i < fun->varSpace.length; ++i)
                 {
@@ -129,7 +134,6 @@ next:
                 }
             }
         }
-        const char* cstr = EXP_tokCstr(space, node);
         for (u32 i = 0; i < atypeTable->length; ++i)
         {
             if (0 == strcmp(cstr, atypeTable->data[i].name))
@@ -194,6 +198,7 @@ next:
                 if (EXP_isTok(space, elms[i]))
                 {
                     const char* cstr = EXP_tokCstr(space, elms[i]);
+                    u32 cstrLen = EXP_tokSize(space, elms[i]);
                     if (0 == strcmp("->", cstr))
                     {
                         if (arrowPos != -1)
@@ -203,6 +208,27 @@ next:
                         }
                         arrowPos = i;
                         continue;
+                    }
+                    if ('*' == cstr[cstrLen - 1])
+                    {
+                        if (-1 == arrowPos)
+                        {
+                            if (top->fun.insIsListVar)
+                            {
+                                EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+                                return -1;
+                            }
+                            top->fun.insIsListVar = true;
+                        }
+                        else
+                        {
+                            if (top->fun.outsIsListVar)
+                            {
+                                EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+                                return -1;
+                            }
+                            top->fun.outsIsListVar = true;
+                        }
                     }
                 }
                 if (-1 == arrowPos)
