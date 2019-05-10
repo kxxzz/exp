@@ -128,12 +128,11 @@ u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
     return EXP_evalTypeId(ctx);
 }
 
-u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm, u32 size)
+u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
 {
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
     desc->type = EXP_EvalTypeType_Array;
     desc->ary.elm = elm;
-    desc->ary.size = size;
     return EXP_evalTypeId(ctx);
 }
 
@@ -376,7 +375,7 @@ next:
         const EXP_EvalTypeDescArray* ary = &desc->ary;
         if (top->hasRet)
         {
-            r = EXP_evalTypeArray(ctx, r, ary->size);
+            r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         else
@@ -548,15 +547,11 @@ next:
             const EXP_EvalTypeDescArray* aryB = &descB->ary;
             if (top->hasRet)
             {
-                r = EXP_evalTypeArray(ctx, r, aryA->size);
+                r = EXP_evalTypeArray(ctx, r);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             else
             {
-                if (aryA->size != aryB->size)
-                {
-                    goto failed;
-                }
                 top->hasRet = true;
                 EXP_EvalTypeBuildLevel l = { aryA->elm, aryB->elm };
                 vec_push(buildStack, l);
@@ -732,7 +727,7 @@ next:
         const EXP_EvalTypeDescArray* ary = &desc->ary;
         if (top->hasRet)
         {
-            r = EXP_evalTypeArray(ctx, r, ary->size);
+            r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         else
