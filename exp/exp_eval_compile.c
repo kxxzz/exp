@@ -762,6 +762,7 @@ static void EXP_evalCompileCallInOut
         x = EXP_evalCompileTypeFromPat(ctx, x);
         vec_push(dataStack, x);
     }
+    *pNumOuts = outsLen;
 }
 
 

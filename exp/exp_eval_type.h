@@ -35,9 +35,10 @@ static const char** EXP_EvalTypeTypeNameTable(void)
 
 typedef struct EXP_EvalTypeDescList
 {
+    bool hasListElm;
     u32 count;
     u32 elms[1];
-    bool hasListElm;
+    // nothing could here
 } EXP_EvalTypeDescList;
 
 typedef struct EXP_EvalTypeDescFun
