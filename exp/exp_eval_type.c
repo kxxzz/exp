@@ -126,6 +126,14 @@ u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId)
     return EXP_evalTypeId(ctx);
 }
 
+u32 EXP_evalTypeListVar(EXP_EvalTypeContext* ctx, u32 varId)
+{
+    EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
+    desc->type = EXP_EvalTypeType_ListVar;
+    desc->varId = varId;
+    return EXP_evalTypeId(ctx);
+}
+
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs)
 {
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, sizeof(EXP_EvalTypeDesc));
@@ -333,6 +341,7 @@ next:
         break;
     }
     case EXP_EvalTypeType_Var:
+    case EXP_EvalTypeType_ListVar:
     {
         u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
         if (pV)
@@ -493,6 +502,7 @@ next:
             goto next;
         }
         case EXP_EvalTypeType_Var:
+        case EXP_EvalTypeType_ListVar:
         {
             EXP_evalTypeBuildStackPop(buildStack);
             u32* aV = EXP_evalTypeVarValue(varSpace, descA->varId);
@@ -577,7 +587,7 @@ next:
     else
     {
         EXP_evalTypeBuildStackPop(buildStack);
-        if (EXP_EvalTypeType_Var == descA->type)
+        if ((EXP_EvalTypeType_Var == descA->type) && (EXP_EvalTypeType_ListVar != descB->type))
         {
             u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
             if (pV)
@@ -591,7 +601,7 @@ next:
             EXP_evalTypeVarBind(varSpace, descA->varId, r);
             goto next;
         }
-        else if (EXP_EvalTypeType_Var == descB->type)
+        else if ((EXP_EvalTypeType_Var == descB->type) && (EXP_EvalTypeType_ListVar != descA->type))
         {
             u32* pV = EXP_evalTypeVarValue(varSpace, descB->varId);
             if (pV)
@@ -690,6 +700,7 @@ next:
         break;
     }
     case EXP_EvalTypeType_Var:
+    case EXP_EvalTypeType_ListVar:
     {
         u32* pV = EXP_evalTypeVarValue(varRenMap, desc->varId);
         if (pV)

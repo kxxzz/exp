@@ -186,7 +186,18 @@ next:
                             return -1;
                         }
                     }
-                    u32 t = EXP_evalTypeVar(typeContext, i);
+                    
+                    const char* cstr = EXP_tokCstr(space, name);
+                    u32 cstrLen = EXP_tokSize(space, name);
+                    u32 t;
+                    if ('*' == cstr[cstrLen - 1])
+                    {
+                        t = EXP_evalTypeListVar(typeContext, i);
+                    }
+                    else
+                    {
+                        t = EXP_evalTypeVar(typeContext, i);
+                    }
                     EXP_EvalCompileTypeDeclVar v = { name, t };
                     vec_push(&top->varSpace, v);
                 }

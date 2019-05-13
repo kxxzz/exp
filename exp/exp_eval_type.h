@@ -11,6 +11,7 @@ typedef enum EXP_EvalTypeType
     EXP_EvalTypeType_Atom,
     EXP_EvalTypeType_List,
     EXP_EvalTypeType_Var,
+    EXP_EvalTypeType_ListVar,
     EXP_EvalTypeType_Fun,
     EXP_EvalTypeType_Array,
 
@@ -24,6 +25,7 @@ static const char** EXP_EvalTypeTypeNameTable(void)
         "Atom",
         "List",
         "Var",
+        "ListVar",
         "Fun",
         "Array",
     };
@@ -74,6 +76,7 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx);
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype);
 u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId);
+u32 EXP_evalTypeListVar(EXP_EvalTypeContext* ctx, u32 varId);
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs);
 u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);
 
