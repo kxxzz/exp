@@ -335,7 +335,7 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, list->count, top->elms.data);
+            r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -496,7 +496,7 @@ next:
             else
             {
                 assert(p == listA->count);
-                r = EXP_evalTypeList(ctx, listA->count, top->elms.data);
+                r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             goto next;
@@ -587,7 +587,8 @@ next:
     else
     {
         EXP_evalTypeBuildStackPop(buildStack);
-        if ((EXP_EvalTypeType_Var == descA->type) && (EXP_EvalTypeType_ListVar != descB->type))
+        if (((EXP_EvalTypeType_Var == descA->type) && (EXP_EvalTypeType_ListVar != descB->type)) ||
+            ((EXP_EvalTypeType_ListVar == descA->type) && (EXP_EvalTypeType_Var != descB->type)))
         {
             u32* pV = EXP_evalTypeVarValue(varSpace, descA->varId);
             if (pV)
@@ -601,7 +602,8 @@ next:
             EXP_evalTypeVarBind(varSpace, descA->varId, r);
             goto next;
         }
-        else if ((EXP_EvalTypeType_Var == descB->type) && (EXP_EvalTypeType_ListVar != descA->type))
+        else if (((EXP_EvalTypeType_Var == descB->type) && (EXP_EvalTypeType_ListVar != descA->type)) ||
+                 ((EXP_EvalTypeType_ListVar == descB->type) && (EXP_EvalTypeType_Var != descA->type)))
         {
             u32* pV = EXP_evalTypeVarValue(varSpace, descB->varId);
             if (pV)
@@ -694,7 +696,7 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, list->count, top->elms.data);
+            r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
