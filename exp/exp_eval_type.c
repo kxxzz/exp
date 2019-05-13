@@ -12,12 +12,18 @@ typedef struct EXP_EvalTypeBuildLevel
     vec_u32 elms;
 } EXP_EvalTypeBuildLevel;
 
+static void EXP_evalTypeBuildLevel(EXP_EvalTypeBuildLevel* l)
+{
+    vec_free(&l->elms);
+}
+
+
 typedef vec_t(EXP_EvalTypeBuildLevel) EXP_EvalTypeBuildStack;
 
 static void EXP_evalTypeBuildStackPop(EXP_EvalTypeBuildStack* stack)
 {
     EXP_EvalTypeBuildLevel* l = &vec_last(stack);
-    vec_free(&l->elms);
+    EXP_evalTypeBuildLevel(l);
     vec_pop(stack);
 }
 
@@ -27,7 +33,7 @@ static void EXP_evalTypeBuildStackResize(EXP_EvalTypeBuildStack* stack, u32 n)
     for (u32 i = n; i < stack->length; ++i)
     {
         EXP_EvalTypeBuildLevel* l = stack->data + i;
-        vec_free(&l->elms);
+        EXP_evalTypeBuildLevel(l);
     }
     vec_resize(stack, n);
 }
@@ -37,7 +43,7 @@ static void EXP_evalTypeBuildStackFree(EXP_EvalTypeBuildStack* stack)
     for (u32 i = 0; i < stack->length; ++i)
     {
         EXP_EvalTypeBuildLevel* l = stack->data + i;
-        vec_free(&l->elms);
+        EXP_evalTypeBuildLevel(l);
     }
     vec_free(stack);
 }
@@ -63,6 +69,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
+    assert(0 == ctx->buildStack.length);
     vec_free(&ctx->buildStack);
     vec_free(&ctx->descBuffer);
     upoolFree(ctx->dataPool);
