@@ -284,7 +284,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_Reduce,
             2, 1,
             "num num -> [num]",
-            //"{A} [A] (A A -> A) -> [A]",
+            //"{A*} [A*] (A* A* -> A*) -> [A*]",
         },
 
         {

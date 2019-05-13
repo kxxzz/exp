@@ -8,7 +8,7 @@ typedef struct EXP_EvalTypeBuildLevel
 {
     u32 src;
     u32 src1;
-    bool hasRet;
+    u32 p;
     vec_u32 elms;
 } EXP_EvalTypeBuildLevel;
 
@@ -306,15 +306,11 @@ next:
     case EXP_EvalTypeType_List:
     {
         const EXP_EvalTypeDescList* list = &desc->list;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             vec_push(&top->elms, r);
         }
-        else
-        {
-            top->hasRet = true;
-        }
-        u32 p = top->elms.length;
+        u32 p = top->p++;
         if (p < list->count)
         {
             EXP_EvalTypeBuildLevel l = { list->elms[p] };
@@ -347,15 +343,11 @@ next:
     case EXP_EvalTypeType_Fun:
     {
         const EXP_EvalTypeDescFun* fun = &desc->fun;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             vec_push(&top->elms, r);
         }
-        else
-        {
-            top->hasRet = true;
-        }
-        u32 p = top->elms.length;
+        u32 p = top->p++;
         if (p < 2)
         {
             EXP_EvalTypeBuildLevel l = { 0 };
@@ -372,6 +364,7 @@ next:
         else
         {
             assert(2 == p);
+            assert(2 == top->elms.length);
             r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
             EXP_evalTypeBuildStackPop(buildStack);
         }
@@ -380,14 +373,14 @@ next:
     case EXP_EvalTypeType_Array:
     {
         const EXP_EvalTypeDescArray* ary = &desc->ary;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         else
         {
-            top->hasRet = true;
+            top->p++;
             EXP_EvalTypeBuildLevel l = { ary->elm };
             vec_push(buildStack, l);
         }
@@ -457,20 +450,19 @@ next:
         {
             const EXP_EvalTypeDescList* listA = &descA->list;
             const EXP_EvalTypeDescList* listB = &descB->list;
-            if (top->hasRet)
+            if (top->p > 0)
             {
                 vec_push(&top->elms, r);
                 assert(listA->count == listB->count);
             }
             else
             {
-                top->hasRet = true;
                 if (listA->count != listB->count)
                 {
                     goto failed;
                 }
             }
-            u32 p = top->elms.length;
+            u32 p = top->p++;
             if (p < listA->count)
             {
                 EXP_EvalTypeBuildLevel l = { listA->elms[p], listB->elms[p] };
@@ -516,15 +508,11 @@ next:
         {
             const EXP_EvalTypeDescFun* funA = &descA->fun;
             const EXP_EvalTypeDescFun* funB = &descB->fun;
-            if (top->hasRet)
+            if (top->p > 0)
             {
                 vec_push(&top->elms, r);
             }
-            else
-            {
-                top->hasRet = true;
-            }
-            u32 p = top->elms.length;
+            u32 p = top->p++;
             if (p < 2)
             {
                 EXP_EvalTypeBuildLevel l = { 0 };
@@ -543,6 +531,7 @@ next:
             else
             {
                 assert(2 == p);
+                assert(2 == top->elms.length);
                 r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
@@ -552,14 +541,14 @@ next:
         {
             const EXP_EvalTypeDescArray* aryA = &descA->ary;
             const EXP_EvalTypeDescArray* aryB = &descB->ary;
-            if (top->hasRet)
+            if (top->p > 0)
             {
                 r = EXP_evalTypeArray(ctx, r);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             else
             {
-                top->hasRet = true;
+                top->p++;
                 EXP_EvalTypeBuildLevel l = { aryA->elm, aryB->elm };
                 vec_push(buildStack, l);
             }
@@ -658,15 +647,11 @@ next:
     case EXP_EvalTypeType_List:
     {
         const EXP_EvalTypeDescList* list = &desc->list;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             vec_push(&top->elms, r);
         }
-        else
-        {
-            top->hasRet = true;
-        }
-        u32 p = top->elms.length;
+        u32 p = top->p++;
         if (p < list->count)
         {
             EXP_EvalTypeBuildLevel l = { list->elms[p] };
@@ -699,15 +684,11 @@ next:
     case EXP_EvalTypeType_Fun:
     {
         const EXP_EvalTypeDescFun* fun = &desc->fun;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             vec_push(&top->elms, r);
         }
-        else
-        {
-            top->hasRet = true;
-        }
-        u32 p = top->elms.length;
+        u32 p = top->p++;
         if (p < 2)
         {
             EXP_EvalTypeBuildLevel l = { 0 };
@@ -724,6 +705,7 @@ next:
         else
         {
             assert(2 == p);
+            assert(2 == top->elms.length);
             r = EXP_evalTypeFun(ctx, top->elms.data[0], top->elms.data[1]);
             EXP_evalTypeBuildStackPop(buildStack);
         }
@@ -732,14 +714,14 @@ next:
     case EXP_EvalTypeType_Array:
     {
         const EXP_EvalTypeDescArray* ary = &desc->ary;
-        if (top->hasRet)
+        if (top->p > 0)
         {
             r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         else
         {
-            top->hasRet = true;
+            top->p++;
             EXP_EvalTypeBuildLevel l = { ary->elm };
             vec_push(buildStack, l);
         }
