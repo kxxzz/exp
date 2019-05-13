@@ -289,7 +289,7 @@ next:
             }
             else
             {
-                ins = EXP_evalTypeList(typeContext, numIns, top->elms.data);
+                ins = EXP_evalTypeList(typeContext, top->elms.data, numIns);
             }
             if (top->fun.outsIsListVar)
             {
@@ -297,7 +297,7 @@ next:
             }
             else
             {
-                outs = EXP_evalTypeList(typeContext, numOuts, top->elms.data + numIns);
+                outs = EXP_evalTypeList(typeContext, top->elms.data + numIns, numOuts);
             }
             r = EXP_evalTypeFun(typeContext, ins, outs);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
@@ -330,7 +330,7 @@ next:
         }
         else
         {
-            u32 elm = EXP_evalTypeList(typeContext, len, top->elms.data);
+            u32 elm = EXP_evalTypeList(typeContext, top->elms.data, len);
             r = EXP_evalTypeArray(typeContext, elm);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }

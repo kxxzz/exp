@@ -264,25 +264,21 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
         {
             "&",
             EXP_evalAfunCall_Array,
-            1, 1,
             "num -> [num]",
         },
         {
             "map",
             EXP_evalAfunCall_Map,
-            2, 1,
             "{A* B*} [A*] (A* -> B*) -> [B*]",
         },
         {
             "filter",
             EXP_evalAfunCall_Filter,
-            2, 1,
             "{A*} [A*] (A* -> bool) -> [A*]",
         },
         {
             "reduce",
             EXP_evalAfunCall_Reduce,
-            2, 1,
             "num num -> [num]",
             //"{A*} [A*] (A* A* -> A*) -> [A*]",
         },
@@ -290,71 +286,60 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
         {
             "not",
             EXP_evalAfunCall_Not,
-            1, 1,
             "bool -> bool",
         },
 
         {
             "+",
             EXP_evalAfunCall_NumAdd,
-            2, 1,
             "num num -> num",
         },
         {
             "-",
             EXP_evalAfunCall_NumSub,
-            2, 1,
             "num num -> num",
         },
         {
             "*",
             EXP_evalAfunCall_NumMul,
-            2, 1,
             "num num -> num",
         },
         {
             "/",
             EXP_evalAfunCall_NumDiv,
-            2, 1,
             "num num -> num",
         },
 
         {
             "neg",
             EXP_evalAfunCall_NumNeg,
-            1, 1,
             "num -> num",
         },
 
         {
             "eq",
             EXP_evalAfunCall_NumEQ,
-            2, 1,
             "num num -> bool",
         },
 
         {
             "gt",
             EXP_evalAfunCall_NumGT,
-            2, 1,
             "num num -> bool",
         },
         {
             "lt",
             EXP_evalAfunCall_NumLT,
-            2, 1,
             "num num -> bool",
         },
         {
             "ge",
             EXP_evalAfunCall_NumGE,
-            2, 1,
             "num num -> bool",
         },
         {
             "le",
             EXP_evalAfunCall_NumLE,
-            2, 1,
             "num num -> bool",
         },
     };

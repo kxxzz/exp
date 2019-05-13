@@ -37,6 +37,7 @@ typedef struct EXP_EvalTypeDescList
 {
     u32 count;
     u32 elms[1];
+    bool hasListElm;
 } EXP_EvalTypeDescList;
 
 typedef struct EXP_EvalTypeDescFun
@@ -74,7 +75,7 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx);
 
 
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype);
-u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms);
+u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, const u32* elms, u32 count);
 u32 EXP_evalTypeVar(EXP_EvalTypeContext* ctx, u32 varId);
 u32 EXP_evalTypeListVar(EXP_EvalTypeContext* ctx, u32 varId);
 u32 EXP_evalTypeFun(EXP_EvalTypeContext* ctx, u32 ins, u32 outs);

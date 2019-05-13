@@ -78,8 +78,6 @@ typedef struct EXP_EvalAfunInfo
 {
     const char* name;
     EXP_EvalAfunCall call;
-    u32 numIns;
-    u32 numOuts;
     const char* typeDecl;
 } EXP_EvalAfunInfo;
 

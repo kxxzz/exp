@@ -99,6 +99,15 @@ static u32 EXP_evalTypeId(EXP_EvalTypeContext* ctx)
 
 
 
+const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId)
+{
+    return upoolElmData(ctx->dataPool, typeId);
+}
+
+
+
+
+
 
 u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
 {
@@ -108,13 +117,22 @@ u32 EXP_evalTypeAtom(EXP_EvalTypeContext* ctx, u32 atype)
     return EXP_evalTypeId(ctx);
 }
 
-u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, u32 count, const u32* elms)
+u32 EXP_evalTypeList(EXP_EvalTypeContext* ctx, const u32* elms, u32 count)
 {
     u32 size = offsetof(EXP_EvalTypeDesc, list.elms) + sizeof(elms[0])*count;
     EXP_EvalTypeDesc* desc = EXP_evalTypeDescBufferReset(ctx, size);
     desc->type = EXP_EvalTypeType_List;
     desc->list.count = count;
     memcpy(desc->list.elms, elms, sizeof(elms[0])*count);
+    for (u32 i = 0; i < count; ++i)
+    {
+        const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(ctx, elms[i]);
+        if ((EXP_EvalTypeType_List == elmDesc->type) || (EXP_EvalTypeType_ListVar == elmDesc->type))
+        {
+            desc->list.hasListElm = true;
+            break;
+        }
+    }
     return EXP_evalTypeId(ctx);
 }
 
@@ -150,24 +168,6 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm)
     desc->ary.elm = elm;
     return EXP_evalTypeId(ctx);
 }
-
-
-
-
-
-
-
-
-
-
-const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId)
-{
-    return upoolElmData(ctx->dataPool, typeId);
-}
-
-
-
-
 
 
 
@@ -335,7 +335,7 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
+            r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -496,7 +496,7 @@ next:
             else
             {
                 assert(p == listA->count);
-                r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
+                r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             goto next;
@@ -696,7 +696,7 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, top->elms.length, top->elms.data);
+            r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;

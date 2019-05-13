@@ -449,17 +449,17 @@ static bool EXP_evalAtTail(EXP_EvalContext* ctx)
 
 static void EXP_evalAfunCall
 (
-    EXP_EvalContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode
+    EXP_EvalContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode, EXP_EvalNode* srcEnode
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
-    u32 argsOffset = dataStack->length - afunInfo->numIns;
+    u32 argsOffset = dataStack->length - srcEnode->numIns;
     afunInfo->call(space, dataStack->data + argsOffset, ctx->ncallOutBuf);
     vec_resize(dataStack, argsOffset);
-    for (u32 i = 0; i < afunInfo->numOuts; ++i)
+    for (u32 i = 0; i < srcEnode->numOuts; ++i)
     {
         EXP_EvalValue v = ctx->ncallOutBuf[i];
         vec_push(dataStack, v);
@@ -514,8 +514,8 @@ next:
         case EXP_EvalBlockCallbackType_Ncall:
         {
             EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + cb->afun;
-            u32 numIns = afunInfo->numIns;
-            EXP_evalAfunCall(ctx, afunInfo, curCall->srcNode);
+            EXP_EvalNode* srcEnode = nodeTable->data + curCall->srcNode.id;
+            EXP_evalAfunCall(ctx, afunInfo, curCall->srcNode, srcEnode);
             break;
         }
         case EXP_EvalBlockCallbackType_CallWord:
@@ -638,10 +638,10 @@ next:
     case EXP_EvalNodeType_Afun:
     {
         assert(EXP_isTok(space, node));
+        assert(dataStack->length >= enode->numIns);
         EXP_EvalAfunInfo* afunInfo = ctx->afunTable.data + enode->afun;
         assert(afunInfo->call);
-        assert(dataStack->length >= afunInfo->numIns);
-        EXP_evalAfunCall(ctx, afunInfo, node);
+        EXP_evalAfunCall(ctx, afunInfo, node, enode);
         goto next;
     }
     case EXP_EvalNodeType_Var:
