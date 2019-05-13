@@ -712,7 +712,14 @@ next:
         else
         {
             u32 varId = EXP_evalTypeNewVar(varSpace);
-            r = EXP_evalTypeVar(ctx, varId);
+            if (EXP_EvalTypeType_Var == desc->type)
+            {
+                r = EXP_evalTypeVar(ctx, varId);
+            }
+            else
+            {
+                r = EXP_evalTypeListVar(ctx, varId);
+            }
             EXP_evalTypeVarBind(varRenMap, desc->varId, r);
         }
         EXP_evalTypeBuildStackPop(buildStack);
