@@ -306,9 +306,17 @@ next:
     case EXP_EvalTypeType_List:
     {
         const EXP_EvalTypeDescList* list = &desc->list;
-        if (top->p > 0)
+        if (top->p)
         {
-            vec_push(&top->elms, r);
+            const EXP_EvalTypeDesc* descR = EXP_evalTypeDescById(ctx, r);
+            if (EXP_EvalTypeType_List == descR->type)
+            {
+                vec_pusharr(&top->elms, descR->list.elms, descR->list.count);
+            }
+            else
+            {
+                vec_push(&top->elms, r);
+            }
         }
         u32 p = top->p++;
         if (p < list->count)
@@ -343,7 +351,7 @@ next:
     case EXP_EvalTypeType_Fun:
     {
         const EXP_EvalTypeDescFun* fun = &desc->fun;
-        if (top->p > 0)
+        if (top->p)
         {
             vec_push(&top->elms, r);
         }
@@ -373,7 +381,7 @@ next:
     case EXP_EvalTypeType_Array:
     {
         const EXP_EvalTypeDescArray* ary = &desc->ary;
-        if (top->p > 0)
+        if (top->p)
         {
             r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
@@ -450,9 +458,17 @@ next:
         {
             const EXP_EvalTypeDescList* listA = &descA->list;
             const EXP_EvalTypeDescList* listB = &descB->list;
-            if (top->p > 0)
+            if (top->p)
             {
-                vec_push(&top->elms, r);
+                const EXP_EvalTypeDesc* descR = EXP_evalTypeDescById(ctx, r);
+                if (EXP_EvalTypeType_List == descR->type)
+                {
+                    vec_pusharr(&top->elms, descR->list.elms, descR->list.count);
+                }
+                else
+                {
+                    vec_push(&top->elms, r);
+                }
                 assert(listA->count == listB->count);
             }
             else
@@ -508,7 +524,7 @@ next:
         {
             const EXP_EvalTypeDescFun* funA = &descA->fun;
             const EXP_EvalTypeDescFun* funB = &descB->fun;
-            if (top->p > 0)
+            if (top->p)
             {
                 vec_push(&top->elms, r);
             }
@@ -541,7 +557,7 @@ next:
         {
             const EXP_EvalTypeDescArray* aryA = &descA->ary;
             const EXP_EvalTypeDescArray* aryB = &descB->ary;
-            if (top->p > 0)
+            if (top->p)
             {
                 r = EXP_evalTypeArray(ctx, r);
                 EXP_evalTypeBuildStackPop(buildStack);
@@ -647,9 +663,17 @@ next:
     case EXP_EvalTypeType_List:
     {
         const EXP_EvalTypeDescList* list = &desc->list;
-        if (top->p > 0)
+        if (top->p)
         {
-            vec_push(&top->elms, r);
+            const EXP_EvalTypeDesc* descR = EXP_evalTypeDescById(ctx, r);
+            if (EXP_EvalTypeType_List == descR->type)
+            {
+                vec_pusharr(&top->elms, descR->list.elms, descR->list.count);
+            }
+            else
+            {
+                vec_push(&top->elms, r);
+            }
         }
         u32 p = top->p++;
         if (p < list->count)
@@ -684,7 +708,7 @@ next:
     case EXP_EvalTypeType_Fun:
     {
         const EXP_EvalTypeDescFun* fun = &desc->fun;
-        if (top->p > 0)
+        if (top->p)
         {
             vec_push(&top->elms, r);
         }
@@ -714,7 +738,7 @@ next:
     case EXP_EvalTypeType_Array:
     {
         const EXP_EvalTypeDescArray* ary = &desc->ary;
-        if (top->p > 0)
+        if (top->p)
         {
             r = EXP_evalTypeArray(ctx, r);
             EXP_evalTypeBuildStackPop(buildStack);
