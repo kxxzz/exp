@@ -785,7 +785,7 @@ static void EXP_evalCompileCallInOut
         const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
         if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
         {
-            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalTypeUnsolved);
             return;
         }
         u32 outsLen = outsDesc->list.count;
