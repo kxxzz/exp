@@ -47,7 +47,7 @@ gc
 
 //drop8
 
-(# dup => x : x x )
+(# dup => x : x x)
 
 [fib] => fib1 :
 

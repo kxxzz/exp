@@ -411,7 +411,6 @@ static EXP_EvalKey EXP_evalCompileGetKey(EXP_EvalCompileContext* ctx, const char
 
 
 
-
 static void EXP_evalCompileWordGetBody(EXP_EvalCompileContext* ctx, EXP_Node node, const EXP_Node** pSeq, u32* pLen)
 {
     EXP_Space* space = ctx->space;
@@ -753,7 +752,11 @@ static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsO
 
 
 
-static void EXP_evalCompileCallInOut
+
+
+
+
+static bool EXP_evalCompileFunCall
 (
     EXP_EvalCompileContext* ctx, u32 funType, u32 numIns, u32* pNumOuts, EXP_Node srcNode
 )
@@ -761,32 +764,45 @@ static void EXP_evalCompileCallInOut
     vec_u32* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
+    assert(EXP_EvalTypeType_Fun == desc->type);
+    const EXP_EvalTypeDescFun* fun = &desc->fun;
+
+    const EXP_EvalTypeDesc* insDesc = EXP_evalTypeDescById(typeContext, fun->ins);
+    const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, fun->outs);
+
+    if ((insDesc->type != EXP_EvalTypeType_List) && (insDesc->type != EXP_EvalTypeType_ListVar))
+    {
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        return false;
+    }
+    if ((outsDesc->type != EXP_EvalTypeType_List) && (outsDesc->type != EXP_EvalTypeType_ListVar))
+    {
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        return false;
+    }
+
     assert(dataStack->length >= numIns);
     u32 argsOffset = dataStack->length - numIns;
     EXP_evalCompileFixCurBlockIns(ctx, argsOffset);
 
     EXP_evalCompilePatContextReset(ctx);
 
-    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
-    assert(EXP_EvalTypeType_Fun == desc->type);
-    const EXP_EvalTypeDescFun* fun = &desc->fun;
-
     u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
     u32 u;
     if (!EXP_evalCompileTypeUnifyPat(ctx, args, fun->ins, &u))
     {
         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-        return;
+        return false;
     }
 
     vec_resize(dataStack, argsOffset);
 
     u32 outs = EXP_evalCompileTypeFromPat(ctx, fun->outs);
-    const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
     if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
     {
         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalTypeUnsolved);
-        return;
+        return false;
     }
     u32 outsLen = outsDesc->list.count;
     for (u32 i = 0; i < outsLen; ++i)
@@ -795,31 +811,6 @@ static void EXP_evalCompileCallInOut
         vec_push(dataStack, x);
     }
     *pNumOuts = outsLen;
-}
-
-
-
-static bool EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, u32 numIns, u32* pNumOuts, EXP_Node srcNode)
-{
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-
-    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
-    assert(EXP_EvalTypeType_Fun == desc->type);
-
-    const EXP_EvalTypeDesc* funIns = EXP_evalTypeDescById(typeContext, desc->fun.ins);
-    const EXP_EvalTypeDesc* funOuts = EXP_evalTypeDescById(typeContext, desc->fun.outs);
-
-    if ((funIns->type != EXP_EvalTypeType_List) && (funIns->type != EXP_EvalTypeType_ListVar))
-    {
-        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-        return false;
-    }
-    if ((funOuts->type != EXP_EvalTypeType_List) && (funOuts->type != EXP_EvalTypeType_ListVar))
-    {
-        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-        return false;
-    }
-    EXP_evalCompileCallInOut(ctx, funType, numIns, pNumOuts, srcNode);
     return true;
 }
 
@@ -832,7 +823,7 @@ static void EXP_evalCompileBlockCall
 {
     assert(blk->haveInOut);
     u32 numOuts;
-    EXP_evalCompileCallInOut(ctx, blk->funType, blk->numIns, &numOuts, srcNode);
+    EXP_evalCompileFunCall(ctx, blk->funType, blk->numIns, &numOuts, srcNode);
     assert(numOuts == blk->numOuts);
 }
 
