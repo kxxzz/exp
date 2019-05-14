@@ -224,21 +224,17 @@ next:
                     {
                         if (-1 == arrowPos)
                         {
-                            if (top->fun.insIsListVar)
+                            if (!top->fun.insIsListVar)
                             {
-                                EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
-                                return -1;
+                                top->fun.insIsListVar = true;
                             }
-                            top->fun.insIsListVar = true;
                         }
                         else
                         {
-                            if (top->fun.outsIsListVar)
+                            if (!top->fun.outsIsListVar)
                             {
-                                EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
-                                return -1;
+                                top->fun.outsIsListVar = true;
                             }
-                            top->fun.outsIsListVar = true;
                         }
                     }
                 }
@@ -257,14 +253,6 @@ next:
                 return -1;
             }
             assert(elmsOffset + top->fun.numIns == arrowPos);
-            if (top->fun.insIsListVar)
-            {
-                assert(1 == top->fun.numIns);
-            }
-            if (top->fun.outsIsListVar)
-            {
-                assert(1 == top->fun.numOuts);
-            }
         }
 
         u32 p = elmsOffset + top->elms.length;
