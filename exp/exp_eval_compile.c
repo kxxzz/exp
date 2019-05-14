@@ -45,6 +45,7 @@ typedef struct EXP_EvalCompileBlock
     u32 numIns;
     u32 numOuts;
     vec_u32 inout;
+    u32 funType;
 } EXP_EvalCompileBlock;
 
 typedef vec_t(EXP_EvalCompileBlock) EXP_EvalCompileBlockTable;
@@ -482,6 +483,28 @@ static void EXP_evalCompileLoadDef(EXP_EvalCompileContext* ctx, EXP_Node node, E
 
 
 
+
+
+static u32 EXP_evalCompileBlockType(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
+{
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    u32 ins = EXP_evalTypeList(typeContext, blk->inout.data, blk->numIns);
+    u32 outs = EXP_evalTypeList(typeContext, blk->inout.data + blk->numIns, blk->numOuts);
+    u32 t = EXP_evalTypeFun(typeContext, ins, outs);
+    return t;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 static void EXP_evalCompileSetCallersIncomplete(EXP_EvalCompileContext* ctx)
 {
     for (u32 i = 0; i < ctx->callStack.length; ++i)
@@ -613,6 +636,8 @@ static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
             ctx->dataStack.data[j] = u;
         }
     }
+
+    curBlock->funType = EXP_evalCompileBlockType(ctx, curBlock, curCall->srcNode);
 }
 
 
@@ -730,9 +755,7 @@ static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsO
 
 static void EXP_evalCompileCallInOut
 (
-    EXP_EvalCompileContext* ctx,
-    u32 funType, const u32* ins, u32 insLen, const u32* outs, u32 outsLen, u32 numIns, u32* pNumOuts,
-    EXP_Node srcNode
+    EXP_EvalCompileContext* ctx, u32 funType, u32 numIns, u32* pNumOuts, EXP_Node srcNode
 )
 {
     vec_u32* dataStack = &ctx->dataStack;
@@ -744,69 +767,34 @@ static void EXP_evalCompileCallInOut
 
     EXP_evalCompilePatContextReset(ctx);
 
-    if (funType != -1)
-    {
-        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
-        assert(EXP_EvalTypeType_Fun == desc->type);
-        const EXP_EvalTypeDescFun* fun = &desc->fun;
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
+    assert(EXP_EvalTypeType_Fun == desc->type);
+    const EXP_EvalTypeDescFun* fun = &desc->fun;
 
-        u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
-        u32 u;
-        if (!EXP_evalCompileTypeUnifyPat(ctx, args, fun->ins, &u))
-        {
-            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-            return;
-        }
-    }
-    else
+    u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
+    u32 u;
+    if (!EXP_evalCompileTypeUnifyPat(ctx, args, fun->ins, &u))
     {
-        u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
-        for (u32 i = 0; i < insLen; ++i)
-        {
-            u32 a = dataStack->data[argsOffset + i];
-            u32 pat = ins[i];
-            u32 u;
-            if (!EXP_evalCompileTypeUnifyPat(ctx, a, pat, &u))
-            {
-                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
-                return;
-            }
-        }
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+        return;
     }
+
     vec_resize(dataStack, argsOffset);
 
-    if (funType != -1)
+    u32 outs = EXP_evalCompileTypeFromPat(ctx, fun->outs);
+    const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
+    if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
     {
-        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
-        assert(EXP_EvalTypeType_Fun == desc->type);
-        const EXP_EvalTypeDescFun* fun = &desc->fun;
-
-        u32 outs = EXP_evalCompileTypeFromPat(ctx, fun->outs);
-        const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
-        if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
-        {
-            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalTypeUnsolved);
-            return;
-        }
-        u32 outsLen = outsDesc->list.count;
-        for (u32 i = 0; i < outsLen; ++i)
-        {
-            u32 x = outsDesc->list.elms[i];
-            vec_push(dataStack, x);
-        }
-        *pNumOuts = outsLen;
-
+        EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalTypeUnsolved);
+        return;
     }
-    else
+    u32 outsLen = outsDesc->list.count;
+    for (u32 i = 0; i < outsLen; ++i)
     {
-        for (u32 i = 0; i < outsLen; ++i)
-        {
-            u32 x = outs[i];
-            x = EXP_evalCompileTypeFromPat(ctx, x);
-            vec_push(dataStack, x);
-        }
-        *pNumOuts = outsLen;
+        u32 x = outsDesc->list.elms[i];
+        vec_push(dataStack, x);
     }
+    *pNumOuts = outsLen;
 }
 
 
@@ -831,36 +819,7 @@ static bool EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, u32
         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
         return false;
     }
-
-    const u32* ins;
-    const u32* outs;
-    u32 insLen;
-    u32 outsLen;
-
-    u32 ins1 = desc->fun.ins;
-    u32 outs1 = desc->fun.outs;
-
-    if (EXP_EvalTypeType_List == funIns->type)
-    {
-        ins = funIns->list.elms;
-        insLen = funIns->list.count;
-    }
-    if (EXP_EvalTypeType_List == funOuts->type)
-    {
-        outs = funOuts->list.elms;
-        outsLen = funOuts->list.count;
-    }
-    if (EXP_EvalTypeType_ListVar == funIns->type)
-    {
-        ins = &ins1;
-        insLen = 1;
-    }
-    if (EXP_EvalTypeType_ListVar == funOuts->type)
-    {
-        outs = &outs1;
-        outsLen = 1;
-    }
-    EXP_evalCompileCallInOut(ctx, funType, ins, insLen, outs, outsLen, numIns, pNumOuts, srcNode);
+    EXP_evalCompileCallInOut(ctx, funType, numIns, pNumOuts, srcNode);
     return true;
 }
 
@@ -868,15 +827,12 @@ static bool EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, u32
 
 static void EXP_evalCompileBlockCall
 (
-    EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk,
-    EXP_Node srcNode
+    EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode
 )
 {
     assert(blk->haveInOut);
-    const u32* blkIns = blk->inout.data;
-    const u32* blkOuts = blk->inout.data + blk->numIns;
     u32 numOuts;
-    EXP_evalCompileCallInOut(ctx, -1, blkIns, blk->numIns, blkOuts, blk->numOuts, blk->numIns, &numOuts, srcNode);
+    EXP_evalCompileCallInOut(ctx, blk->funType, blk->numIns, &numOuts, srcNode);
     assert(numOuts == blk->numOuts);
 }
 
@@ -887,14 +843,7 @@ static void EXP_evalCompileBlockCall
 
 
 
-static u32 EXP_evalCompileBlockType(EXP_EvalCompileContext* ctx, const EXP_EvalCompileBlock* blk, EXP_Node srcNode)
-{
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    u32 ins = EXP_evalTypeList(typeContext, blk->inout.data, blk->numIns);
-    u32 outs = EXP_evalTypeList(typeContext, blk->inout.data + blk->numIns, blk->numOuts);
-    u32 t = EXP_evalTypeFun(typeContext, ins, outs);
-    return t;
-}
+
 
 
 
@@ -1412,7 +1361,7 @@ static void EXP_evalCompileBlockMarch
         enode->type = EXP_EvalNodeType_Block;
         enode->blkSrc = node;
         assert(blk->completed);
-        u32 t = EXP_evalCompileBlockType(ctx, blk, node);
+        u32 t = blk->funType;
         vec_push(dataStack, t);
         return;
     }
