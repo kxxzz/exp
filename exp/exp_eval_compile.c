@@ -748,10 +748,11 @@ static void EXP_evalCompileCallInOut
     {
         const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
         assert(EXP_EvalTypeType_Fun == desc->type);
+        const EXP_EvalTypeDescFun* fun = &desc->fun;
 
         u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
         u32 u;
-        if (!EXP_evalCompileTypeUnifyPat(ctx, args, desc->fun.ins, &u))
+        if (!EXP_evalCompileTypeUnifyPat(ctx, args, fun->ins, &u))
         {
             EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
@@ -774,13 +775,38 @@ static void EXP_evalCompileCallInOut
     }
     vec_resize(dataStack, argsOffset);
 
-    for (u32 i = 0; i < outsLen; ++i)
+    if (funType != -1)
     {
-        u32 x = outs[i];
-        x = EXP_evalCompileTypeFromPat(ctx, x);
-        vec_push(dataStack, x);
+        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
+        assert(EXP_EvalTypeType_Fun == desc->type);
+        const EXP_EvalTypeDescFun* fun = &desc->fun;
+
+        u32 outs = EXP_evalCompileTypeFromPat(ctx, fun->outs);
+        const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
+        if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
+        {
+            EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+            return;
+        }
+        u32 outsLen = outsDesc->list.count;
+        for (u32 i = 0; i < outsLen; ++i)
+        {
+            u32 x = outsDesc->list.elms[i];
+            vec_push(dataStack, x);
+        }
+        *pNumOuts = outsLen;
+
     }
-    *pNumOuts = outsLen;
+    else
+    {
+        for (u32 i = 0; i < outsLen; ++i)
+        {
+            u32 x = outs[i];
+            x = EXP_evalCompileTypeFromPat(ctx, x);
+            vec_push(dataStack, x);
+        }
+        *pNumOuts = outsLen;
+    }
 }
 
 
