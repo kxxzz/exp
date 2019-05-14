@@ -731,11 +731,12 @@ static void EXP_evalCompileFixCurBlockIns(EXP_EvalCompileContext* ctx, u32 argsO
 static void EXP_evalCompileCallInOut
 (
     EXP_EvalCompileContext* ctx,
-    const u32* ins, u32 insLen, const u32* outs, u32 outsLen, u32 numIns, u32* pNumOuts,
+    u32 funType, const u32* ins, u32 insLen, const u32* outs, u32 outsLen, u32 numIns, u32* pNumOuts,
     EXP_Node srcNode
 )
 {
     vec_u32* dataStack = &ctx->dataStack;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
     assert(dataStack->length >= numIns);
     u32 argsOffset = dataStack->length - numIns;
@@ -743,15 +744,32 @@ static void EXP_evalCompileCallInOut
 
     EXP_evalCompilePatContextReset(ctx);
 
-    for (u32 i = 0; i < insLen; ++i)
+    if (funType != -1)
     {
-        u32 a = dataStack->data[argsOffset + i];
-        u32 pat = ins[i];
+        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
+        assert(EXP_EvalTypeType_Fun == desc->type);
+
+        u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
         u32 u;
-        if (!EXP_evalCompileTypeUnifyPat(ctx, a, pat, &u))
+        if (!EXP_evalCompileTypeUnifyPat(ctx, args, desc->fun.ins, &u))
         {
             EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
             return;
+        }
+    }
+    else
+    {
+        u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
+        for (u32 i = 0; i < insLen; ++i)
+        {
+            u32 a = dataStack->data[argsOffset + i];
+            u32 pat = ins[i];
+            u32 u;
+            if (!EXP_evalCompileTypeUnifyPat(ctx, a, pat, &u))
+            {
+                EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
+                return;
+            }
         }
     }
     vec_resize(dataStack, argsOffset);
@@ -816,7 +834,7 @@ static bool EXP_evalCompileFunCall(EXP_EvalCompileContext* ctx, u32 funType, u32
         outs = &outs1;
         outsLen = 1;
     }
-    EXP_evalCompileCallInOut(ctx, ins, insLen, outs, outsLen, numIns, pNumOuts, srcNode);
+    EXP_evalCompileCallInOut(ctx, funType, ins, insLen, outs, outsLen, numIns, pNumOuts, srcNode);
     return true;
 }
 
@@ -832,7 +850,7 @@ static void EXP_evalCompileBlockCall
     const u32* blkIns = blk->inout.data;
     const u32* blkOuts = blk->inout.data + blk->numIns;
     u32 numOuts;
-    EXP_evalCompileCallInOut(ctx, blkIns, blk->numIns, blkOuts, blk->numOuts, blk->numIns, &numOuts, srcNode);
+    EXP_evalCompileCallInOut(ctx, -1, blkIns, blk->numIns, blkOuts, blk->numOuts, blk->numIns, &numOuts, srcNode);
     assert(numOuts == blk->numOuts);
 }
 

@@ -290,13 +290,15 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    const u32 stackBottom = buildStack->length;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { x };
     vec_push(buildStack, root);
     EXP_EvalTypeBuildLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
 next:
-    if (!buildStack->length)
+    assert(buildStack->length >= stackBottom);
+    if (stackBottom == buildStack->length)
     {
         assert(r != -1);
         return r;
@@ -430,6 +432,7 @@ next:
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    const u32 stackBottom = buildStack->length;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { a, b };
     vec_push(buildStack, root);
@@ -437,7 +440,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     const EXP_EvalTypeDesc* descA = NULL;
     const EXP_EvalTypeDesc* descB = NULL;
 next:
-    if (!buildStack->length)
+    if (stackBottom == buildStack->length)
     {
         assert(r != -1);
         *pU = EXP_evalTypeReduct(ctx, varSpace, r);
@@ -650,13 +653,14 @@ u32 EXP_evalTypeFromPat
 )
 {
     EXP_EvalTypeBuildStack* buildStack = &ctx->buildStack;
+    const u32 stackBottom = buildStack->length;
     u32 r = -1;
     EXP_EvalTypeBuildLevel root = { pat };
     vec_push(buildStack, root);
     EXP_EvalTypeBuildLevel* top = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
 next:
-    if (!buildStack->length)
+    if (stackBottom == buildStack->length)
     {
         assert(r != -1);
         r = EXP_evalTypeReduct(ctx, varSpace, r);
