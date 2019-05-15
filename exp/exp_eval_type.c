@@ -337,7 +337,20 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+            const EXP_EvalTypeDesc* elm0desc;
+            if (1 == list->count)
+            {
+                elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+            }
+            if ((1 == list->count) &&
+                ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+            {
+                r = top->elms.data[0];
+            }
+            else
+            {
+                r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+            }
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
@@ -481,10 +494,20 @@ next:
                 {
                     vec_push(&top->elms, r);
                 }
+                assert(!listA->hasListElm);
+                assert(!listB->hasListElm);
                 assert(listA->count == listB->count);
             }
             else
             {
+                if (listA->hasListElm)
+                {
+                    goto failed;
+                }
+                if (listB->hasListElm)
+                {
+                    goto failed;
+                }
                 if (listA->count != listB->count)
                 {
                     goto failed;
@@ -499,7 +522,20 @@ next:
             else
             {
                 assert(p == listA->count);
-                r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+                const EXP_EvalTypeDesc* elm0desc;
+                if (1 == listA->count)
+                {
+                    elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+                }
+                if ((1 == listA->count) &&
+                    ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+                {
+                    r = top->elms.data[0];
+                }
+                else
+                {
+                    r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+                }
                 EXP_evalTypeBuildStackPop(buildStack);
             }
             goto next;
@@ -700,7 +736,20 @@ next:
         else
         {
             assert(p == list->count);
-            r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+            const EXP_EvalTypeDesc* elm0desc;
+            if (1 == list->count)
+            {
+                elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+            }
+            if ((1 == list->count) &&
+                ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+            {
+                r = top->elms.data[0];
+            }
+            else
+            {
+                r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
+            }
             EXP_evalTypeBuildStackPop(buildStack);
         }
         break;
