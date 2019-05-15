@@ -337,7 +337,7 @@ next:
         else
         {
             assert(p == list->count);
-            const EXP_EvalTypeDesc* elm0desc;
+            const EXP_EvalTypeDesc* elm0desc = NULL;
             if (1 == list->count)
             {
                 elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
@@ -522,7 +522,7 @@ next:
             else
             {
                 assert(p == listA->count);
-                const EXP_EvalTypeDesc* elm0desc;
+                const EXP_EvalTypeDesc* elm0desc = NULL;
                 if (1 == listA->count)
                 {
                     elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
@@ -736,7 +736,7 @@ next:
         else
         {
             assert(p == list->count);
-            const EXP_EvalTypeDesc* elm0desc;
+            const EXP_EvalTypeDesc* elm0desc = NULL;
             if (1 == list->count)
             {
                 elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
@@ -851,7 +851,6 @@ bool EXP_evalTypeUnifyPat
     u32* pU
 )
 {
-    a = EXP_evalTypeReduct(ctx, varSpace, a);
     u32 b = EXP_evalTypeFromPat(ctx, varSpace, varRenMap, pat);
     return EXP_evalTypeUnify(ctx, varSpace, a, b, pU);
 }

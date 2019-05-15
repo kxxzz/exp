@@ -318,17 +318,7 @@ next:
         }
         else
         {
-            u32 elm;
-            const EXP_EvalTypeDesc* elm0desc = EXP_evalTypeDescById(typeContext, top->elms.data[0]);
-            if ((1 == len) &&
-                ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
-            {
-                elm = top->elms.data[0];
-            }
-            else
-            {
-                elm = EXP_evalTypeList(typeContext, top->elms.data, len);
-            }
+            u32 elm = EXP_evalTypeList(typeContext, top->elms.data, len);
             r = EXP_evalTypeArray(typeContext, elm);
             EXP_evalCompileTypeDeclStackPop(typeDeclStack);
         }
