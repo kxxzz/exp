@@ -114,7 +114,10 @@ static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_Eva
 
 static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-
+    assert(EXP_EvalValueType_Array == ins[0].type);
+    assert(EXP_EvalValueType_AtomVal == ins[1].type);
+    EXP_EvalArray* ary = ins[0].ary;
+    //EXP_Node blk = ins[1].src;
 }
 
 
