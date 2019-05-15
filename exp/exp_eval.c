@@ -943,6 +943,7 @@ const char** EXP_EvalErrCodeNameTable(void)
         "EvalRecurNoBaseCase",
         "EvalUnification",
         "EvalAtomCtorByStr",
+        "EvalTypeUnsolvable",
     };
     return a;
 }
