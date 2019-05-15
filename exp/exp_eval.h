@@ -4,7 +4,6 @@
 
 
 #include "exp_eval_type.h"
-#include "exp_eval_array.h"
 
 
 
@@ -39,15 +38,24 @@ typedef struct EXP_EvalValue
     union
     {
         bool b;
+        u64 u;
         f64 f;
         void* a;
         EXP_Node src;
-        EXP_EvalArray* ary;
+        struct EXP_EvalArray* ary;
     };
     EXP_EvalValueType type;
 } EXP_EvalValue;
 
+
 typedef vec_t(struct EXP_EvalValue) EXP_EvalValueVec;
+
+
+typedef struct EXP_EvalArray EXP_EvalArray;
+
+EXP_EvalArray* EXP_newEvalArray(u32 size);
+void EXP_evalArrayFree(EXP_EvalArray* a);
+EXP_EvalValue EXP_evalArrayAt(EXP_EvalArray* a, u32 p);
 
 
 
