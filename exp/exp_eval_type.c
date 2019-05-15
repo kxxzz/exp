@@ -802,6 +802,7 @@ bool EXP_evalTypeUnifyPat
     u32* pU
 )
 {
+    a = EXP_evalTypeReduct(ctx, varSpace, a);
     u32 b = EXP_evalTypeFromPat(ctx, varSpace, varRenMap, pat);
     return EXP_evalTypeUnify(ctx, varSpace, a, b, pU);
 }

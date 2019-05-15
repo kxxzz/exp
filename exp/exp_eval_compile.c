@@ -281,12 +281,7 @@ static void EXP_evalCompilePopWorld(EXP_EvalCompileContext* ctx)
 
 
 
-static u32 EXP_evalCompileTypeNorm(EXP_EvalCompileContext* ctx, u32 x)
-{
-    EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
-    return EXP_evalTypeReduct(typeContext, typeVarSpace, x);
-}
+
 
 static bool EXP_evalCompileTypeUnify(EXP_EvalCompileContext* ctx, u32 a, u32 b, u32* pU)
 {
@@ -555,6 +550,7 @@ static void EXP_evalCompileEnterBlock
 static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
 {
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    EXP_EvalTypeVarSpace* typeVarSpace = &ctx->typeVarSpace;
     EXP_EvalCompileCall* curCall = &vec_last(&ctx->callStack);
     EXP_EvalCompileBlock* curBlock = EXP_evalCompileGetBlock(ctx, curCall->srcNode);
     vec_u32* typeBuf = &ctx->typeBuf;
@@ -577,7 +573,7 @@ static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
         for (u32 i = 0; i < curBlock->ins.length; ++i)
         {
             u32 t = curBlock->ins.data[i];
-            t = EXP_evalCompileTypeNorm(ctx, t);
+            t = EXP_evalTypeReduct(typeContext, typeVarSpace, t);
             vec_push(typeBuf, t);
         }
         ins = EXP_evalTypeList(typeContext, typeBuf->data, typeBuf->length);
@@ -595,7 +591,7 @@ static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
         {
             u32 j = ctx->dataStack.length - curBlock->numOuts + i;
             u32 t = ctx->dataStack.data[j];
-            t = EXP_evalCompileTypeNorm(ctx, t);
+            t = EXP_evalTypeReduct(typeContext, typeVarSpace, t);
             vec_push(typeBuf, t);
         }
         outs = EXP_evalTypeList(typeContext, typeBuf->data, typeBuf->length);

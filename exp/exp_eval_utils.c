@@ -51,6 +51,10 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
             }
             break;
         }
+        case EXP_EvalTypeType_Array:
+        {
+            break;
+        }
         default:
             assert(false);
             break;
