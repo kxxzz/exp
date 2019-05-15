@@ -86,7 +86,7 @@ bool EXP_evalArrayGetElm(EXP_EvalArray* a, u32 p, EXP_EvalValue* outBuf)
     }
     else
     {
-        EXP_EvalValue v = { .u = p, EXP_EvalValueType_AtomVal };
+        EXP_EvalValue v = { .f = p, EXP_EvalValueType_AtomVal };
         memcpy(outBuf, &v, sizeof(EXP_EvalValue));
         return true;
     }
