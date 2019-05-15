@@ -341,9 +341,9 @@ next:
             if (1 == list->count)
             {
                 elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+                assert(elm0desc->type != EXP_EvalTypeType_List);
             }
-            if ((1 == list->count) &&
-                ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+            if ((1 == list->count) && (EXP_EvalTypeType_ListVar == elm0desc->type))
             {
                 r = top->elms.data[0];
             }
@@ -526,9 +526,9 @@ next:
                 if (1 == listA->count)
                 {
                     elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+                    assert(elm0desc->type != EXP_EvalTypeType_List);
                 }
-                if ((1 == listA->count) &&
-                    ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+                if ((1 == listA->count) && (EXP_EvalTypeType_ListVar == elm0desc->type))
                 {
                     r = top->elms.data[0];
                 }
@@ -740,9 +740,9 @@ next:
             if (1 == list->count)
             {
                 elm0desc = EXP_evalTypeDescById(ctx, top->elms.data[0]);
+                assert(elm0desc->type != EXP_EvalTypeType_List);
             }
-            if ((1 == list->count) &&
-                ((EXP_EvalTypeType_ListVar == elm0desc->type) || (EXP_EvalTypeType_List == elm0desc->type)))
+            if ((1 == list->count) && (EXP_EvalTypeType_ListVar == elm0desc->type))
             {
                 r = top->elms.data[0];
             }
