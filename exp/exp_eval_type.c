@@ -581,7 +581,7 @@ next:
                 EXP_EvalTypeBuildLevel l = { aryA->elm, aryB->elm };
                 vec_push(buildStack, l);
             }
-            break;
+            goto next;
         }
         default:
             goto failed;
