@@ -55,8 +55,9 @@ typedef struct EXP_EvalArray EXP_EvalArray;
 
 EXP_EvalArray* EXP_newEvalArray(u32 size);
 void EXP_evalArrayFree(EXP_EvalArray* a);
-EXP_EvalValue EXP_evalArrayAt(EXP_EvalArray* a, u32 p);
-
+u32 EXP_evalArraySize(EXP_EvalArray* a);
+bool EXP_evalArrayGetElmAt(EXP_EvalArray* a, u32 p, EXP_EvalValueVec* outBuf);
+void EXP_evalArrayResize(EXP_EvalArray* a, u32 size);
 
 
 
