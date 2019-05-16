@@ -474,26 +474,8 @@ next:
         assert(EXP_isTok(space, node));
         u32 l = EXP_tokSize(space, node);
         const char* s = EXP_tokCstr(space, node);
-        EXP_EvalValue v = { 0 };
-        EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + enode->atype;
-        if (atypeInfo->allocMemSize > 0)
-        {
-            EXP_EvalObject* m = (EXP_EvalObject*)zalloc(offsetof(EXP_EvalObject, a) + atypeInfo->allocMemSize);
-            v.a = m->a;
-            EXP_EvalObjectPtrVec* mpVec = ctx->objectTable.data + enode->atype;
-            vec_push(mpVec, m);
-            v.type = EXP_EvalValueType_AtomObj;
-            m->gcFlag = ctx->gcFlag;
-        }
-        assert(atypeInfo->ctorByStr);
-        if (atypeInfo->ctorByStr(s, l, &v))
-        {
-            vec_push(dataStack, v);
-        }
-        else
-        {
-            assert(false);
-        }
+        EXP_EvalValue v = EXP_evalNewAtomObject(ctx, s, l, enode->atype);
+        vec_push(dataStack, v);
         goto next;
     }
     case EXP_EvalNodeType_Block:
