@@ -7,7 +7,6 @@
 
 typedef struct EXP_EvalArray
 {
-    bool gcFlag;
     EXP_EvalValueVec data;
     u32 size;
 } EXP_EvalArray;
