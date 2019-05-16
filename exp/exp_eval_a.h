@@ -9,8 +9,17 @@
 
 
 
+
 typedef vec_t(EXP_EvalAtypeInfo) EXP_EvalAtypeInfoVec;
 typedef vec_t(EXP_EvalAfunInfo) EXP_EvalAfunInfoVec;
+
+
+
+
+
+#include "exp_eval_typedecl.h"
+
+
 
 
 
@@ -146,30 +155,6 @@ static void EXP_evalErrorFound
 
 
 
-#include "exp_eval_typedecl.h"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-typedef struct EXP_EvalObject
-{
-    bool gcFlag;
-    char a[1];
-} EXP_EvalObject;
-
-
-
-
 typedef enum EXP_EvalBlockCallbackType
 {
     EXP_EvalBlockCallbackType_NONE,
@@ -209,8 +194,18 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
-typedef vec_t(EXP_EvalObject*) EXP_EvalObjectPtrVec;
-typedef vec_t(EXP_EvalObjectPtrVec) EXP_EvalObjectTable;
+
+
+
+
+
+
+
+#include "exp_eval_object.h"
+
+
+
+
 
 
 
