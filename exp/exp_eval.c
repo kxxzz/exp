@@ -47,8 +47,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
         }
     }
 
-    vec_resize(objectTable, atypeTable->length);
-    memset(objectTable->data, 0, sizeof(objectTable->data[0])*objectTable->length);
+    ctx->objectTable = EXP_newEvalObjectTable(atypeTable);
     return ctx;
 }
 
@@ -66,32 +65,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->callStack);
     vec_free(&ctx->typeStack);
 
-    for (u32 i = 0; i < ctx->atypeTable.length; ++i)
-    {
-        EXP_EvalObjectPtrVec* mpVec = ctx->objectTable.data + i;
-        EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + i;
-        if ((atypeInfo->allocMemSize > 0) || atypeInfo->aDtor)
-        {
-            for (u32 i = 0; i < mpVec->length; ++i)
-            {
-                if (atypeInfo->aDtor)
-                {
-                    atypeInfo->aDtor(mpVec->data[i]->a);
-                }
-                if (atypeInfo->allocMemSize > 0)
-                {
-                    free(mpVec->data[i]);
-                }
-            }
-        }
-        else
-        {
-            assert(0 == atypeInfo->allocMemSize);
-            assert(0 == mpVec->length);
-        }
-        vec_free(mpVec);
-    }
-    vec_free(&ctx->objectTable);
+    EXP_evalObjectTableFree(&ctx->objectTable, &ctx->atypeTable);
     vec_free(&ctx->nodeTable);
 
     vec_free(&ctx->afunTypeTable);

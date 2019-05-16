@@ -9,7 +9,7 @@ EXP_EvalObjectTable EXP_newEvalObjectTable(EXP_EvalAtypeInfoVec* atypeTable)
 {
     EXP_EvalObjectTable _objectTable = { 0 };
     EXP_EvalObjectTable* objectTable = &_objectTable;
-    vec_resize(objectTable, 1 + atypeTable->length);
+    vec_resize(objectTable, atypeTable->length);
     memset(objectTable->data, 0, sizeof(objectTable->data[0])*objectTable->length);
     return *objectTable;
 }
