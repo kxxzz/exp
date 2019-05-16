@@ -62,7 +62,7 @@ bool EXP_evalArrayGetElm(EXP_EvalArray* a, u32 p, EXP_EvalValue* outBuf);
 
 
 
-typedef bool(*EXP_EvalAtomCtorByStr)(u32 len, const char* str, EXP_EvalValue* pVal);
+typedef bool(*EXP_EvalAtomCtorByStr)(const char* str, u32 len, EXP_EvalValue* pVal);
 typedef void(*EXP_EvalAtomADtor)(void* ptr);
 
 typedef struct EXP_EvalAtypeInfo

@@ -22,7 +22,7 @@ const char** EXP_EvalKeyNameTable(void)
 
 
 
-static bool EXP_evalBoolByStr(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalBoolByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 {
     if (0 == strncmp(str, "true", len))
     {
@@ -37,7 +37,7 @@ static bool EXP_evalBoolByStr(u32 len, const char* str, EXP_EvalValue* pVal)
     return false;
 }
 
-static bool EXP_evalNumByStr(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalNumByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 {
     f64 f;
     u32 r = NSTR_str2num(&f, str, len, NULL);
@@ -55,7 +55,7 @@ static bool EXP_evalNumByStr(u32 len, const char* str, EXP_EvalValue* pVal)
 
 
 
-static bool EXP_evalStringByStr(u32 len, const char* str, EXP_EvalValue* pVal)
+static bool EXP_evalStringByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 {
     if (pVal)
     {

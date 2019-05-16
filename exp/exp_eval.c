@@ -486,7 +486,7 @@ next:
             m->gcFlag = ctx->gcFlag;
         }
         assert(atypeInfo->ctorByStr);
-        if (atypeInfo->ctorByStr(l, s, &v))
+        if (atypeInfo->ctorByStr(s, l, &v))
         {
             vec_push(dataStack, v);
         }

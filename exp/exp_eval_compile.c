@@ -1334,7 +1334,7 @@ static void EXP_evalCompileBlockMarch
                         assert(ctx->atypeTable->data[j].ctorByStr);
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
-                        if (ctx->atypeTable->data[j].ctorByStr(l, s, NULL))
+                        if (ctx->atypeTable->data[j].ctorByStr(s, l, NULL))
                         {
                             enode->type = EXP_EvalNodeType_Atom;
                             enode->atype = j;
