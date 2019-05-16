@@ -143,13 +143,16 @@ void EXP_evalGC(EXP_EvalContext* ctx)
 
 EXP_EvalValue EXP_evalNewAtomObject(EXP_EvalContext* ctx, const char* str, u32 len, u32 atype)
 {
+    EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
+    EXP_EvalObjectTable* objectTable = &ctx->objectTable;
+
     EXP_EvalValue v = { 0 };
-    EXP_EvalAtypeInfo* atypeInfo = ctx->atypeTable.data + atype;
+    EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + atype;
     if (atypeInfo->allocMemSize > 0)
     {
         EXP_EvalObject* m = (EXP_EvalObject*)zalloc(offsetof(EXP_EvalObject, a) + atypeInfo->allocMemSize);
         v.a = m->a;
-        EXP_EvalObjectPtrVec* mpVec = ctx->objectTable.data + atype;
+        EXP_EvalObjectPtrVec* mpVec = objectTable->data + atype;
         vec_push(mpVec, m);
         v.type = EXP_EvalValueType_AtomObj;
         m->gcFlag = ctx->gcFlag;
