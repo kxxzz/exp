@@ -13,18 +13,17 @@ typedef struct EXP_EvalArray
 
 
 
-EXP_EvalArray* EXP_newEvalArray(u32 size)
+EXP_EvalArray EXP_newEvalArray(u32 size)
 {
-    EXP_EvalArray* a = zalloc(sizeof(*a));
+    EXP_EvalArray _a = { 0 };
+    EXP_EvalArray* a = &_a;
     a->size = size;
-    return a;
+    return *a;
 }
-
 
 void EXP_evalArrayFree(EXP_EvalArray* a)
 {
     vec_free(&a->data);
-    free(a);
 }
 
 
