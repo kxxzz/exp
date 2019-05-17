@@ -108,6 +108,7 @@ static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_Eva
 {
     u32 n = (u32)ins[0].f;
     //outs[0] = EXP_evalNewArray(n);
+    outs[0].type = EXP_EvalValueType_Inline;
 }
 
 
