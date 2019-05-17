@@ -46,6 +46,15 @@ void EXP_evalObjectTableFree(EXP_EvalObjectTable* objectTable, EXP_EvalAtypeInfo
         }
         vec_free(mpVec);
     }
+
+    {
+        EXP_EvalObjectPtrVec* mpVec = &vec_last(objectTable);
+        for (u32 i = 0; i < mpVec->length; ++i)
+        {
+            EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
+            free(mpVec->data[i]);
+        }
+    }
     vec_free(objectTable);
 }
 
