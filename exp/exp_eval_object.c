@@ -9,7 +9,7 @@ EXP_EvalObjectTable EXP_newEvalObjectTable(EXP_EvalAtypeInfoVec* atypeTable)
 {
     EXP_EvalObjectTable _objectTable = { 0 };
     EXP_EvalObjectTable* objectTable = &_objectTable;
-    vec_resize(objectTable, atypeTable->length);
+    vec_resize(objectTable, atypeTable->length + 1);
     memset(objectTable->data, 0, sizeof(objectTable->data[0])*objectTable->length);
     return *objectTable;
 }
@@ -19,7 +19,9 @@ EXP_EvalObjectTable EXP_newEvalObjectTable(EXP_EvalAtypeInfoVec* atypeTable)
 
 void EXP_evalObjectTableFree(EXP_EvalObjectTable* objectTable, EXP_EvalAtypeInfoVec* atypeTable)
 {
-    for (u32 i = 0; i < objectTable->length; ++i)
+    assert(atypeTable->length + 1 == objectTable->length);
+
+    for (u32 i = 0; i < atypeTable->length; ++i)
     {
         EXP_EvalObjectPtrVec* mpVec = objectTable->data + i;
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + i;
@@ -100,7 +102,9 @@ void EXP_evalGC(EXP_EvalContext* ctx)
         EXP_evalSetGcFlag(ctx, dataStack->data[i]);
     }
 
-    for (u32 i = 0; i < objectTable->length; ++i)
+    assert(atypeTable->length + 1 == objectTable->length);
+
+    for (u32 i = 0; i < atypeTable->length; ++i)
     {
         EXP_EvalObjectPtrVec* mpVec = objectTable->data + i;
         EXP_EvalAtypeInfo* atypeInfo = atypeTable->data + i;
@@ -141,7 +145,7 @@ void EXP_evalGC(EXP_EvalContext* ctx)
 
 
 
-EXP_EvalValue EXP_evalNewAtomObject(EXP_EvalContext* ctx, const char* str, u32 len, u32 atype)
+EXP_EvalValue EXP_evalNewAtom(EXP_EvalContext* ctx, const char* str, u32 len, u32 atype)
 {
     EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
     EXP_EvalObjectTable* objectTable = &ctx->objectTable;
@@ -171,7 +175,21 @@ EXP_EvalValue EXP_evalNewAtomObject(EXP_EvalContext* ctx, const char* str, u32 l
 
 
 
+EXP_EvalValue EXP_evalNewArray(EXP_EvalContext* ctx, u32 size)
+{
+    EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
+    EXP_EvalObjectTable* objectTable = &ctx->objectTable;
 
+    EXP_EvalValue v = { 0 };
+    EXP_EvalObject* m = (EXP_EvalObject*)zalloc(offsetof(EXP_EvalObject, a) + sizeof(EXP_EvalArray));
+    v.a = m->a;
+    EXP_EvalObjectPtrVec* mpVec = objectTable->data + atypeTable->length;
+    vec_push(mpVec, m);
+    v.type = EXP_EvalValueType_Array;
+    m->gcFlag = ctx->gcFlag;
+    EXP_evalArrayInit((EXP_EvalArray*)(v.a), size);
+    return v;
+}
 
 
 

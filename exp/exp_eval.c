@@ -474,7 +474,7 @@ next:
         assert(EXP_isTok(space, node));
         u32 l = EXP_tokSize(space, node);
         const char* s = EXP_tokCstr(space, node);
-        EXP_EvalValue v = EXP_evalNewAtomObject(ctx, s, l, enode->atype);
+        EXP_EvalValue v = EXP_evalNewAtom(ctx, s, l, enode->atype);
         vec_push(dataStack, v);
         goto next;
     }

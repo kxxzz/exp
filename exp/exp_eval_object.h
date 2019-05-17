@@ -32,8 +32,8 @@ void EXP_evalGC(EXP_EvalContext* ctx);
 
 
 
-EXP_EvalValue EXP_evalNewAtomObject(EXP_EvalContext* ctx, const char* str, u32 len, u32 atype);
-
+EXP_EvalValue EXP_evalNewAtom(EXP_EvalContext* ctx, const char* str, u32 len, u32 atype);
+EXP_EvalValue EXP_evalNewArray(EXP_EvalContext* ctx, u32 size);
 
 
 

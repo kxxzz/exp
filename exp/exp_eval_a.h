@@ -199,6 +199,32 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 
 
 
+typedef struct EXP_EvalArray
+{
+    EXP_EvalValueVec data;
+    u32 size;
+} EXP_EvalArray;
+
+
+
+static void EXP_evalArrayInit(EXP_EvalArray* a, u32 size)
+{
+    a->size = size;
+}
+
+static void EXP_evalArrayFree(EXP_EvalArray* a)
+{
+    vec_free(&a->data);
+}
+
+
+
+
+
+
+
+
+
 
 
 #include "exp_eval_object.h"
