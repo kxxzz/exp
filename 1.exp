@@ -72,6 +72,8 @@ gc
 
 (& 100) [1 +] map
 
+drop
+gc
 
 // (# _100doors
 //     (# loop => i :

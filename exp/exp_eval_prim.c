@@ -107,14 +107,13 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     u32 n = (u32)ins[0].f;
-    //outs[0] = EXP_evalNewArray(n);
-    outs[0].type = EXP_EvalValueType_Inline;
+    outs[0] = EXP_evalNewArray(ctx, n);
 }
 
 
 static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    //assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
     //EXP_Node blk = ins[1].src;
@@ -123,14 +122,14 @@ static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 
 static void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    //assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
 }
 
 static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    //assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
 }
@@ -272,21 +271,25 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             "&",
             "num -> [num]",
             EXP_evalAfunCall_Array,
+            true,
         },
         {
             "map",
             "{A* B*} [A*] (A* -> B*) -> [B*]",
             EXP_evalAfunCall_Map,
+            true,
         },
         {
             "filter",
             "{A*} [A*] (A* -> bool) -> [A*]",
             EXP_evalAfunCall_Filter,
+            true,
         },
         {
             "reduce",
             "{A*} [A*] (A* A* -> A*) -> [A*]",
             EXP_evalAfunCall_Reduce,
+            true,
         },
 
         {

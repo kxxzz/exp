@@ -88,6 +88,7 @@ typedef struct EXP_EvalAfunInfo
     const char* name;
     const char* typeDecl;
     EXP_EvalAfunCall call;
+    bool highOrder;
 } EXP_EvalAfunInfo;
 
 

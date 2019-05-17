@@ -51,8 +51,8 @@ void EXP_evalObjectTableFree(EXP_EvalObjectTable* objectTable, EXP_EvalAtypeInfo
         EXP_EvalObjectPtrVec* mpVec = &vec_last(objectTable);
         for (u32 i = 0; i < mpVec->length; ++i)
         {
-            //EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
-            //free(mpVec->data[i]);
+            EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
+            free(mpVec->data[i]);
         }
         vec_free(mpVec);
     }
@@ -147,22 +147,22 @@ void EXP_evalGC(EXP_EvalContext* ctx)
         }
     }
 
-    //{
-    //    EXP_EvalObjectPtrVec* mpVec = &vec_last(objectTable);
-    //    for (u32 i = 0; i < mpVec->length; ++i)
-    //    {
-    //        bool gcFlag = mpVec->data[i]->gcFlag;
-    //        if (gcFlag != ctx->gcFlag)
-    //        {
-    //            EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
-    //            free(mpVec->data[i]);
+    {
+        EXP_EvalObjectPtrVec* mpVec = &vec_last(objectTable);
+        for (u32 i = 0; i < mpVec->length; ++i)
+        {
+            bool gcFlag = mpVec->data[i]->gcFlag;
+            if (gcFlag != ctx->gcFlag)
+            {
+                EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
+                free(mpVec->data[i]);
 
-    //            mpVec->data[i] = vec_last(mpVec);
-    //            vec_pop(mpVec);
-    //            --i;
-    //        }
-    //    }
-    //}
+                mpVec->data[i] = vec_last(mpVec);
+                vec_pop(mpVec);
+                --i;
+            }
+        }
+    }
 }
 
 
