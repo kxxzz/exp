@@ -79,13 +79,15 @@ enum
     EXP_EvalAfunOuts_MAX = 16,
 };
 
-typedef void(*EXP_EvalAfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs);
+typedef struct EXP_EvalContext EXP_EvalContext;
+
+typedef void(*EXP_EvalAfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 
 typedef struct EXP_EvalAfunInfo
 {
     const char* name;
-    EXP_EvalAfunCall call;
     const char* typeDecl;
+    EXP_EvalAfunCall call;
 } EXP_EvalAfunInfo;
 
 

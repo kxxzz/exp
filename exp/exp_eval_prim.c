@@ -104,7 +104,7 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 
 
 
-static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     u32 n = (u32)ins[0].f;
     //outs[0] = EXP_evalNewArray(n);
@@ -112,7 +112,7 @@ static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_Eva
 }
 
 
-static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     //assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
@@ -121,14 +121,14 @@ static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 }
 
 
-static void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     //assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
 }
 
-static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     //assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
@@ -149,7 +149,7 @@ static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_Ev
 
 
 
-static void EXP_evalAfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     bool a = ins[0].b;
     outs[0].b = !a;
@@ -157,28 +157,28 @@ static void EXP_evalAfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 
 
 
-static void EXP_evalAfunCall_NumAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a + b;
 }
 
-static void EXP_evalAfunCall_NumSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a - b;
 }
 
-static void EXP_evalAfunCall_NumMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].f = a * b;
 }
 
-static void EXP_evalAfunCall_NumDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -187,7 +187,7 @@ static void EXP_evalAfunCall_NumDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_Ev
 
 
 
-static void EXP_evalAfunCall_NumNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     outs[0].f = -a;
@@ -196,42 +196,42 @@ static void EXP_evalAfunCall_NumNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_Ev
 
 
 
-static void EXP_evalAfunCall_NumEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a == b;
 }
 
-static void EXP_evalAfunCall_NumINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a != b;
 }
 
-static void EXP_evalAfunCall_NumGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a > b;
 }
 
-static void EXP_evalAfunCall_NumLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a < b;
 }
 
-static void EXP_evalAfunCall_NumGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
     outs[0].b = a >= b;
 }
 
-static void EXP_evalAfunCall_NumLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
+static void EXP_evalAfunCall_NumLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     f64 a = ins[0].f;
     f64 b = ins[1].f;
@@ -270,83 +270,83 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
     {
         {
             "&",
-            EXP_evalAfunCall_Array,
             "num -> [num]",
+            EXP_evalAfunCall_Array,
         },
         {
             "map",
-            EXP_evalAfunCall_Map,
             "{A* B*} [A*] (A* -> B*) -> [B*]",
+            EXP_evalAfunCall_Map,
         },
         {
             "filter",
-            EXP_evalAfunCall_Filter,
             "{A*} [A*] (A* -> bool) -> [A*]",
+            EXP_evalAfunCall_Filter,
         },
         {
             "reduce",
-            EXP_evalAfunCall_Reduce,
             "{A*} [A*] (A* A* -> A*) -> [A*]",
+            EXP_evalAfunCall_Reduce,
         },
 
         {
             "not",
-            EXP_evalAfunCall_Not,
             "bool -> bool",
+            EXP_evalAfunCall_Not,
         },
 
         {
             "+",
-            EXP_evalAfunCall_NumAdd,
             "num num -> num",
+            EXP_evalAfunCall_NumAdd,
         },
         {
             "-",
-            EXP_evalAfunCall_NumSub,
             "num num -> num",
+            EXP_evalAfunCall_NumSub,
         },
         {
             "*",
-            EXP_evalAfunCall_NumMul,
             "num num -> num",
+            EXP_evalAfunCall_NumMul,
         },
         {
             "/",
-            EXP_evalAfunCall_NumDiv,
             "num num -> num",
+            EXP_evalAfunCall_NumDiv,
         },
 
         {
             "neg",
-            EXP_evalAfunCall_NumNeg,
             "num -> num",
+            EXP_evalAfunCall_NumNeg,
         },
 
         {
             "eq",
-            EXP_evalAfunCall_NumEQ,
             "num num -> bool",
+            EXP_evalAfunCall_NumEQ,
         },
 
         {
             "gt",
-            EXP_evalAfunCall_NumGT,
             "num num -> bool",
+            EXP_evalAfunCall_NumGT,
         },
         {
             "lt",
-            EXP_evalAfunCall_NumLT,
             "num num -> bool",
+            EXP_evalAfunCall_NumLT,
         },
         {
             "ge",
-            EXP_evalAfunCall_NumGE,
             "num num -> bool",
+            EXP_evalAfunCall_NumGE,
         },
         {
             "le",
-            EXP_evalAfunCall_NumLE,
             "num num -> bool",
+            EXP_evalAfunCall_NumLE,
         },
     };
     return a;
