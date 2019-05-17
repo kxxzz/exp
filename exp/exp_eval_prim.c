@@ -108,14 +108,13 @@ static void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_Eva
 {
     u32 n = (u32)ins[0].f;
     //outs[0].ary = EXP_newEvalArray(n);
-    outs[0].type = EXP_EvalValueType_Array;
 }
 
 
 static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    assert(EXP_EvalValueType_Array == ins[0].type);
-    assert(EXP_EvalValueType_AtomVal == ins[1].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
     //EXP_Node blk = ins[1].src;
 }
@@ -123,15 +122,15 @@ static void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 
 static void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    assert(EXP_EvalValueType_Array == ins[0].type);
-    assert(EXP_EvalValueType_AtomVal == ins[1].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
 }
 
 static void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs)
 {
-    assert(EXP_EvalValueType_Array == ins[0].type);
-    assert(EXP_EvalValueType_AtomVal == ins[1].type);
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
     EXP_EvalArray* ary = ins[0].ary;
 }
 

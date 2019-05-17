@@ -73,7 +73,7 @@ void EXP_evalSetGcFlag(EXP_EvalContext* ctx, EXP_EvalValue v)
 {
     switch (v.type)
     {
-    case EXP_EvalValueType_AtomObj:
+    case EXP_EvalValueType_Object:
     {
         EXP_EvalObject* m = (EXP_EvalObject*)((char*)v.a - offsetof(EXP_EvalObject, a));
         if (m->gcFlag != ctx->gcFlag)
@@ -132,6 +132,7 @@ void EXP_evalGC(EXP_EvalContext* ctx)
                     {
                         free(mpVec->data[i]);
                     }
+
                     mpVec->data[i] = vec_last(mpVec);
                     vec_pop(mpVec);
                     --i;
@@ -142,6 +143,23 @@ void EXP_evalGC(EXP_EvalContext* ctx)
         {
             assert(0 == atypeInfo->allocMemSize);
             assert(0 == mpVec->length);
+        }
+    }
+
+    {
+        EXP_EvalObjectPtrVec* mpVec = &vec_last(objectTable);
+        for (u32 i = 0; i < mpVec->length; ++i)
+        {
+            bool gcFlag = mpVec->data[i]->gcFlag;
+            if (gcFlag != ctx->gcFlag)
+            {
+                EXP_evalArrayFree((EXP_EvalArray*)mpVec->data[i]->a);
+                free(mpVec->data[i]);
+
+                mpVec->data[i] = vec_last(mpVec);
+                vec_pop(mpVec);
+                --i;
+            }
         }
     }
 }
@@ -167,7 +185,7 @@ EXP_EvalValue EXP_evalNewAtom(EXP_EvalContext* ctx, const char* str, u32 len, u3
         v.a = m->a;
         EXP_EvalObjectPtrVec* mpVec = objectTable->data + atype;
         vec_push(mpVec, m);
-        v.type = EXP_EvalValueType_AtomObj;
+        v.type = EXP_EvalValueType_Object;
         m->gcFlag = ctx->gcFlag;
     }
     assert(atypeInfo->ctorByStr);
@@ -194,7 +212,7 @@ EXP_EvalValue EXP_evalNewArray(EXP_EvalContext* ctx, u32 size)
     v.a = m->a;
     EXP_EvalObjectPtrVec* mpVec = objectTable->data + atypeTable->length;
     vec_push(mpVec, m);
-    v.type = EXP_EvalValueType_Array;
+    v.type = EXP_EvalValueType_Object;
     m->gcFlag = ctx->gcFlag;
     EXP_evalArrayInit((EXP_EvalArray*)(v.a), size);
     return v;

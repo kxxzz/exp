@@ -26,9 +26,8 @@ const char** EXP_EvalKeyNameTable(void);
 
 typedef enum EXP_EvalValueType
 {
-    EXP_EvalValueType_AtomVal = 0,
-    EXP_EvalValueType_AtomObj,
-    EXP_EvalValueType_Array,
+    EXP_EvalValueType_Inline = 0,
+    EXP_EvalValueType_Object,
 
     EXP_NumEvalValueTypes
 } EXP_EvalValueType;
