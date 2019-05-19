@@ -458,18 +458,24 @@ next:
         case EXP_EvalBlockCallbackType_ArrayReduce:
         {
             assert(aryStack->length >= 2);
-            EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
-            EXP_EvalArray* dst = aryStack->data[aryStack->length - 1];
+            EXP_EvalArray* src = aryStack->data[aryStack->length - 1];
 
             u32 pos = cb->pos;
             u32 size = EXP_evalArraySize(src);
+            u32 elmSize = EXP_evalArrayElmSize(src);
+            assert(dataStack->length >= elmSize);
 
             if (pos < size)
             {
+                pos = ++cb->pos;
+                EXP_EvalValue* elm = dataStack->data + dataStack->length;
+                vec_resize(dataStack, dataStack->length + elmSize);
+                bool r = EXP_evalArrayGetElm(src, pos, elm);
+                assert(r);
             }
             else
             {
-                vec_resize(aryStack, aryStack->length - 2);
+                vec_resize(aryStack, aryStack->length - 1);
                 EXP_evalLeaveBlock(ctx);
             }
             goto next;
