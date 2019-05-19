@@ -53,7 +53,8 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
         }
         case EXP_EvalTypeType_Array:
         {
-            // todo
+            assert(EXP_EvalValueType_Object == v.type);
+            fprintf(f, "<ARRAY>\n");
             break;
         }
         default:
