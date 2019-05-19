@@ -372,16 +372,25 @@ next:
         }
         case EXP_EvalBlockCallbackType_Array:
         {
-            EXP_EvalArray* a = cb->ary.object;
+            EXP_EvalArray* src = cb->ary.src;
+            EXP_EvalArray* dst = cb->ary.dst;
             u32 pos = cb->ary.pos;
-            u32 aSize = EXP_evalArraySize(a);
-            u32 elmSize = EXP_evalArrayElmSize(a);
-            EXP_EvalValue* elmBuf = dataStack->data + dataStack->length - elmSize;
-            bool r = EXP_evalArraySetElm(a, pos, elmBuf);
+            u32 arySize = EXP_evalArraySize(src);
+            assert(EXP_evalArraySize(dst) == arySize);
+            u32 dstElmSize = EXP_evalArrayElmSize(dst);
+            assert(dataStack->length >= dstElmSize);
+            EXP_EvalValue* elm = dataStack->data + dataStack->length - dstElmSize;
+            bool r = EXP_evalArraySetElm(dst, pos, elm);
             assert(r);
-            if (pos < aSize)
+            dataStack->length -= dstElmSize;
+            if (pos < arySize)
             {
-                ++cb->ary.pos;
+                pos = ++cb->ary.pos;
+                u32 srcElmSize = EXP_evalArrayElmSize(src);
+                EXP_EvalValue* elm = dataStack->data + dataStack->length;
+                dataStack->length += srcElmSize;
+                r = EXP_evalArrayGetElm(src, pos, elm);
+                assert(r);
             }
             else
             {
