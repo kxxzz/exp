@@ -162,6 +162,7 @@ typedef enum EXP_EvalBlockCallbackType
     EXP_EvalBlockCallbackType_CallWord,
     EXP_EvalBlockCallbackType_CallVar,
     EXP_EvalBlockCallbackType_Cond,
+    EXP_EvalBlockCallbackType_Array,
 } EXP_EvalBlockCallbackType;
 
 typedef struct EXP_EvalBlockCallbackArray

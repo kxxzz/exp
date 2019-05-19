@@ -370,6 +370,10 @@ next:
             EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
             goto next;
         }
+        case EXP_EvalBlockCallbackType_Array:
+        {
+            goto next;
+        }
         default:
             assert(false);
             goto next;
