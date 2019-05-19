@@ -58,6 +58,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
     vec_free(&ctx->fileInfoTable);
 
+    vec_free(&ctx->aryStack);
     EXP_evalCompileTypeDeclStackFree(&ctx->typeDeclStack);
 
     vec_free(&ctx->dataStack);
@@ -317,6 +318,7 @@ static void EXP_evalCall(EXP_EvalContext* ctx)
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
     EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
+    EXP_EvalArrayPtrVec* aryStack = &ctx->aryStack;
 next:
     if (ctx->error.code)
     {
@@ -383,32 +385,78 @@ next:
             EXP_evalEnterBlock(ctx, 1, EXP_evalIfBranch1(space, srcNode), srcNode);
             goto next;
         }
-        case EXP_EvalBlockCallbackType_Array:
+        case EXP_EvalBlockCallbackType_ArrayMap:
         {
-            EXP_EvalArray* src = cb->ary.src;
-            EXP_EvalArray* dst = cb->ary.dst;
-            u32 pos = cb->ary.pos;
-            u32 arySize = EXP_evalArraySize(src);
-            assert(EXP_evalArraySize(dst) == arySize);
+            EXP_EvalArray* dst = vec_last(aryStack);
+            vec_pop(aryStack);
+            EXP_EvalArray* src = vec_last(aryStack);
+            vec_pop(aryStack);
+
+            u32 pos = cb->pos;
+            assert(EXP_evalArraySize(dst) == EXP_evalArraySize(src));
+            u32 size = EXP_evalArraySize(src);
+
             u32 dstElmSize = EXP_evalArrayElmSize(dst);
             assert(dataStack->length >= dstElmSize);
             EXP_EvalValue* elm = dataStack->data + dataStack->length - dstElmSize;
             bool r = EXP_evalArraySetElm(dst, pos, elm);
             assert(r);
-            dataStack->length -= dstElmSize;
-            if (pos < arySize)
+            vec_resize(dataStack, dataStack->length - dstElmSize);
+
+            if (pos < size)
             {
-                pos = ++cb->ary.pos;
+                pos = ++cb->pos;
                 u32 srcElmSize = EXP_evalArrayElmSize(src);
                 EXP_EvalValue* elm = dataStack->data + dataStack->length;
-                dataStack->length += srcElmSize;
-                r = EXP_evalArrayGetElm(src, pos, elm);
+                vec_resize(dataStack, dataStack->length + srcElmSize);
+                bool r = EXP_evalArrayGetElm(src, pos, elm);
                 assert(r);
             }
             else
             {
                 EXP_evalLeaveBlock(ctx);
             }
+            goto next;
+        }
+        case EXP_EvalBlockCallbackType_ArrayFilter:
+        {
+            EXP_EvalArray* dst = vec_last(aryStack);
+            vec_pop(aryStack);
+            EXP_EvalArray* src = vec_last(aryStack);
+            vec_pop(aryStack);
+
+            u32 pos = cb->pos;
+            u32 size = EXP_evalArraySize(src);
+            assert(EXP_evalArrayElmSize(src) == EXP_evalArrayElmSize(dst));
+            u32 elmSize = EXP_evalArrayElmSize(src);
+
+            assert(dataStack->length >= 1);
+            if (vec_last(dataStack).b)
+            {
+                EXP_EvalValue* elm = dataStack->data + dataStack->length;
+                vec_resize(dataStack, dataStack->length + elmSize);
+                bool r = EXP_evalArrayGetElm(src, pos, elm);
+                assert(r);
+                EXP_evalArrayPushElm(dst, elm);
+                vec_resize(dataStack, dataStack->length - elmSize);
+            }
+            vec_pop(dataStack);
+            if (pos < size)
+            {
+                pos = ++cb->pos;
+                EXP_EvalValue* elm = dataStack->data + dataStack->length;
+                vec_resize(dataStack, dataStack->length + elmSize);
+                bool r = EXP_evalArrayGetElm(src, pos, elm);
+                assert(r);
+            }
+            else
+            {
+                EXP_evalLeaveBlock(ctx);
+            }
+            goto next;
+        }
+        case EXP_EvalBlockCallbackType_ArrayReduce:
+        {
             goto next;
         }
         default:

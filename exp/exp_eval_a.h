@@ -162,15 +162,12 @@ typedef enum EXP_EvalBlockCallbackType
     EXP_EvalBlockCallbackType_CallWord,
     EXP_EvalBlockCallbackType_CallVar,
     EXP_EvalBlockCallbackType_Cond,
-    EXP_EvalBlockCallbackType_Array,
+    EXP_EvalBlockCallbackType_ArrayMap,
+    EXP_EvalBlockCallbackType_ArrayFilter,
+    EXP_EvalBlockCallbackType_ArrayReduce,
 } EXP_EvalBlockCallbackType;
 
-typedef struct EXP_EvalBlockCallbackArray
-{
-    EXP_EvalArray* src;
-    EXP_EvalArray* dst;
-    u32 pos;
-} EXP_EvalBlockCallbackArray;
+
 
 typedef struct EXP_EvalBlockCallback
 {
@@ -179,7 +176,7 @@ typedef struct EXP_EvalBlockCallback
     {
         u32 afun;
         EXP_Node blkSrc;
-        EXP_EvalBlockCallbackArray ary;
+        u32 pos;
     };
 } EXP_EvalBlockCallback;
 
@@ -230,6 +227,10 @@ static void EXP_evalArrayFree(EXP_EvalArray* a)
 
 
 
+typedef vec_t(EXP_EvalArray*) EXP_EvalArrayPtrVec;
+
+
+
 
 
 
@@ -267,6 +268,7 @@ typedef struct EXP_EvalContext
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
     bool gcFlag;
     EXP_EvalCompileTypeDeclStack typeDeclStack;
+    EXP_EvalArrayPtrVec aryStack;
 
     EXP_EvalFileInfoTable fileInfoTable;
 } EXP_EvalContext;

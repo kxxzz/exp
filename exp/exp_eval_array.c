@@ -86,7 +86,16 @@ bool EXP_evalArrayGetElm(EXP_EvalArray* a, u32 p, EXP_EvalValue* outBuf)
 
 
 
-
+void EXP_evalArrayPushElm(EXP_EvalArray* a, const EXP_EvalValue* inBuf)
+{
+    ++a->size;
+    if (!a->data.length)
+    {
+        vec_resize(&a->data, a->size);
+    }
+    u32 elmSize = a->data.length / a->size;
+    memcpy(a->data.data + elmSize * (a->size - 1), inBuf, sizeof(EXP_EvalValue)*elmSize);
+}
 
 
 
