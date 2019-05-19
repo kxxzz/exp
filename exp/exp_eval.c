@@ -697,6 +697,28 @@ void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue*
 
 
 
+void EXP_evalAfunCall_LoadAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    EXP_EvalArray* ary = ins[0].ary;
+    u32 pos = (u32)ins[1].f;
+    bool r = EXP_evalArrayGetElm(ary, pos, outs);
+    if (!r)
+    {
+        u32 elmSize = EXP_evalArrayElmSize(ary);
+        memset(outs, 0, elmSize * sizeof(EXP_EvalValue));
+    }
+}
+
+
+
+void EXP_evalAfunCall_SaveAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    EXP_EvalArray* ary = ins[0].ary;
+    u32 pos = (u32)ins[1].f;
+    EXP_evalArraySetElm(ary, pos, ins + 2);
+}
+
+
 
 void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {

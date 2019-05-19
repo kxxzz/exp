@@ -70,9 +70,12 @@ gc
 // drop8
 // drop4
 
-(& 100) [1 +] map
+(& 100) [50 *] map => ary :
 
 gc
+
+(save-at ary 45 33)
+(load-at ary 45)
 
 // (# _100doors
 //     (# loop => i :
