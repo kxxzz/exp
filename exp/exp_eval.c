@@ -255,6 +255,11 @@ static bool EXP_evalAtTail(EXP_EvalContext* ctx)
 
 
 
+
+
+
+
+
 static void EXP_evalAfunCall
 (
     EXP_EvalContext* ctx, EXP_EvalAfunInfo* afunInfo, EXP_Node srcNode, EXP_EvalNode* srcEnode
@@ -279,6 +284,9 @@ static void EXP_evalAfunCall
 
 
 
+
+
+
 static void EXP_evalTailCallElimination(EXP_EvalContext* ctx)
 {
     while (EXP_evalAtTail(ctx))
@@ -289,6 +297,11 @@ static void EXP_evalTailCallElimination(EXP_EvalContext* ctx)
         }
     }
 }
+
+
+
+
+
 
 
 
@@ -568,6 +581,78 @@ next:
         assert(false);
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    u32 n = (u32)ins[0].f;
+    outs[0] = EXP_evalNewArray(ctx, n);
+}
+
+
+void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
+    EXP_EvalArray* ary = ins[0].ary;
+    //EXP_Node blk = ins[1].src;
+}
+
+
+void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
+    EXP_EvalArray* ary = ins[0].ary;
+}
+
+void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    assert(EXP_EvalValueType_Object == ins[0].type);
+    assert(EXP_EvalValueType_Inline == ins[1].type);
+    EXP_EvalArray* ary = ins[0].ary;
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
