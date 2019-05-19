@@ -387,10 +387,9 @@ next:
         }
         case EXP_EvalBlockCallbackType_ArrayMap:
         {
-            EXP_EvalArray* dst = vec_last(aryStack);
-            vec_pop(aryStack);
-            EXP_EvalArray* src = vec_last(aryStack);
-            vec_pop(aryStack);
+            assert(aryStack->length >= 2);
+            EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
+            EXP_EvalArray* dst = aryStack->data[aryStack->length - 1];
 
             u32 pos = cb->pos;
             assert(EXP_evalArraySize(dst) == EXP_evalArraySize(src));
@@ -414,16 +413,16 @@ next:
             }
             else
             {
+                vec_resize(aryStack, aryStack->length - 2);
                 EXP_evalLeaveBlock(ctx);
             }
             goto next;
         }
         case EXP_EvalBlockCallbackType_ArrayFilter:
         {
-            EXP_EvalArray* dst = vec_last(aryStack);
-            vec_pop(aryStack);
-            EXP_EvalArray* src = vec_last(aryStack);
-            vec_pop(aryStack);
+            assert(aryStack->length >= 2);
+            EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
+            EXP_EvalArray* dst = aryStack->data[aryStack->length - 1];
 
             u32 pos = cb->pos;
             u32 size = EXP_evalArraySize(src);
@@ -451,12 +450,28 @@ next:
             }
             else
             {
+                vec_resize(aryStack, aryStack->length - 2);
                 EXP_evalLeaveBlock(ctx);
             }
             goto next;
         }
         case EXP_EvalBlockCallbackType_ArrayReduce:
         {
+            assert(aryStack->length >= 2);
+            EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
+            EXP_EvalArray* dst = aryStack->data[aryStack->length - 1];
+
+            u32 pos = cb->pos;
+            u32 size = EXP_evalArraySize(src);
+
+            if (pos < size)
+            {
+            }
+            else
+            {
+                vec_resize(aryStack, aryStack->length - 2);
+                EXP_evalLeaveBlock(ctx);
+            }
             goto next;
         }
         default:
