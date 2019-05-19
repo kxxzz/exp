@@ -164,6 +164,12 @@ typedef enum EXP_EvalBlockCallbackType
     EXP_EvalBlockCallbackType_Cond,
 } EXP_EvalBlockCallbackType;
 
+typedef struct EXP_EvalBlockCallbackArray
+{
+    EXP_EvalArray* object;
+    u32 pos;
+} EXP_EvalBlockCallbackArray;
+
 typedef struct EXP_EvalBlockCallback
 {
     EXP_EvalBlockCallbackType type;
@@ -171,6 +177,7 @@ typedef struct EXP_EvalBlockCallback
     {
         u32 afun;
         EXP_Node blkSrc;
+        EXP_EvalBlockCallbackArray ary;
     };
 } EXP_EvalBlockCallback;
 
