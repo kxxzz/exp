@@ -372,6 +372,21 @@ next:
         }
         case EXP_EvalBlockCallbackType_Array:
         {
+            EXP_EvalArray* a = cb->ary.object;
+            u32 pos = cb->ary.pos;
+            u32 aSize = EXP_evalArraySize(a);
+            u32 elmSize = EXP_evalArrayElmSize(a);
+            EXP_EvalValue* elmBuf = dataStack->data + dataStack->length - elmSize;
+            bool r = EXP_evalArraySetElm(a, pos, elmBuf);
+            assert(r);
+            if (pos < aSize)
+            {
+                ++cb->ary.pos;
+            }
+            else
+            {
+                EXP_evalLeaveBlock(ctx);
+            }
             goto next;
         }
         default:

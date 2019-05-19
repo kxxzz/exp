@@ -11,6 +11,20 @@ u32 EXP_evalArraySize(EXP_EvalArray* a)
 }
 
 
+u32 EXP_evalArrayElmSize(EXP_EvalArray* a)
+{
+    if (a->data.length > 0)
+    {
+        u32 elmSize = a->data.length / a->size;
+        return elmSize;
+    }
+    else
+    {
+        return 1;
+    }
+}
+
+
 void EXP_evalArrayResize(EXP_EvalArray* a, u32 size)
 {
     if (a->data.length > 0)
