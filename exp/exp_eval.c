@@ -696,6 +696,8 @@ void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue*
 }
 
 
+
+
 void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
@@ -725,18 +727,61 @@ void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* o
 }
 
 
+
+
 void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
+    EXP_EvalValueVec* dataStack = &ctx->dataStack;
+    EXP_EvalArrayPtrVec* aryStack = &ctx->aryStack;
+
     assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
-    EXP_EvalArray* ary = ins[0].ary;
+
+    EXP_EvalArray* src = ins[0].ary;
+    vec_push(aryStack, src);
+    EXP_EvalArray* dst = EXP_evalNewArray(ctx, 0).ary;
+    vec_push(aryStack, dst);
+
+    u32 elmSize = EXP_evalArrayElmSize(src);
+    EXP_EvalValue* outBuf = dataStack->data + dataStack->length;
+    vec_resize(dataStack, dataStack->length + elmSize);
+    bool r = EXP_evalArrayGetElm(src, 0, outBuf);
+    assert(r);
+
+    EXP_Node blkSrc = ins[1].src;
+    assert(EXP_isSeqSquare(space, blkSrc));
+    u32 bodyLen = EXP_seqLen(space, blkSrc);
+    const EXP_Node* body = EXP_seqElm(space, blkSrc);
+    EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayFilter, .pos = 0 };
+    EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
 }
+
+
+
 
 void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
+    EXP_EvalValueVec* dataStack = &ctx->dataStack;
+    EXP_EvalArrayPtrVec* aryStack = &ctx->aryStack;
+
     assert(EXP_EvalValueType_Object == ins[0].type);
     assert(EXP_EvalValueType_Inline == ins[1].type);
-    EXP_EvalArray* ary = ins[0].ary;
+
+    EXP_EvalArray* src = ins[0].ary;
+    vec_push(aryStack, src);
+
+    u32 elmSize = EXP_evalArrayElmSize(src);
+    EXP_EvalValue* outBuf = dataStack->data + dataStack->length;
+    vec_resize(dataStack, dataStack->length + elmSize);
+    bool r = EXP_evalArrayGetElm(src, 0, outBuf);
+    assert(r);
+
+    EXP_Node blkSrc = ins[1].src;
+    assert(EXP_isSeqSquare(space, blkSrc));
+    u32 bodyLen = EXP_seqLen(space, blkSrc);
+    const EXP_Node* body = EXP_seqElm(space, blkSrc);
+    EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayReduce, .pos = 0 };
+    EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
 }
 
 
