@@ -486,29 +486,12 @@ next:
             if (top->p)
             {
                 const EXP_EvalTypeDesc* descR = EXP_evalTypeDescById(ctx, r);
-                if (EXP_EvalTypeType_List == descR->type)
-                {
-                    vec_pusharr(&top->elms, descR->list.elms, descR->list.count);
-                }
-                else
-                {
-                    vec_push(&top->elms, r);
-                }
-                assert(!listA->hasListElm);
-                assert(!listB->hasListElm);
-                assert(listA->count == listB->count);
+                assert(EXP_EvalTypeType_List != descR->type);
+                vec_push(&top->elms, r);
             }
             else
             {
-                if (listA->hasListElm)
-                {
-                    goto failed;
-                }
-                if (listB->hasListElm)
-                {
-                    goto failed;
-                }
-                if (listA->count != listB->count)
+                if (!listA->hasListElm && !listB->hasListElm && (listA->count != listB->count))
                 {
                     goto failed;
                 }
