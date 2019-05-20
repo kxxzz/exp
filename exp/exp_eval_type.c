@@ -525,7 +525,40 @@ next:
             if (top->remain.length && top->remain1.length)
             {
                 u32 a, b;
-                // todo
+                for (;;)
+                {
+                    a = vec_last(&top->remain);
+                    vec_pop(&top->remain);
+                    a = EXP_evalTypeReduct(ctx, varSpace, a);
+                    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(ctx, a);
+                    if (desc->type != EXP_EvalTypeType_List)
+                    {
+                        break;
+                    }
+                    const EXP_EvalTypeDescList* list = &desc->list;
+                    for (u32 i = 0; i < list->count; ++i)
+                    {
+                        u32 e = list->elms[list->count - 1 - i];
+                        vec_push(&top->remain, e);
+                    }
+                }
+                for (;;)
+                {
+                    b = vec_last(&top->remain1);
+                    vec_pop(&top->remain1);
+                    b = EXP_evalTypeReduct(ctx, varSpace, b);
+                    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(ctx, b);
+                    if (desc->type != EXP_EvalTypeType_List)
+                    {
+                        break;
+                    }
+                    const EXP_EvalTypeDescList* list = &desc->list;
+                    for (u32 i = 0; i < list->count; ++i)
+                    {
+                        u32 e = list->elms[list->count - 1 - i];
+                        vec_push(&top->remain1, e);
+                    }
+                }
                 EXP_EvalTypeBuildLevel l = { a, b };
                 vec_push(buildStack, l);
             }
