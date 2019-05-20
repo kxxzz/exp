@@ -396,6 +396,8 @@ next:
         }
         case EXP_EvalBlockCallbackType_ArrayMap:
         {
+            EXP_Node srcNode = curCall->srcNode;
+
             assert(aryStack->length >= 2);
             EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
             EXP_EvalArray* dst = aryStack->data[aryStack->length - 1];
@@ -404,8 +406,9 @@ next:
             assert(EXP_evalArraySize(dst) == EXP_evalArraySize(src));
             u32 size = EXP_evalArraySize(src);
 
-            // todo
-            u32 dstElmSize = 1;
+            EXP_EvalNode* enode = nodeTable->data + srcNode.id;
+            assert(EXP_evalArrayElmSize(src) == enode->numIns);
+            u32 dstElmSize = enode->numOuts;
             assert(dataStack->length >= dstElmSize);
 
             EXP_EvalValue* inBuf = dataStack->data + dataStack->length - dstElmSize;
@@ -422,7 +425,6 @@ next:
                 r = EXP_evalArrayGetElm(src, pos, outBuf);
                 assert(r);
 
-                EXP_Node srcNode = curCall->srcNode;
                 assert(EXP_isSeqSquare(space, srcNode));
                 u32 bodyLen = EXP_seqLen(space, srcNode);
                 curCall->p -= bodyLen;

@@ -1399,6 +1399,8 @@ static void EXP_evalCompileBlockMarch
         }
         enode->type = EXP_EvalNodeType_Block;
         enode->blkSrc = node;
+        enode->numIns = blk->numIns;
+        enode->numOuts = blk->numOuts;
         assert(blk->completed);
         u32 t = blk->funType;
         vec_push(dataStack, t);
