@@ -74,8 +74,8 @@ drop4
 
 gc
 
-//(save-at ary 45 33)
-(load-at ary 99)
+//(<at ary 45 33)
+(at> ary 99)
 
 // (# _100doors
 //     (# loop => i :

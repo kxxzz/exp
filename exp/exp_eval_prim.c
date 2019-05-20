@@ -105,8 +105,8 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 
 
 void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
-void EXP_evalAfunCall_LoadAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
-void EXP_evalAfunCall_SaveAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
+void EXP_evalAfunCall_AtLoad(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
+void EXP_evalAfunCall_AtSave(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
@@ -250,15 +250,15 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_EvalAfunMode_ContextDepend,
         },
         {
-            "load-at",
+            "at>",
             "{A*} [A*] num -> A*",
-            EXP_evalAfunCall_LoadAt,
+            EXP_evalAfunCall_AtLoad,
             EXP_EvalAfunMode_ContextDepend,
         },
         {
-            "save-at",
+            "<at",
             "{A*} [A*] num A* ->",
-            EXP_evalAfunCall_SaveAt,
+            EXP_evalAfunCall_AtSave,
             EXP_EvalAfunMode_ContextDepend,
         },
 

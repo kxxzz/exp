@@ -720,7 +720,7 @@ void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue*
 
 
 
-void EXP_evalAfunCall_LoadAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+void EXP_evalAfunCall_AtLoad(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     EXP_EvalArray* ary = ins[0].ary;
     u32 pos = (u32)ins[1].f;
@@ -734,7 +734,7 @@ void EXP_evalAfunCall_LoadAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
 
 
 
-void EXP_evalAfunCall_SaveAt(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+void EXP_evalAfunCall_AtSave(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     EXP_EvalArray* ary = ins[0].ary;
     u32 pos = (u32)ins[1].f;
