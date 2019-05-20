@@ -256,7 +256,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_EvalAfunMode_ContextDepend,
         },
         {
-            "<&",
+            "&<",
             "{A*} [A*] num A* ->",
             EXP_evalAfunCall_AtSave,
             EXP_EvalAfunMode_ContextDepend,
