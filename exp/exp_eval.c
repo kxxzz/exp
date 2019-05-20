@@ -465,6 +465,11 @@ next:
                 vec_resize(dataStack, dataStack->length + elmSize);
                 bool r = EXP_evalArrayGetElm(src, pos, elm);
                 assert(r);
+
+                EXP_Node srcNode = curCall->srcNode;
+                assert(EXP_isSeqSquare(space, srcNode));
+                u32 bodyLen = EXP_seqLen(space, srcNode);
+                curCall->p -= bodyLen;
             }
             else
             {
@@ -493,6 +498,11 @@ next:
                 vec_resize(dataStack, dataStack->length + elmSize);
                 bool r = EXP_evalArrayGetElm(src, pos, elm);
                 assert(r);
+
+                EXP_Node srcNode = curCall->srcNode;
+                assert(EXP_isSeqSquare(space, srcNode));
+                u32 bodyLen = EXP_seqLen(space, srcNode);
+                curCall->p -= bodyLen;
             }
             else
             {
@@ -779,8 +789,8 @@ void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     vec_push(aryStack, dst);
 
     u32 elmSize = EXP_evalArrayElmSize(src);
-    EXP_EvalValue* outBuf = dataStack->data + dataStack->length;
-    vec_resize(dataStack, dataStack->length + elmSize);
+    EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
+    vec_resize(dataStack, dataStack->length - 2 + elmSize);
     bool r = EXP_evalArrayGetElm(src, 0, outBuf);
     assert(r);
 
@@ -807,8 +817,8 @@ void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     vec_push(aryStack, src);
 
     u32 elmSize = EXP_evalArrayElmSize(src);
-    EXP_EvalValue* outBuf = dataStack->data + dataStack->length;
-    vec_resize(dataStack, dataStack->length + elmSize);
+    EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
+    vec_resize(dataStack, dataStack->length - 2 + elmSize);
     bool r = EXP_evalArrayGetElm(src, 0, outBuf);
     assert(r);
 
