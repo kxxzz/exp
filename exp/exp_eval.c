@@ -271,7 +271,7 @@ static void EXP_evalAfunCall
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
 
     u32 argsOffset = dataStack->length - srcEnode->numIns;
-    memset(ctx->ncallOutBuf, 0, sizeof(ctx->ncallOutBuf));
+    memset(ctx->ncallOutBuf, 0, sizeof(ctx->ncallOutBuf[0])*srcEnode->numOuts);
     afunInfo->call
     (
         space, dataStack->data + argsOffset, ctx->ncallOutBuf,
