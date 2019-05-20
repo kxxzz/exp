@@ -9,12 +9,16 @@ typedef struct EXP_EvalTypeBuildLevel
     u32 src;
     u32 src1;
     u32 p;
+    vec_u32 remain;
+    vec_u32 remain1;
     vec_u32 elms;
 } EXP_EvalTypeBuildLevel;
 
 static void EXP_evalTypeBuildLevel(EXP_EvalTypeBuildLevel* l)
 {
     vec_free(&l->elms);
+    vec_free(&l->remain1);
+    vec_free(&l->remain);
 }
 
 
@@ -328,15 +332,25 @@ next:
                 vec_push(&top->elms, r);
             }
         }
-        u32 p = top->p++;
-        if (p < list->count)
+        else
         {
-            EXP_EvalTypeBuildLevel l = { list->elms[p] };
+            ++top->p;
+
+            for (u32 i = 0; i < list->count; ++i)
+            {
+                u32 e = list->elms[list->count - 1 - i];
+                vec_push(&top->remain, e);
+            }
+        }
+        if (top->remain.length > 0)
+        {
+            u32 e = vec_last(&top->remain);
+            vec_pop(&top->remain);
+            EXP_EvalTypeBuildLevel l = { e };
             vec_push(buildStack, l);
         }
         else
         {
-            assert(p == list->count);
             const EXP_EvalTypeDesc* elm0desc = NULL;
             if (1 == list->count)
             {
@@ -495,16 +509,28 @@ next:
                 {
                     goto failed;
                 }
+                ++top->p;
+
+                for (u32 i = 0; i < listA->count; ++i)
+                {
+                    u32 e = listA->elms[listA->count - 1 - i];
+                    vec_push(&top->remain, e);
+                }
+                for (u32 i = 0; i < listB->count; ++i)
+                {
+                    u32 e = listB->elms[listB->count - 1 - i];
+                    vec_push(&top->remain1, e);
+                }
             }
-            u32 p = top->p++;
-            if (p < listA->count)
+            if (top->remain.length && top->remain1.length)
             {
-                EXP_EvalTypeBuildLevel l = { listA->elms[p], listB->elms[p] };
+                u32 a, b;
+                // todo
+                EXP_EvalTypeBuildLevel l = { a, b };
                 vec_push(buildStack, l);
             }
-            else
+            else if (!top->remain.length && !top->remain1.length)
             {
-                assert(p == listA->count);
                 const EXP_EvalTypeDesc* elm0desc = NULL;
                 if (1 == listA->count)
                 {
@@ -520,6 +546,10 @@ next:
                     r = EXP_evalTypeList(ctx, top->elms.data, top->elms.length);
                 }
                 EXP_evalTypeBuildStackPop(buildStack);
+            }
+            else
+            {
+                goto failed;
             }
             goto next;
         }
