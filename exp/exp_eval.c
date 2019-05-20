@@ -851,7 +851,7 @@ void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     r = EXP_evalArrayGetElm(src, 1, outBuf + elmSize);
     assert(r);
 
-    EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayReduce, .pos = 0 };
+    EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayReduce, .pos = 1 };
     EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
 }
 
