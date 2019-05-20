@@ -332,25 +332,15 @@ next:
                 vec_push(&top->elms, r);
             }
         }
-        else
+        u32 p = top->p++;
+        if (p < list->count)
         {
-            ++top->p;
-
-            for (u32 i = 0; i < list->count; ++i)
-            {
-                u32 e = list->elms[list->count - 1 - i];
-                vec_push(&top->remain, e);
-            }
-        }
-        if (top->remain.length > 0)
-        {
-            u32 e = vec_last(&top->remain);
-            vec_pop(&top->remain);
-            EXP_EvalTypeBuildLevel l = { e };
+            EXP_EvalTypeBuildLevel l = { list->elms[p] };
             vec_push(buildStack, l);
         }
         else
         {
+            assert(p == list->count);
             const EXP_EvalTypeDesc* elm0desc = NULL;
             if (1 == list->count)
             {
