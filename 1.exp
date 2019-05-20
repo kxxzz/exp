@@ -88,6 +88,8 @@ ary1 size
 
 ary1 [+] reduce
 
+ary
+
 // (# _100doors
 //     (# loop => i :
 //         (if (le (* i i) 100)
