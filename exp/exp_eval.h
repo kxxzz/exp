@@ -84,12 +84,19 @@ typedef struct EXP_EvalContext EXP_EvalContext;
 
 typedef void(*EXP_EvalAfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 
+typedef enum EXP_EvalAfunMode
+{
+    EXP_EvalAfunMode_Independ = 0,
+    EXP_EvalAfunMode_ContextDepend,
+    EXP_EvalAfunMode_HighOrder,
+} EXP_EvalAfunMode;
+
 typedef struct EXP_EvalAfunInfo
 {
     const char* name;
     const char* typeDecl;
     EXP_EvalAfunCall call;
-    bool highOrder;
+    EXP_EvalAfunMode mode;
 } EXP_EvalAfunInfo;
 
 

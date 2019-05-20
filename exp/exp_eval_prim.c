@@ -247,37 +247,38 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             "&",
             "num -> [num]",
             EXP_evalAfunCall_Array,
-            true,
+            EXP_EvalAfunMode_ContextDepend,
         },
         {
             "load-at",
             "{A*} [A*] num -> A*",
             EXP_evalAfunCall_LoadAt,
-            true,
+            EXP_EvalAfunMode_ContextDepend,
         },
         {
             "save-at",
             "{A*} [A*] num A* ->",
             EXP_evalAfunCall_SaveAt,
-            true,
+            EXP_EvalAfunMode_ContextDepend,
         },
+
         {
             "map",
             "{A* B*} [A*] (A* -> B*) -> [B*]",
             EXP_evalAfunCall_Map,
-            true,
+            EXP_EvalAfunMode_HighOrder,
         },
         {
             "filter",
             "{A*} [A*] (A* -> bool) -> [A*]",
             EXP_evalAfunCall_Filter,
-            true,
+            EXP_EvalAfunMode_HighOrder,
         },
         {
             "reduce",
             "{A*} [A*] (A* A* -> A*) -> [A*]",
             EXP_evalAfunCall_Reduce,
-            true,
+            EXP_EvalAfunMode_HighOrder,
         },
 
         {

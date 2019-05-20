@@ -65,17 +65,17 @@ gc
 
 => r :
 
-// dup
-// dup
-// drop8
-// drop4
+dup
+dup
+drop8
+drop4
 
 (& 100) [50 *] map => ary :
 
 gc
 
-(save-at ary 45 33)
-(load-at ary 45)
+//(save-at ary 45 33)
+(load-at ary 1)
 
 // (# _100doors
 //     (# loop => i :
