@@ -618,9 +618,11 @@ static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
 
         const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, curBlock->funType);
         const EXP_EvalTypeDescFun* fun = &desc->fun;
+        u32 funIns = fun->ins;
+        u32 funOuts = fun->outs;
 
         u32 ins1 = EXP_evalTypeList(typeContext, curBlock->ins.data, curBlock->ins.length);
-        if (!EXP_evalCompileTypeUnify(ctx, fun->ins, ins1, &ins))
+        if (!EXP_evalCompileTypeUnify(ctx, funIns, ins1, &ins))
         {
             EXP_evalCompileErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
@@ -634,7 +636,7 @@ static void EXP_evalCompileSaveBlock(EXP_EvalCompileContext* ctx)
 
         const u32* outs1elms = ctx->dataStack.data + ctx->dataStack.length - curBlock->numOuts;
         u32 outs1 = EXP_evalTypeList(typeContext, outs1elms, curBlock->numOuts);
-        if (!EXP_evalCompileTypeUnify(ctx, fun->outs, outs1, &outs))
+        if (!EXP_evalCompileTypeUnify(ctx, funOuts, outs1, &outs))
         {
             EXP_evalCompileErrorAtNode(ctx, curCall->srcNode, EXP_EvalErrCode_EvalUnification);
             return;
@@ -783,10 +785,12 @@ static bool EXP_evalCompileFunCall
     const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, funType);
     assert(EXP_EvalTypeType_Fun == desc->type);
     const EXP_EvalTypeDescFun* fun = &desc->fun;
+    u32 funIns = fun->ins;
+    u32 funOuts = fun->outs;
 
     {
-        const EXP_EvalTypeDesc* insDesc = EXP_evalTypeDescById(typeContext, fun->ins);
-        const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, fun->outs);
+        const EXP_EvalTypeDesc* insDesc = EXP_evalTypeDescById(typeContext, funIns);
+        const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, funOuts);
 
         if ((insDesc->type != EXP_EvalTypeType_List) && (insDesc->type != EXP_EvalTypeType_ListVar))
         {
@@ -808,7 +812,7 @@ static bool EXP_evalCompileFunCall
 
     u32 args = EXP_evalTypeList(typeContext, dataStack->data + argsOffset, numIns);
     u32 u;
-    if (!EXP_evalCompileTypeUnifyPat(ctx, args, fun->ins, &u))
+    if (!EXP_evalCompileTypeUnifyPat(ctx, args, funIns, &u))
     {
         EXP_evalCompileErrorAtNode(ctx, srcNode, EXP_EvalErrCode_EvalArgs);
         return false;
@@ -816,7 +820,7 @@ static bool EXP_evalCompileFunCall
 
     vec_resize(dataStack, argsOffset);
 
-    u32 outs = EXP_evalCompileTypeFromPat(ctx, fun->outs);
+    u32 outs = EXP_evalCompileTypeFromPat(ctx, funOuts);
     const EXP_EvalTypeDesc* outsDesc = EXP_evalTypeDescById(typeContext, outs);
     if ((outsDesc->type != EXP_EvalTypeType_List) || outsDesc->list.hasListElm)
     {
