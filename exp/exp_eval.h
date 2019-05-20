@@ -122,6 +122,8 @@ typedef enum EXP_EvalPrimFun
     EXP_EvalPrimFun_Array,
     EXP_EvalPrimFun_LoadAt,
     EXP_EvalPrimFun_SaveAt,
+    EXP_EvalPrimFun_Size,
+
     EXP_EvalPrimFun_Map,
     EXP_EvalPrimFun_Filter,
     EXP_EvalPrimFun_Reduce,

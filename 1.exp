@@ -72,16 +72,19 @@ drop8
 drop4
 
 
-(& 50) [100 +] map => ary :
+(& 50) [5 +] map => ary :
 
 gc
 
 
 (&< ary 45 33)
-(&> ary 45)
+//(&> ary 45)
 
 
-ary [500 gt] filter => ary1 :
+ary [20 gt] filter => ary1 :
+
+ary size
+ary1 size
 
 ary1 [+] reduce
 

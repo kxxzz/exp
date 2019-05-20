@@ -107,6 +107,7 @@ const EXP_EvalAtypeInfo* EXP_EvalPrimTypeInfoTable(void)
 void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_AtLoad(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_AtSave(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
+void EXP_evalAfunCall_Size(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
@@ -261,6 +262,12 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             EXP_evalAfunCall_AtSave,
             EXP_EvalAfunMode_ContextDepend,
         },
+        {
+            "size",
+            "{A*} [A*] -> num",
+            EXP_evalAfunCall_Size,
+            EXP_EvalAfunMode_ContextDepend,
+        },
 
         {
             "map",
@@ -276,7 +283,7 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
         },
         {
             "reduce",
-            "{A*} [A*] (A* A* -> A*) -> [A*]",
+            "{A*} [A*] (A* A* -> A*) -> A*",
             EXP_evalAfunCall_Reduce,
             EXP_EvalAfunMode_HighOrder,
         },

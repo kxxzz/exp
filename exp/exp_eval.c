@@ -746,6 +746,15 @@ void EXP_evalAfunCall_AtSave(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
 
 
 
+void EXP_evalAfunCall_Size(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
+{
+    EXP_EvalArray* ary = ins[0].ary;
+    u32 size = EXP_evalArraySize(ary);
+    outs[0].f = size;
+}
+
+
+
 void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
     EXP_EvalValueVec* dataStack = &ctx->dataStack;
@@ -835,8 +844,11 @@ void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
 
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
-    vec_resize(dataStack, dataStack->length - 2 + elmSize);
-    bool r = EXP_evalArrayGetElm(src, 0, outBuf);
+    vec_resize(dataStack, dataStack->length - 2 + elmSize * 2);
+    bool r;
+    r = EXP_evalArrayGetElm(src, 0, outBuf);
+    assert(r);
+    r = EXP_evalArrayGetElm(src, 1, outBuf + elmSize);
     assert(r);
 
     EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayReduce, .pos = 0 };
