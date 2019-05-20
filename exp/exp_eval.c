@@ -396,7 +396,7 @@ next:
         }
         case EXP_EvalBlockCallbackType_ArrayMap:
         {
-            EXP_Node srcNode = curCall->srcNode;
+            EXP_Node blkNode = curCall->srcNode;
 
             assert(aryStack->length >= 2);
             EXP_EvalArray* src = aryStack->data[aryStack->length - 2];
@@ -406,9 +406,9 @@ next:
             assert(EXP_evalArraySize(dst) == EXP_evalArraySize(src));
             u32 size = EXP_evalArraySize(src);
 
-            EXP_EvalNode* enode = nodeTable->data + srcNode.id;
-            assert(EXP_evalArrayElmSize(src) == enode->numIns);
-            u32 dstElmSize = enode->numOuts;
+            EXP_EvalNode* blkEnode = nodeTable->data + blkNode.id;
+            assert(EXP_evalArrayElmSize(src) == blkEnode->numIns);
+            u32 dstElmSize = blkEnode->numOuts;
             assert(dataStack->length >= dstElmSize);
 
             EXP_EvalValue* inBuf = dataStack->data + dataStack->length - dstElmSize;
@@ -425,8 +425,8 @@ next:
                 r = EXP_evalArrayGetElm(src, pos, outBuf);
                 assert(r);
 
-                assert(EXP_isSeqSquare(space, srcNode));
-                u32 bodyLen = EXP_seqLen(space, srcNode);
+                assert(EXP_isSeqSquare(space, blkNode));
+                u32 bodyLen = EXP_seqLen(space, blkNode);
                 curCall->p -= bodyLen;
             }
             else
@@ -764,6 +764,8 @@ void EXP_evalAfunCall_Map(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* o
     assert(EXP_isSeqSquare(space, blkSrc));
     u32 bodyLen = EXP_seqLen(space, blkSrc);
     const EXP_Node* body = EXP_seqElm(space, blkSrc);
+    EXP_EvalNode* blkEnode = ctx->nodeTable.data + blkSrc.id;
+    EXP_evalArraySetElmSize(dst, blkEnode->numOuts);
 
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
@@ -795,12 +797,16 @@ void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     assert(EXP_isSeqSquare(space, blkSrc));
     u32 bodyLen = EXP_seqLen(space, blkSrc);
     const EXP_Node* body = EXP_seqElm(space, blkSrc);
+    EXP_EvalNode* blkEnode = ctx->nodeTable.data + blkSrc.id;
+    assert(blkEnode->numIns == blkEnode->numOuts);
 
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
     vec_resize(dataStack, dataStack->length - 2 + elmSize);
     bool r = EXP_evalArrayGetElm(src, 0, outBuf);
     assert(r);
+    EXP_evalArraySetElmSize(dst, elmSize);
+    assert(elmSize == blkEnode->numOuts);
 
     EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayFilter, .pos = 0 };
     EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
@@ -824,6 +830,8 @@ void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     assert(EXP_isSeqSquare(space, blkSrc));
     u32 bodyLen = EXP_seqLen(space, blkSrc);
     const EXP_Node* body = EXP_seqElm(space, blkSrc);
+    EXP_EvalNode* blkEnode = ctx->nodeTable.data + blkSrc.id;
+    assert(blkEnode->numIns == blkEnode->numOuts * 2);
 
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
