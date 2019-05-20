@@ -208,6 +208,7 @@ typedef vec_t(EXP_EvalCall) EXP_EvalCallStack;
 typedef struct EXP_EvalArray
 {
     EXP_EvalValueVec data;
+    u32 elmSize;
     u32 size;
 } EXP_EvalArray;
 
@@ -215,6 +216,7 @@ typedef struct EXP_EvalArray
 
 static void EXP_evalArrayInit(EXP_EvalArray* a, u32 size)
 {
+    a->elmSize = 1;
     a->size = size;
 }
 

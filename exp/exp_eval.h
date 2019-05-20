@@ -53,6 +53,7 @@ typedef struct EXP_EvalArray EXP_EvalArray;
 
 u32 EXP_evalArraySize(EXP_EvalArray* a);
 u32 EXP_evalArrayElmSize(EXP_EvalArray* a);
+void EXP_evalArraySetElmSize(EXP_EvalArray* a, u32 elmSize);
 void EXP_evalArrayResize(EXP_EvalArray* a, u32 size);
 bool EXP_evalArraySetElm(EXP_EvalArray* a, u32 p, const EXP_EvalValue* inBuf);
 bool EXP_evalArrayGetElm(EXP_EvalArray* a, u32 p, EXP_EvalValue* outBuf);

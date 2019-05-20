@@ -406,14 +406,15 @@ next:
 
             u32 dstElmSize = EXP_evalArrayElmSize(dst);
             assert(dataStack->length >= dstElmSize);
+
+            EXP_EvalValue* inBuf = dataStack->data + dataStack->length - dstElmSize;
+            r = EXP_evalArraySetElm(dst, pos, inBuf);
+            assert(r);
+            vec_resize(dataStack, dataStack->length - dstElmSize);
+
+            pos = ++cb->pos;
             if (pos < size)
             {
-                EXP_EvalValue* inBuf = dataStack->data + dataStack->length - dstElmSize;
-                r = EXP_evalArraySetElm(dst, pos, inBuf);
-                assert(r);
-                vec_resize(dataStack, dataStack->length - dstElmSize);
-
-                pos = ++cb->pos;
                 u32 srcElmSize = EXP_evalArrayElmSize(src);
                 EXP_EvalValue* outBuf = dataStack->data + dataStack->length;
                 vec_resize(dataStack, dataStack->length + srcElmSize);
@@ -427,7 +428,6 @@ next:
             }
             else
             {
-                vec_resize(dataStack, dataStack->length - dstElmSize);
                 EXP_EvalValue v = { .ary = dst, EXP_EvalValueType_Object };
                 vec_push(dataStack, v);
 
@@ -458,9 +458,9 @@ next:
                 vec_resize(dataStack, dataStack->length - elmSize);
             }
             vec_pop(dataStack);
+            pos = ++cb->pos;
             if (pos < size)
             {
-                pos = ++cb->pos;
                 EXP_EvalValue* elm = dataStack->data + dataStack->length;
                 vec_resize(dataStack, dataStack->length + elmSize);
                 bool r = EXP_evalArrayGetElm(src, pos, elm);
@@ -483,7 +483,7 @@ next:
         }
         case EXP_EvalBlockCallbackType_ArrayReduce:
         {
-            assert(aryStack->length >= 2);
+            assert(aryStack->length >= 1);
             EXP_EvalArray* src = aryStack->data[aryStack->length - 1];
 
             u32 pos = cb->pos;
@@ -491,9 +491,9 @@ next:
             u32 elmSize = EXP_evalArrayElmSize(src);
             assert(dataStack->length >= elmSize);
 
+            pos = ++cb->pos;
             if (pos < size)
             {
-                pos = ++cb->pos;
                 EXP_EvalValue* elm = dataStack->data + dataStack->length;
                 vec_resize(dataStack, dataStack->length + elmSize);
                 bool r = EXP_evalArrayGetElm(src, pos, elm);
@@ -788,16 +788,17 @@ void EXP_evalAfunCall_Filter(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     EXP_EvalArray* dst = EXP_evalNewArray(ctx, 0).ary;
     vec_push(aryStack, dst);
 
+    EXP_Node blkSrc = ins[1].src;
+    assert(EXP_isSeqSquare(space, blkSrc));
+    u32 bodyLen = EXP_seqLen(space, blkSrc);
+    const EXP_Node* body = EXP_seqElm(space, blkSrc);
+
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
     vec_resize(dataStack, dataStack->length - 2 + elmSize);
     bool r = EXP_evalArrayGetElm(src, 0, outBuf);
     assert(r);
 
-    EXP_Node blkSrc = ins[1].src;
-    assert(EXP_isSeqSquare(space, blkSrc));
-    u32 bodyLen = EXP_seqLen(space, blkSrc);
-    const EXP_Node* body = EXP_seqElm(space, blkSrc);
     EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayFilter, .pos = 0 };
     EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
 }
@@ -816,16 +817,17 @@ void EXP_evalAfunCall_Reduce(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
     EXP_EvalArray* src = ins[0].ary;
     vec_push(aryStack, src);
 
+    EXP_Node blkSrc = ins[1].src;
+    assert(EXP_isSeqSquare(space, blkSrc));
+    u32 bodyLen = EXP_seqLen(space, blkSrc);
+    const EXP_Node* body = EXP_seqElm(space, blkSrc);
+
     u32 elmSize = EXP_evalArrayElmSize(src);
     EXP_EvalValue* outBuf = dataStack->data + dataStack->length - 2;
     vec_resize(dataStack, dataStack->length - 2 + elmSize);
     bool r = EXP_evalArrayGetElm(src, 0, outBuf);
     assert(r);
 
-    EXP_Node blkSrc = ins[1].src;
-    assert(EXP_isSeqSquare(space, blkSrc));
-    u32 bodyLen = EXP_seqLen(space, blkSrc);
-    const EXP_Node* body = EXP_seqElm(space, blkSrc);
     EXP_EvalBlockCallback cb = { EXP_EvalBlockCallbackType_ArrayReduce, .pos = 0 };
     EXP_evalEnterBlockWithCB(ctx, body, bodyLen, blkSrc, cb);
 }

@@ -72,12 +72,18 @@ drop8
 drop4
 */
 
-(& 100) [50 +] map => ary :
+(& 50) [1 +] map => ary :
 
 gc
 
-(&< ary 45 33)
+
+//(&< ary 45 33)
 (&> ary 45)
+
+
+ary [50 gt] filter => ary1 :
+
+ary [+] reduce
 
 // (# _100doors
 //     (# loop => i :
