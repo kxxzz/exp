@@ -74,8 +74,8 @@ drop4
 
 gc
 
-//(<& ary 45 33)
-(&> ary 99)
+(<& ary 45 33)
+(&> ary 45)
 
 // (# _100doors
 //     (# loop => i :
