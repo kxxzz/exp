@@ -404,7 +404,8 @@ next:
             assert(EXP_evalArraySize(dst) == EXP_evalArraySize(src));
             u32 size = EXP_evalArraySize(src);
 
-            u32 dstElmSize = EXP_evalArrayElmSize(dst);
+            // todo
+            u32 dstElmSize = 1;
             assert(dataStack->length >= dstElmSize);
 
             EXP_EvalValue* inBuf = dataStack->data + dataStack->length - dstElmSize;

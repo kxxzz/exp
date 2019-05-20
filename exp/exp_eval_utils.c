@@ -19,12 +19,12 @@ void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
     {
         EXP_EvalValue v = dataStack->data[i];
         u32 t = typeStack->data[i];
-        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
-        switch (desc->type)
+        const EXP_EvalTypeDesc desc = EXP_evalTypeDescById(EXP_evalDataTypeContext(ctx), t);
+        switch (desc.type)
         {
         case EXP_EvalTypeType_Atom:
         {
-            switch (desc->atype)
+            switch (desc.atype)
             {
             case EXP_EvalPrimType_BOOL:
             {
