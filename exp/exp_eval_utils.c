@@ -97,6 +97,10 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
                     fprintf(f, " ");
                 }
             }
+            if (hasAryMemb)
+            {
+                fprintf(f, "\n");
+            }
         }
         vec_resize(elmBuf, elmBufOff);
         fprintf(f, "]");
