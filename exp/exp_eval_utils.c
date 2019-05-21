@@ -88,10 +88,6 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
                 u32 t = elmDesc->list.elms[i];
                 u32 indent1 = (multiLine && ((0 == i) || hasAryMemb)) ? indent + 1 : 0;
                 EXP_evalValueFprint(f, ctx, v, t, indent1, elmBuf);
-                if ((i == elmSize - 1) && (elmDesc->list.count > 1))
-                {
-                    fprintf(f, ",");
-                }
                 if (multiLine && ((i == elmSize - 1) || hasAryMemb))
                 {
                     fprintf(f, "\n");
