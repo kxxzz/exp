@@ -9,77 +9,116 @@
 
 
 
+void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, u32 indent)
+{
+    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(ctx);
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
+    for (u32 i = 0; i < indent; ++i)
+    {
+        fprintf(f, "    ");
+    }
+    switch (desc->type)
+    {
+    case EXP_EvalTypeType_Atom:
+    {
+        switch (desc->atype)
+        {
+        case EXP_EvalPrimType_BOOL:
+        {
+            fprintf(f, "%s", v.b ? "true" : "false");
+            break;
+        }
+        case EXP_EvalPrimType_NUM:
+        {
+            fprintf(f, "%f", v.f);
+            break;
+        }
+        case EXP_EvalPrimType_STRING:
+        {
+            const char* s = ((vec_char*)(v.a))->data;
+            fprintf(f, "\"%s\"", s);
+            break;
+        }
+        default:
+        {
+            const char* s = EXP_EvalPrimTypeInfoTable()[t].name;
+            fprintf(f, "<TYPE: %s>", s);
+            break;
+        }
+        }
+        break;
+    }
+    case EXP_EvalTypeType_Array:
+    {
+        assert(EXP_EvalValueType_Object == v.type);
+        const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(typeContext, desc->ary.elm);
+        assert(EXP_EvalTypeType_List == elmDesc->type);
+        //fprintf(f, "<ARRAY>\n");
+        bool hasAryMemb = false;
+        for (u32 i = 0; i < elmDesc->list.count; ++i)
+        {
+            u32 t = elmDesc->list.elms[i];
+            const EXP_EvalTypeDesc* membDesc = EXP_evalTypeDescById(typeContext, t);
+            if (EXP_EvalTypeType_Array == membDesc->type)
+            {
+                hasAryMemb = true;
+            }
+        }
+        if (hasAryMemb)
+        {
+            fprintf(f, "[\n");
+        }
+        else
+        {
+            fprintf(f, "[ ");
+        }
+        EXP_EvalArray* ary = v.ary;
+        u32 size = EXP_evalArraySize(ary);
+        u32 elmSize = EXP_evalArrayElmSize(ary);
+        assert(elmDesc->list.count == elmSize);
+        for (u32 i = 0; i < size; ++i)
+        {
+            EXP_EvalValue elmBuf[64];
+            bool r = EXP_evalArrayGetElm(ary, i, elmBuf);
+            assert(r);
+            for (u32 i = 0; i < elmSize; ++i)
+            {
+                EXP_EvalValue v = elmBuf[i];
+                u32 t = elmDesc->list.elms[i];
+                EXP_evalValueFprint(f, ctx, v, t, hasAryMemb ? indent + 1 : 0);
+                if (hasAryMemb)
+                {
+                    fprintf(f, "\n");
+                }
+                else
+                {
+                    fprintf(f, " ");
+                }
+            }
+        }
+        fprintf(f, "]");
+        break;
+    }
+    default:
+        assert(false);
+        break;
+    }
+}
+
+
+
 
 
 void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
 {
     vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
     EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
-    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(ctx);
     for (u32 i = 0; i < dataStack->length; ++i)
     {
         EXP_EvalValue v = dataStack->data[i];
         u32 t = typeStack->data[i];
-        const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
-        switch (desc->type)
-        {
-        case EXP_EvalTypeType_Atom:
-        {
-            switch (desc->atype)
-            {
-            case EXP_EvalPrimType_BOOL:
-            {
-                fprintf(f, "%s\n", v.b ? "true" : "false");
-                break;
-            }
-            case EXP_EvalPrimType_NUM:
-            {
-                fprintf(f, "%f\n", v.f);
-                break;
-            }
-            case EXP_EvalPrimType_STRING:
-            {
-                const char* s = ((vec_char*)(v.a))->data;
-                fprintf(f, "\"%s\"\n", s);
-                break;
-            }
-            default:
-            {
-                const char* s = EXP_EvalPrimTypeInfoTable()[t].name;
-                fprintf(f, "<TYPE: %s>\n", s);
-                break;
-            }
-            }
-            break;
-        }
-        case EXP_EvalTypeType_Array:
-        {
-            assert(EXP_EvalValueType_Object == v.type);
-            const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(typeContext, desc->ary.elm);
-            assert(EXP_EvalTypeType_List == elmDesc->type);
-            //fprintf(f, "<ARRAY>\n");
-            fprintf(f, "[\n");
-            EXP_EvalArray* ary = v.ary;
-            u32 size = EXP_evalArraySize(ary);
-            u32 elmSize = EXP_evalArrayElmSize(ary);
-            assert(elmDesc->list.count == elmSize);
-            for (u32 i = 0; i < size; ++i)
-            {
-                EXP_EvalValue elmBuf[64];
-                bool r = EXP_evalArrayGetElm(ary, i, elmBuf);
-                assert(r);
-                for (u32 i = 0; i < elmSize; ++i)
-                {
-                    // elmBuf[i];
-                }
-            }
-            fprintf(f, "]\n");
-            break;
-        }
-        default:
-            assert(false);
-            break;
-        }
+        EXP_evalValueFprint(f, ctx, v, t, 0);
+        fprintf(f, "\n");
     }
 }
 
