@@ -15,7 +15,7 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
     const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
     for (u32 i = 0; i < indent; ++i)
     {
-        fprintf(f, "    ");
+        fprintf(f, "  ");
     }
     switch (desc->type)
     {
