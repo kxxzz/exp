@@ -64,7 +64,8 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
                 hasAryMemb = true;
             }
         }
-        if (hasAryMemb)
+        bool multiLine = hasAryMemb || (elmDesc->list.count > 1);
+        if (multiLine)
         {
             fprintf(f, "[\n");
         }
@@ -85,8 +86,12 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
             {
                 EXP_EvalValue v = elmBuf[i];
                 u32 t = elmDesc->list.elms[i];
-                EXP_evalValueFprint(f, ctx, v, t, hasAryMemb ? indent + 1 : 0);
-                if (hasAryMemb)
+                EXP_evalValueFprint(f, ctx, v, t, (hasAryMemb || (0 == i)) ? indent + 1 : 0);
+                if ((i == elmSize - 1) && (elmDesc->list.count > 1))
+                {
+                    fprintf(f, ",");
+                }
+                if (hasAryMemb || (i == elmSize - 1))
                 {
                     fprintf(f, "\n");
                 }
