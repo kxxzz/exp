@@ -53,7 +53,6 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
         assert(EXP_EvalValueType_Object == v.type);
         const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(typeContext, desc->ary.elm);
         assert(EXP_EvalTypeType_List == elmDesc->type);
-        //fprintf(f, "<ARRAY>\n");
         bool hasAryMemb = false;
         for (u32 i = 0; i < elmDesc->list.count; ++i)
         {
