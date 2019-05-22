@@ -252,6 +252,35 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 
 
 
+static u32 EXP_evalTypeListOrListVar(EXP_EvalTypeContext* ctx, const u32* elms, u32 count)
+{
+    const EXP_EvalTypeDesc* elm0desc = NULL;
+    if (1 == count)
+    {
+        elm0desc = EXP_evalTypeDescById(ctx, elms[0]);
+        assert(elm0desc->type != EXP_EvalTypeType_List);
+    }
+    if ((1 == count) && (EXP_EvalTypeType_ListVar == elm0desc->type))
+    {
+        return elms[0];
+    }
+    else
+    {
+        return EXP_evalTypeList(ctx, elms, count);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
@@ -280,9 +309,11 @@ step:
         {
         case EXP_EvalTypeType_List:
         {
-            assert(retBuf->length >= topReduce->retBase);
-            u32 t = EXP_evalTypeList(ctx, retBuf->data + topReduce->retBase, retBuf->length - topReduce->retBase);
             vec_resize(retBuf, topReduce->retBase);
+            assert(retBuf->length >= topReduce->retBase);
+            u32* elms = retBuf->data + topReduce->retBase;
+            u32 count = retBuf->length - topReduce->retBase;
+            u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
             vec_push(retBuf, t);
             break;
         }
@@ -428,9 +459,11 @@ step:
         {
         case EXP_EvalTypeType_List:
         {
-            assert(retBuf->length >= topReduce->retBase);
-            u32 t = EXP_evalTypeList(ctx, retBuf->data + topReduce->retBase, retBuf->length - topReduce->retBase);
             vec_resize(retBuf, topReduce->retBase);
+            assert(retBuf->length >= topReduce->retBase);
+            u32* elms = retBuf->data + topReduce->retBase;
+            u32 count = retBuf->length - topReduce->retBase;
+            u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
             vec_push(retBuf, t);
             break;
         }
@@ -509,6 +542,26 @@ step:
             }
             case EXP_EvalTypeType_List:
             {
+                bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
+                if (!listInList)
+                {
+                    EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
+                    vec_push(reduceStack, newReduce);
+                }
+
+                const EXP_EvalTypeDescList* list0 = &desc0->list;
+                const EXP_EvalTypeDescList* list1 = &desc1->list;
+
+                for (u32 i = 0; i < list0->count; ++i)
+                {
+                    u32 e = list0->elms[list0->count - 1 - i];
+                    vec_push(inStack0, e);
+                }
+                for (u32 i = 0; i < list1->count; ++i)
+                {
+                    u32 e = list1->elms[list1->count - 1 - i];
+                    vec_push(inStack1, e);
+                }
                 break;
             }
             case EXP_EvalTypeType_Fun:
