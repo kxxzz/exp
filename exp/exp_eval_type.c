@@ -19,7 +19,7 @@ typedef struct EXP_EvalTypeContext
     Upool* dataPool;
     vec_char descBuffer;
     vec_u32 inStack[2];
-    EXP_EvalTypeReduceStack reduceStack[2];
+    EXP_EvalTypeReduceStack reduceStack;
     vec_u32 retBuf;
 } EXP_EvalTypeContext;
 
@@ -34,8 +34,7 @@ EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
 {
     vec_free(&ctx->retBuf);
-    vec_free(&ctx->reduceStack[1]);
-    vec_free(&ctx->reduceStack[0]);
+    vec_free(&ctx->reduceStack);
     vec_free(&ctx->inStack[1]);
     vec_free(&ctx->inStack[0]);
     vec_free(&ctx->descBuffer);
@@ -257,11 +256,13 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 x)
 {
     vec_u32* inStack = &ctx->inStack[0];
-    EXP_EvalTypeReduceStack* reduceStack = &ctx->reduceStack[0];
+    EXP_EvalTypeReduceStack* reduceStack = &ctx->reduceStack;
     vec_u32* retBuf = &ctx->retBuf;
+
     const u32 inBP = inStack->length;
     const u32 retBP = retBuf->length;
     vec_push(inStack, x);
+
     u32 cur = -1;
     const EXP_EvalTypeReduce* topReduce = NULL;
     const EXP_EvalTypeDesc* desc = NULL;
@@ -272,7 +273,6 @@ step:
         assert(1 == retBuf->length - retBP);
         return retBuf->data[retBP];
     }
-    cur = vec_last(inStack);
     topReduce = (reduceStack->length > 0) ? &vec_last(reduceStack) : NULL;
     if (topReduce && (topReduce->inBase == inStack->length))
     {
@@ -309,13 +309,15 @@ step:
     }
     else
     {
+        cur = vec_last(inStack);
+        vec_pop(inStack);
+
         desc = EXP_evalTypeDescById(ctx, cur);
         switch (desc->type)
         {
         case EXP_EvalTypeType_Atom:
         {
             vec_push(retBuf, cur);
-            vec_pop(inStack);
             break;
         }
         case EXP_EvalTypeType_Var:
@@ -324,20 +326,16 @@ step:
             u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
             if (pV)
             {
-                vec_pop(inStack);
                 vec_push(inStack, *pV);
             }
             else
             {
                 vec_push(retBuf, cur);
-                vec_pop(inStack);
             }
             break;
         }
         case EXP_EvalTypeType_List:
         {
-            vec_pop(inStack);
-
             bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
             if (!listInList)
             {
@@ -355,7 +353,6 @@ step:
         }
         case EXP_EvalTypeType_Fun:
         {
-            vec_pop(inStack);
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
             vec_push(reduceStack, newReduce);
 
@@ -366,7 +363,6 @@ step:
         }
         case EXP_EvalTypeType_Array:
         {
-            vec_pop(inStack);
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
             vec_push(reduceStack, newReduce);
 
@@ -401,8 +397,159 @@ step:
 
 bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, u32 a, u32 b, u32* pU)
 {
-    u32 r = -1;
-    return r;
+    vec_u32* inStack0 = &ctx->inStack[0];
+    vec_u32* inStack1 = &ctx->inStack[1];
+    EXP_EvalTypeReduceStack* reduceStack = &ctx->reduceStack;
+    vec_u32* retBuf = &ctx->retBuf;
+
+    assert(inStack0->length == inStack1->length);
+    const u32 inBP = inStack0->length;
+    const u32 retBP = retBuf->length;
+    vec_push(inStack0, a);
+    vec_push(inStack0, b);
+
+    u32 cur = -1;
+    const EXP_EvalTypeReduce* topReduce = NULL;
+    const EXP_EvalTypeDesc* desc0 = NULL;
+    const EXP_EvalTypeDesc* desc1 = NULL;
+step:
+    assert(inStack0->length >= inBP);
+    assert(inStack1->length >= inBP);
+    if ((inBP == inStack0->length) && (inBP == inStack1->length))
+    {
+        assert(1 == retBuf->length - retBP);
+        *pU = EXP_evalTypeReduct(ctx, varSpace, retBuf->data[retBP]);
+        return true;
+    }
+    topReduce = (reduceStack->length > 0) ? &vec_last(reduceStack) : NULL;
+    if (topReduce && (topReduce->inBase == inStack0->length))
+    {
+        switch (topReduce->typeType)
+        {
+        case EXP_EvalTypeType_List:
+        {
+            assert(retBuf->length >= topReduce->retBase);
+            u32 t = EXP_evalTypeList(ctx, retBuf->data + topReduce->retBase, retBuf->length - topReduce->retBase);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, t);
+            break;
+        }
+        case EXP_EvalTypeType_Fun:
+        {
+            assert(retBuf->length == topReduce->retBase + 2);
+            u32 t = EXP_evalTypeFun(ctx, retBuf->data[topReduce->retBase], retBuf->data[topReduce->retBase + 1]);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, t);
+            break;
+        }
+        case EXP_EvalTypeType_Array:
+        {
+            assert(retBuf->length == topReduce->retBase + 1);
+            u32 t = EXP_evalTypeArray(ctx, retBuf->data[topReduce->retBase]);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, t);
+            break;
+        }
+        default:
+            assert(false);
+            break;
+        }
+    }
+    else
+    {
+        a = vec_last(inStack0);
+        b = vec_last(inStack1);
+        vec_pop(inStack0);
+        vec_pop(inStack1);
+
+        if (a == b)
+        {
+            u32 t = EXP_evalTypeReduct(ctx, varSpace, a);
+            vec_push(retBuf, t);
+            goto step;
+        }
+        desc0 = EXP_evalTypeDescById(ctx, a);
+        desc1 = EXP_evalTypeDescById(ctx, b);
+        if (desc0->type == desc1->type)
+        {
+            switch (desc0->type)
+            {
+            case EXP_EvalTypeType_Atom:
+            {
+                assert(desc0->atype != desc1->atype);
+                goto failed;
+            }
+            case EXP_EvalTypeType_Var:
+            case EXP_EvalTypeType_ListVar:
+            {
+                u32* aV = EXP_evalTypeVarValue(varSpace, desc0->varId);
+                u32* bV = EXP_evalTypeVarValue(varSpace, desc1->varId);
+                if (aV && bV)
+                {
+                    vec_push(inStack0, *aV);
+                    vec_push(inStack1, *bV);
+                }
+                else if (aV && !bV)
+                {
+                    u32 t = EXP_evalTypeReduct(ctx, varSpace, *aV);
+                    vec_push(retBuf, t);
+                }
+                else if (!aV && bV)
+                {
+                    u32 t = EXP_evalTypeReduct(ctx, varSpace, *bV);
+                    vec_push(retBuf, t);
+                }
+                else
+                {
+                    assert(!aV && !bV);
+                    vec_push(retBuf, a);
+                    EXP_evalTypeVarBind(varSpace, desc0->varId, b);
+                }
+                break;
+            }
+            case EXP_EvalTypeType_List:
+            {
+                break;
+            }
+            case EXP_EvalTypeType_Fun:
+            {
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
+                vec_push(reduceStack, newReduce);
+
+                const EXP_EvalTypeDescFun* fun0 = &desc0->fun;
+                const EXP_EvalTypeDescFun* fun1 = &desc1->fun;
+                vec_push(inStack0, fun0->outs);
+                vec_push(inStack0, fun0->ins);
+                vec_push(inStack1, fun1->outs);
+                vec_push(inStack1, fun1->ins);
+                break;
+            }
+            case EXP_EvalTypeType_Array:
+            {
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
+                vec_push(reduceStack, newReduce);
+
+                const EXP_EvalTypeDescArray* ary0 = &desc0->ary;
+                const EXP_EvalTypeDescArray* ary1 = &desc1->ary;
+                vec_push(inStack0, ary0->elm);
+                vec_push(inStack1, ary1->elm);
+                break;
+            }
+            default:
+                assert(false);
+                break;
+            }
+        }
+        else
+        {
+
+        }
+    }
+    goto step;
+failed:
+    vec_resize(inStack0, inBP);
+    vec_resize(inStack1, inBP);
+    return false;
 }
 
 
