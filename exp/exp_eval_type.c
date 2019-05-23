@@ -330,7 +330,9 @@ step:
     {
         assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
-        return retBuf->data[retBP];
+        u32 t = retBuf->data[retBP];
+        vec_pop(retBuf);
+        return t;
     }
     cur = vec_last(inStack);
     vec_pop(inStack);
@@ -342,11 +344,11 @@ step:
         {
         case EXP_EvalTypeType_List:
         {
-            vec_resize(retBuf, topReduce->retBase);
             assert(retBuf->length >= topReduce->retBase);
             u32* elms = retBuf->data + topReduce->retBase;
             u32 count = retBuf->length - topReduce->retBase;
             u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
+            vec_resize(retBuf, topReduce->retBase);
             vec_push(retBuf, t);
             break;
         }
@@ -398,6 +400,7 @@ step:
         }
         case EXP_EvalTypeType_List:
         {
+            topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
             bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
             if (!listInList)
             {
@@ -472,7 +475,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     const u32 reduceBP = reduceStack->length;
     const u32 retBP = retBuf->length;
     vec_push(inStack0, a);
-    vec_push(inStack0, b);
+    vec_push(inStack1, b);
 
     const EXP_EvalTypeReduce* topReduce = NULL;
     const EXP_EvalTypeDesc* desc0 = NULL;
@@ -484,7 +487,9 @@ step:
     {
         assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
-        *pU = EXP_evalTypeReduct(ctx, varSpace, retBuf->data[retBP]);
+        u32 t = retBuf->data[retBP];
+        vec_pop(retBuf);
+        *pU = EXP_evalTypeReduct(ctx, varSpace, t);
         return true;
     }
     if ((inBP == inStack0->length) || (inBP == inStack1->length))
@@ -509,11 +514,11 @@ step:
         {
         case EXP_EvalTypeType_List:
         {
-            vec_resize(retBuf, topReduce->retBase);
             assert(retBuf->length >= topReduce->retBase);
             u32* elms = retBuf->data + topReduce->retBase;
             u32 count = retBuf->length - topReduce->retBase;
             u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
+            vec_resize(retBuf, topReduce->retBase);
             vec_push(retBuf, t);
             break;
         }
@@ -588,6 +593,7 @@ step:
             }
             case EXP_EvalTypeType_List:
             {
+                topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
                 bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
                 if (!listInList)
                 {
@@ -731,7 +737,9 @@ step:
     {
         assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
-        return retBuf->data[retBP];
+        u32 t = retBuf->data[retBP];
+        vec_pop(retBuf);
+        return t;
     }
 
     cur = vec_last(inStack);
@@ -744,11 +752,11 @@ step:
         {
         case EXP_EvalTypeType_List:
         {
-            vec_resize(retBuf, topReduce->retBase);
             assert(retBuf->length >= topReduce->retBase);
             u32* elms = retBuf->data + topReduce->retBase;
             u32 count = retBuf->length - topReduce->retBase;
             u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
+            vec_resize(retBuf, topReduce->retBase);
             vec_push(retBuf, t);
             break;
         }
@@ -811,6 +819,7 @@ step:
         }
         case EXP_EvalTypeType_List:
         {
+            topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
             bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
             if (!listInList)
             {
