@@ -795,10 +795,10 @@ step:
         case EXP_EvalTypeType_Var:
         case EXP_EvalTypeType_ListVar:
         {
-            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+            u32* pV = EXP_evalTypeVarValue(varRenMap, desc->varId);
             if (pV)
             {
-                vec_push(inStack, *pV);
+                vec_push(retBuf, *pV);
             }
             else
             {
