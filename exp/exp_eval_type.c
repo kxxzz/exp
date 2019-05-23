@@ -553,6 +553,17 @@ step:
         bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
         if (listInList)
         {
+            if (EXP_EvalTypeType_ListVar == desc0->type)
+            {
+                a = EXP_evalTypeReduct(ctx, varSpace, a);
+                desc0 = EXP_evalTypeDescById(ctx, a);
+            }
+            if (EXP_EvalTypeType_ListVar == desc1->type)
+            {
+                b = EXP_evalTypeReduct(ctx, varSpace, b);
+                desc1 = EXP_evalTypeDescById(ctx, b);
+            }
+
             if (EXP_EvalTypeType_List == desc0->type)
             {
                 vec_pop(inStack0);
