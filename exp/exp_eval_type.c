@@ -485,6 +485,10 @@ step:
         *pU = EXP_evalTypeReduct(ctx, varSpace, retBuf->data[retBP]);
         return true;
     }
+    if ((inBP == inStack0->length) || (inBP == inStack1->length) || (reduceBP == reduceStack->length))
+    {
+        goto failed;
+    }
 
     a = vec_last(inStack0);
     b = vec_last(inStack1);
@@ -680,6 +684,8 @@ step:
 failed:
     vec_resize(inStack0, inBP);
     vec_resize(inStack1, inBP);
+    vec_resize(reduceStack, reduceBP);
+    vec_resize(retBuf, retBP);
     return false;
 }
 

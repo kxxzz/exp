@@ -846,8 +846,10 @@ static void EXP_evalCompileBlockCall
 {
     assert(blk->haveInOut);
     u32 numOuts;
-    EXP_evalCompileFunCall(ctx, blk->funType, blk->numIns, &numOuts, srcNode);
-    assert(numOuts == blk->numOuts);
+    if (EXP_evalCompileFunCall(ctx, blk->funType, blk->numIns, &numOuts, srcNode))
+    {
+        assert(numOuts == blk->numOuts);
+    }
 }
 
 
