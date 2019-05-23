@@ -618,7 +618,39 @@ step:
         }
         else
         {
-
+            if (((EXP_EvalTypeType_Var == desc0->type) && (EXP_EvalTypeType_ListVar != desc1->type)) ||
+                ((EXP_EvalTypeType_ListVar == desc0->type) && (EXP_EvalTypeType_Var != desc1->type)))
+            {
+                u32* pV = EXP_evalTypeVarValue(varSpace, desc0->varId);
+                if (pV)
+                {
+                    vec_push(inStack0, *pV);
+                    vec_push(inStack1, b);
+                    goto step;
+                }
+                u32 t = EXP_evalTypeReduct(ctx, varSpace, b);
+                EXP_evalTypeVarBind(varSpace, desc0->varId, t);
+                vec_push(retBuf, t);
+            }
+            else
+            if (((EXP_EvalTypeType_Var == desc1->type) && (EXP_EvalTypeType_ListVar != desc0->type)) ||
+                ((EXP_EvalTypeType_ListVar == desc1->type) && (EXP_EvalTypeType_Var != desc0->type)))
+            {
+                u32* pV = EXP_evalTypeVarValue(varSpace, desc1->varId);
+                if (pV)
+                {
+                    vec_push(inStack0, a);
+                    vec_push(inStack1, *pV);
+                    goto step;
+                }
+                u32 t = EXP_evalTypeReduct(ctx, varSpace, a);
+                EXP_evalTypeVarBind(varSpace, desc1->varId, t);
+                vec_push(retBuf, t);
+            }
+            else
+            {
+                goto failed;
+            }
         }
     }
     goto step;
