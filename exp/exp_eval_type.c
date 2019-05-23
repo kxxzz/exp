@@ -361,6 +361,7 @@ step:
             assert(false);
             break;
         }
+        vec_pop(reduceStack);
     }
     else
     {
@@ -394,7 +395,7 @@ step:
             bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
             if (!listInList)
             {
-                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, inStack->length, retBuf->length };
                 vec_push(reduceStack, newReduce);
             }
 
@@ -408,7 +409,7 @@ step:
         }
         case EXP_EvalTypeType_Fun:
         {
-            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, inStack->length, retBuf->length };
             vec_push(reduceStack, newReduce);
 
             const EXP_EvalTypeDescFun* fun = &desc->fun;
@@ -418,7 +419,7 @@ step:
         }
         case EXP_EvalTypeType_Array:
         {
-            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, inStack->length, retBuf->length };
             vec_push(reduceStack, newReduce);
 
             const EXP_EvalTypeDescArray* ary = &desc->ary;
@@ -512,6 +513,7 @@ step:
             assert(false);
             break;
         }
+        vec_pop(reduceStack);
     }
     else
     {
@@ -570,7 +572,7 @@ step:
                 bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
                 if (!listInList)
                 {
-                    EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
+                    EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, inStack0->length, retBuf->length };
                     vec_push(reduceStack, newReduce);
                 }
 
@@ -591,7 +593,7 @@ step:
             }
             case EXP_EvalTypeType_Fun:
             {
-                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, inStack0->length, retBuf->length };
                 vec_push(reduceStack, newReduce);
 
                 const EXP_EvalTypeDescFun* fun0 = &desc0->fun;
@@ -604,7 +606,7 @@ step:
             }
             case EXP_EvalTypeType_Array:
             {
-                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, inStack0->length, retBuf->length };
                 vec_push(reduceStack, newReduce);
 
                 const EXP_EvalTypeDescArray* ary0 = &desc0->ary;
@@ -738,6 +740,7 @@ step:
             assert(false);
             break;
         }
+        vec_pop(reduceStack);
     }
     else
     {
@@ -782,7 +785,7 @@ step:
             bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
             if (!listInList)
             {
-                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, inStack->length, retBuf->length };
                 vec_push(reduceStack, newReduce);
             }
 
@@ -796,7 +799,7 @@ step:
         }
         case EXP_EvalTypeType_Fun:
         {
-            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, inStack->length, retBuf->length };
             vec_push(reduceStack, newReduce);
 
             const EXP_EvalTypeDescFun* fun = &desc->fun;
@@ -806,7 +809,7 @@ step:
         }
         case EXP_EvalTypeType_Array:
         {
-            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, inStack->length, retBuf->length };
             vec_push(reduceStack, newReduce);
 
             const EXP_EvalTypeDescArray* ary = &desc->ary;
