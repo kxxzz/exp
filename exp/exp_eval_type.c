@@ -5,7 +5,7 @@
 
 enum
 {
-    EXP_EvalTypeReduceToken = -1,
+    EXP_EvalTypeInStackCmd_Reduce = -1,
 };
 
 
@@ -336,7 +336,7 @@ step:
     }
     cur = vec_last(inStack);
     vec_pop(inStack);
-    if (EXP_EvalTypeReduceToken == cur)
+    if (EXP_EvalTypeInStackCmd_Reduce == cur)
     {
         assert(reduceStack->length > reduceBP);
         topReduce = &vec_last(reduceStack);
@@ -406,7 +406,7 @@ step:
             {
                 EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
                 vec_push(reduceStack, newReduce);
-                vec_push(inStack, EXP_EvalTypeReduceToken);
+                vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
             }
 
             const EXP_EvalTypeDescList* list = &desc->list;
@@ -421,7 +421,7 @@ step:
         {
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
             vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_EvalTypeReduceToken);
+            vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
 
             const EXP_EvalTypeDescFun* fun = &desc->fun;
             vec_push(inStack, fun->outs);
@@ -432,7 +432,7 @@ step:
         {
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
             vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_EvalTypeReduceToken);
+            vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
 
             const EXP_EvalTypeDescArray* ary = &desc->ary;
             vec_push(inStack, ary->elm);
@@ -502,9 +502,9 @@ step:
     vec_pop(inStack0);
     vec_pop(inStack1);
 
-    if ((EXP_EvalTypeReduceToken == a) || (EXP_EvalTypeReduceToken == b))
+    if ((EXP_EvalTypeInStackCmd_Reduce == a) || (EXP_EvalTypeInStackCmd_Reduce == b))
     {
-        if ((EXP_EvalTypeReduceToken != a) || (EXP_EvalTypeReduceToken != b))
+        if ((EXP_EvalTypeInStackCmd_Reduce != a) || (EXP_EvalTypeInStackCmd_Reduce != b))
         {
             goto failed;
         }
@@ -599,8 +599,8 @@ step:
                 {
                     EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
                     vec_push(reduceStack, newReduce);
-                    vec_push(inStack0, EXP_EvalTypeReduceToken);
-                    vec_push(inStack1, EXP_EvalTypeReduceToken);
+                    vec_push(inStack0, EXP_EvalTypeInStackCmd_Reduce);
+                    vec_push(inStack1, EXP_EvalTypeInStackCmd_Reduce);
                 }
 
                 const EXP_EvalTypeDescList* list0 = &desc0->list;
@@ -622,8 +622,8 @@ step:
             {
                 EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
                 vec_push(reduceStack, newReduce);
-                vec_push(inStack0, EXP_EvalTypeReduceToken);
-                vec_push(inStack1, EXP_EvalTypeReduceToken);
+                vec_push(inStack0, EXP_EvalTypeInStackCmd_Reduce);
+                vec_push(inStack1, EXP_EvalTypeInStackCmd_Reduce);
 
                 const EXP_EvalTypeDescFun* fun0 = &desc0->fun;
                 const EXP_EvalTypeDescFun* fun1 = &desc1->fun;
@@ -637,8 +637,8 @@ step:
             {
                 EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
                 vec_push(reduceStack, newReduce);
-                vec_push(inStack0, EXP_EvalTypeReduceToken);
-                vec_push(inStack1, EXP_EvalTypeReduceToken);
+                vec_push(inStack0, EXP_EvalTypeInStackCmd_Reduce);
+                vec_push(inStack1, EXP_EvalTypeInStackCmd_Reduce);
 
                 const EXP_EvalTypeDescArray* ary0 = &desc0->ary;
                 const EXP_EvalTypeDescArray* ary1 = &desc1->ary;
@@ -745,7 +745,7 @@ step:
 
     cur = vec_last(inStack);
     vec_pop(inStack);
-    if (EXP_EvalTypeReduceToken == cur)
+    if (EXP_EvalTypeInStackCmd_Reduce == cur)
     {
         assert(reduceStack->length > reduceBP);
         topReduce = &vec_last(reduceStack);
@@ -826,7 +826,7 @@ step:
             {
                 EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
                 vec_push(reduceStack, newReduce);
-                vec_push(inStack, EXP_EvalTypeReduceToken);
+                vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
             }
 
             const EXP_EvalTypeDescList* list = &desc->list;
@@ -841,7 +841,7 @@ step:
         {
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
             vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_EvalTypeReduceToken);
+            vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
 
             const EXP_EvalTypeDescFun* fun = &desc->fun;
             vec_push(inStack, fun->outs);
@@ -852,7 +852,7 @@ step:
         {
             EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
             vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_EvalTypeReduceToken);
+            vec_push(inStack, EXP_EvalTypeInStackCmd_Reduce);
 
             const EXP_EvalTypeDescArray* ary = &desc->ary;
             vec_push(inStack, ary->elm);
