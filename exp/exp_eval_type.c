@@ -312,6 +312,7 @@ u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     vec_u32* retBuf = &ctx->retBuf;
 
     const u32 inBP = inStack->length;
+    const u32 reduceBP = reduceStack->length;
     const u32 retBP = retBuf->length;
     vec_push(inStack, x);
 
@@ -320,12 +321,12 @@ u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     const EXP_EvalTypeDesc* desc = NULL;
 step:
     assert(inStack->length >= inBP);
-    if (inBP == inStack->length)
+    if ((inBP == inStack->length) && (reduceBP == reduceStack->length))
     {
         assert(1 == retBuf->length - retBP);
         return retBuf->data[retBP];
     }
-    topReduce = (reduceStack->length > 0) ? &vec_last(reduceStack) : NULL;
+    topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
     if (topReduce && (topReduce->inBase == inStack->length))
     {
         switch (topReduce->typeType)
@@ -458,6 +459,7 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 
     assert(inStack0->length == inStack1->length);
     const u32 inBP = inStack0->length;
+    const u32 reduceBP = reduceStack->length;
     const u32 retBP = retBuf->length;
     vec_push(inStack0, a);
     vec_push(inStack0, b);
@@ -469,13 +471,13 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 step:
     assert(inStack0->length >= inBP);
     assert(inStack1->length >= inBP);
-    if ((inBP == inStack0->length) && (inBP == inStack1->length))
+    if ((inBP == inStack0->length) && (inBP == inStack1->length) && (reduceBP == reduceStack->length))
     {
         assert(1 == retBuf->length - retBP);
         *pU = EXP_evalTypeReduct(ctx, varSpace, retBuf->data[retBP]);
         return true;
     }
-    topReduce = (reduceStack->length > 0) ? &vec_last(reduceStack) : NULL;
+    topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
     if (topReduce && (topReduce->inBase == inStack0->length))
     {
         switch (topReduce->typeType)
@@ -682,8 +684,141 @@ u32 EXP_evalTypeFromPat
     EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace, EXP_EvalTypeVarSpace* varRenMap, u32 pat
 )
 {
-    u32 r = -1;
-    return r;
+    vec_u32* inStack = &ctx->inStack[0];
+    EXP_EvalTypeReduceStack* reduceStack = &ctx->reduceStack;
+    vec_u32* retBuf = &ctx->retBuf;
+
+    const u32 inBP = inStack->length;
+    const u32 reduceBP = reduceStack->length;
+    const u32 retBP = retBuf->length;
+    vec_push(inStack, pat);
+
+    u32 cur = -1;
+    const EXP_EvalTypeReduce* topReduce = NULL;
+    const EXP_EvalTypeDesc* desc = NULL;
+step:
+    assert(inStack->length >= inBP);
+    if ((inBP == inStack->length) && (reduceBP == reduceStack->length))
+    {
+        assert(1 == retBuf->length - retBP);
+        return retBuf->data[retBP];
+    }
+    topReduce = (reduceStack->length > reduceBP) ? &vec_last(reduceStack) : NULL;
+    if (topReduce && (topReduce->inBase == inStack->length))
+    {
+        switch (topReduce->typeType)
+        {
+        case EXP_EvalTypeType_List:
+        {
+            vec_resize(retBuf, topReduce->retBase);
+            assert(retBuf->length >= topReduce->retBase);
+            u32* elms = retBuf->data + topReduce->retBase;
+            u32 count = retBuf->length - topReduce->retBase;
+            u32 t = EXP_evalTypeListOrListVar(ctx, elms, count);
+            vec_push(retBuf, t);
+            break;
+        }
+        case EXP_EvalTypeType_Fun:
+        {
+            assert(retBuf->length == topReduce->retBase + 2);
+            u32 t = EXP_evalTypeFun(ctx, retBuf->data[topReduce->retBase], retBuf->data[topReduce->retBase + 1]);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, t);
+            break;
+        }
+        case EXP_EvalTypeType_Array:
+        {
+            assert(retBuf->length == topReduce->retBase + 1);
+            u32 t = EXP_evalTypeArray(ctx, retBuf->data[topReduce->retBase]);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, t);
+            break;
+        }
+        default:
+            assert(false);
+            break;
+        }
+    }
+    else
+    {
+        cur = vec_last(inStack);
+        vec_pop(inStack);
+
+        desc = EXP_evalTypeDescById(ctx, cur);
+        switch (desc->type)
+        {
+        case EXP_EvalTypeType_Atom:
+        {
+            vec_push(retBuf, cur);
+            break;
+        }
+        case EXP_EvalTypeType_Var:
+        case EXP_EvalTypeType_ListVar:
+        {
+            u32* pV = EXP_evalTypeVarValue(varSpace, desc->varId);
+            if (pV)
+            {
+                vec_push(inStack, *pV);
+            }
+            else
+            {
+                u32 varId = EXP_evalTypeNewVar(varSpace);
+                u32 t;
+                if (EXP_EvalTypeType_Var == desc->type)
+                {
+                    t = EXP_evalTypeVar(ctx, varId);
+                }
+                else
+                {
+                    t = EXP_evalTypeListVar(ctx, varId);
+                }
+                EXP_evalTypeVarBind(varRenMap, desc->varId, t);
+                vec_push(retBuf, t);
+            }
+            break;
+        }
+        case EXP_EvalTypeType_List:
+        {
+            bool listInList = topReduce && (EXP_EvalTypeType_List == topReduce->typeType);
+            if (!listInList)
+            {
+                EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
+                vec_push(reduceStack, newReduce);
+            }
+
+            const EXP_EvalTypeDescList* list = &desc->list;
+            for (u32 i = 0; i < list->count; ++i)
+            {
+                u32 e = list->elms[list->count - 1 - i];
+                vec_push(inStack, e);
+            }
+            break;
+        }
+        case EXP_EvalTypeType_Fun:
+        {
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
+            vec_push(reduceStack, newReduce);
+
+            const EXP_EvalTypeDescFun* fun = &desc->fun;
+            vec_push(inStack, fun->outs);
+            vec_push(inStack, fun->ins);
+            break;
+        }
+        case EXP_EvalTypeType_Array:
+        {
+            EXP_EvalTypeReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
+            vec_push(reduceStack, newReduce);
+
+            const EXP_EvalTypeDescArray* ary = &desc->ary;
+            vec_push(inStack, ary->elm);
+            break;
+        }
+        default:
+            assert(false);
+            break;
+        }
+    }
+    goto step;
 }
 
 
