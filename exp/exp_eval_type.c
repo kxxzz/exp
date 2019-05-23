@@ -739,6 +739,7 @@ step:
         assert(1 == retBuf->length - retBP);
         u32 t = retBuf->data[retBP];
         vec_pop(retBuf);
+        t = EXP_evalTypeReduct(ctx, varSpace, t);
         return t;
     }
 
