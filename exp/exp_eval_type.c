@@ -326,8 +326,9 @@ u32 EXP_evalTypeReduct(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
     const EXP_EvalTypeDesc* desc = NULL;
 step:
     assert(inStack->length >= inBP);
-    if ((inBP == inStack->length) && (reduceBP == reduceStack->length))
+    if (inBP == inStack->length)
     {
+        assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
         return retBuf->data[retBP];
     }
@@ -479,13 +480,14 @@ bool EXP_evalTypeUnify(EXP_EvalTypeContext* ctx, EXP_EvalTypeVarSpace* varSpace,
 step:
     assert(inStack0->length >= inBP);
     assert(inStack1->length >= inBP);
-    if ((inBP == inStack0->length) && (inBP == inStack1->length) && (reduceBP == reduceStack->length))
+    if ((inBP == inStack0->length) && (inBP == inStack1->length))
     {
+        assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
         *pU = EXP_evalTypeReduct(ctx, varSpace, retBuf->data[retBP]);
         return true;
     }
-    if ((inBP == inStack0->length) || (inBP == inStack1->length) || (reduceBP == reduceStack->length))
+    if ((inBP == inStack0->length) || (inBP == inStack1->length))
     {
         goto failed;
     }
@@ -725,8 +727,9 @@ u32 EXP_evalTypeFromPat
     const EXP_EvalTypeDesc* desc = NULL;
 step:
     assert(inStack->length >= inBP);
-    if ((inBP == inStack->length) && (reduceBP == reduceStack->length))
+    if (inBP == inStack->length)
     {
+        assert(reduceBP == reduceStack->length);
         assert(1 == retBuf->length - retBP);
         return retBuf->data[retBP];
     }
