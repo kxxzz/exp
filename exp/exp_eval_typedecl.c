@@ -6,11 +6,17 @@
 
 
 
-typedef struct EXP_EvalCompileTypeDeclLevelFun
+
+typedef struct EXP_EvalCompileTypeDeclReduce
 {
-    u32 numIns;
-    u32 numOuts;
-} EXP_EvalCompileTypeDeclLevelFun;
+    EXP_EvalTypeType typeType;
+    u32 retBase;
+} EXP_EvalCompileTypeDeclReduce;
+
+typedef vec_t(EXP_EvalCompileTypeDeclReduce) EXP_EvalCompileTypeDeclReduceStack;
+
+
+
 
 typedef struct EXP_EvalCompileTypeDeclVar
 {
@@ -18,67 +24,46 @@ typedef struct EXP_EvalCompileTypeDeclVar
     u32 type;
 } EXP_EvalCompileTypeDeclVar;
 
-typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarSpace;
+typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarStack;
 
 
 
-typedef struct EXP_EvalCompileTypeDeclLevel
+
+typedef struct EXP_EvalCompileTypeDeclContext
 {
-    EXP_Node src;
-    bool hasRet;
-    vec_u32 elms;
-    union
-    {
-        EXP_EvalCompileTypeDeclLevelFun fun;
-    };
-    EXP_EvalCompileTypeDeclVarSpace varSpace;
-} EXP_EvalCompileTypeDeclLevel;
+    EXP_Space* space;
+    EXP_EvalAtypeInfoVec* atypeTable;
+    EXP_EvalTypeContext* typeContext;
 
-static void EXP_evalCompileTypeDeclLevelFree(EXP_EvalCompileTypeDeclLevel* l)
+    vec_u32 inStack;
+    EXP_EvalCompileTypeDeclReduceStack reduceStack;
+    EXP_EvalCompileTypeDeclVarStack varStack;
+    vec_u32 retBuf;
+} EXP_EvalCompileTypeDeclContext;
+
+
+
+
+EXP_EvalCompileTypeDeclContext* EXP_evalCompileTypeDeclNewContext
+(
+    EXP_Space* space, EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalTypeContext* typeContext
+)
 {
-    vec_free(&l->varSpace);
-    vec_free(&l->elms);
+    EXP_EvalCompileTypeDeclContext* a = zalloc(sizeof(EXP_EvalCompileTypeDeclContext));
+    a->space = space;
+    a->atypeTable = atypeTable;
+    a->typeContext = typeContext;
+    return a;
 }
 
-
-
-
-EXP_evalCompileTypeDeclStackPop(EXP_EvalCompileTypeDeclStack* stack)
+void EXP_evalCompileTypeDeclContextFree(EXP_EvalCompileTypeDeclContext* ctx)
 {
-    EXP_EvalCompileTypeDeclLevel* l = &vec_last(stack);
-    EXP_evalCompileTypeDeclLevelFree(l);
-    vec_pop(stack);
+    vec_free(&ctx->retBuf);
+    vec_free(&ctx->varStack);
+    vec_free(&ctx->reduceStack);
+    vec_free(&ctx->inStack);
+    free(ctx);
 }
-
-void EXP_evalCompileTypeDeclStackResize(EXP_EvalCompileTypeDeclStack* stack, u32 n)
-{
-    assert(n < stack->length);
-    for (u32 i = n; i < stack->length; ++i)
-    {
-        EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
-        EXP_evalCompileTypeDeclLevelFree(l);
-    }
-    vec_resize(stack, n);
-}
-
-void EXP_evalCompileTypeDeclStackFree(EXP_EvalCompileTypeDeclStack* stack)
-{
-    for (u32 i = 0; i < stack->length; ++i)
-    {
-        EXP_EvalCompileTypeDeclLevel* l = stack->data + i;
-        EXP_evalCompileTypeDeclLevelFree(l);
-    }
-    vec_free(stack);
-}
-
-
-
-
-
-
-
-
-
 
 
 
@@ -92,16 +77,19 @@ void EXP_evalCompileTypeDeclStackFree(EXP_EvalCompileTypeDeclStack* stack)
 
 static u32 EXP_evalCompileTypeDeclLoop
 (
-    EXP_Space* space,
-    EXP_EvalAtypeInfoVec* atypeTable,
-    EXP_EvalTypeContext* typeContext,
-    EXP_EvalCompileTypeDeclStack* typeDeclStack,
+    EXP_EvalCompileTypeDeclContext* ctx,
     const EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalError* outError
 )
 {
-    EXP_EvalError err = { EXP_EvalErrCode_NONE };
-    u32 r = -1;
+    EXP_Space* space = ctx->space;
+    EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    vec_u32* inStack = &ctx->inStack;
+    EXP_EvalCompileTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
+    EXP_EvalCompileTypeDeclVarStack* varStack = &ctx->varStack;
+    vec_u32* retBuf = &ctx->retBuf;
+
 next:
     if (!typeDeclStack->length)
     {
@@ -305,15 +293,17 @@ next:
 
 u32 EXP_evalCompileTypeDecl
 (
-    EXP_Space* space,
-    EXP_EvalAtypeInfoVec* atypeTable,
-    EXP_EvalTypeContext* typeContext,
-    EXP_EvalCompileTypeDeclStack* typeDeclStack,
-    EXP_Node node,
-    const EXP_SpaceSrcInfo* srcInfo,
-    EXP_EvalError* outError
+    EXP_EvalCompileTypeDeclContext* ctx, EXP_Node node, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalError* outError
 )
 {
+    EXP_Space* space = ctx->space;
+    EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
+    EXP_EvalTypeContext* typeContext = ctx->typeContext;
+    vec_u32* inStack = &ctx->inStack;
+    EXP_EvalCompileTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
+    EXP_EvalCompileTypeDeclVarStack* varStack = &ctx->varStack;
+    vec_u32* retBuf = &ctx->retBuf;
+
     if (!EXP_isSeqRound(space, node) && !EXP_isSeqNaked(space, node))
     {
         EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
@@ -333,7 +323,7 @@ u32 EXP_evalCompileTypeDecl
         l.src = node;
     }
     vec_push(typeDeclStack, l);
-    u32 t = EXP_evalCompileTypeDeclLoop(space, atypeTable, typeContext, typeDeclStack, srcInfo, outError);
+    u32 t = EXP_evalCompileTypeDeclLoop(ctx, srcInfo, outError);
     return t;
 }
 
