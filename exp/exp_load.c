@@ -369,10 +369,10 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
     while (!EXP_loadSeqEnd(ctx, endTokType))
     {
         EXP_Node e = EXP_loadNode(ctx);
-        if (EXP_NodeId_Invalid == e.id)
+        if (EXP_Node_Invalid.id == e.id)
         {
             EXP_addSeqCancel(space);
-            EXP_Node node = { EXP_NodeId_Invalid };
+            EXP_Node node = { EXP_Node_Invalid.id };
             return node;
         }
         EXP_addSeqPush(ctx->space, e);
@@ -412,7 +412,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
-    EXP_Node node = { EXP_NodeId_Invalid };
+    EXP_Node node = { EXP_Node_Invalid.id };
     EXP_Token tok;
     if (!EXP_readToken(ctx, &tok))
     {
@@ -465,7 +465,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     case EXP_TokenType_SeqBraceBegin:
     {
         node = EXP_loadSeq(ctx, tok.type);
-        if (EXP_NodeId_Invalid == node.id)
+        if (EXP_Node_Invalid.id == node.id)
         {
             return node;
         }
@@ -498,10 +498,10 @@ EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* 
 {
     EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfo);
     EXP_Node node = EXP_loadNode(&ctx);
-    if ((EXP_NodeId_Invalid == node.id) || (!EXP_loadEnd(&ctx)))
+    if ((EXP_Node_Invalid.id == node.id) || (!EXP_loadEnd(&ctx)))
     {
         EXP_loadContextFree(&ctx);
-        EXP_Node node = { EXP_NodeId_Invalid };
+        EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
     EXP_loadContextFree(&ctx);
@@ -516,7 +516,7 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* 
     while (EXP_skipSapce(&ctx))
     {
         EXP_Node e = EXP_loadNode(&ctx);
-        if (EXP_NodeId_Invalid == e.id)
+        if (EXP_Node_Invalid.id == e.id)
         {
             errorHappen = true;
             break;
@@ -527,7 +527,7 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* 
     {
         EXP_loadContextFree(&ctx);
         EXP_addSeqCancel(space);
-        EXP_Node node = { EXP_NodeId_Invalid };
+        EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
     EXP_loadContextFree(&ctx);

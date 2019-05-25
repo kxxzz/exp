@@ -61,7 +61,6 @@ u32 EXP_spaceNodesTotal(EXP_Space* space);
 typedef struct EXP_Node { u32 id; } EXP_Node;
 typedef vec_t(EXP_Node) EXP_NodeVec;
 
-static u32 EXP_NodeId_Invalid = (u32)-1;
 static EXP_Node EXP_Node_Invalid = { (u32)-1 };
 
 

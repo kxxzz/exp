@@ -10,7 +10,7 @@
 
 typedef struct EXP_EvalTypeDeclContext EXP_EvalTypeDeclContext;
 
-EXP_EvalTypeDeclContext* EXP_evalTypeDeclNewContext
+EXP_EvalTypeDeclContext* EXP_newEvalTypeDeclContext
 (
     EXP_Space* space, EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalTypeContext* typeContext
 );

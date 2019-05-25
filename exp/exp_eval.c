@@ -13,7 +13,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
     vec_u32* afunTypeTable = &ctx->afunTypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext = EXP_newEvalTypeContext();
     EXP_EvalObjectTable* objectTable = &ctx->objectTable;
-    EXP_EvalTypeDeclStack* typeDeclStack = &ctx->typeDeclStack;
+    EXP_EvalTypeDeclContext* typeDeclContext =  ctx->typeDeclContext = EXP_newEvalTypeDeclContext(space, atypeTable, typeContext);
 
     for (u32 i = 0; i < EXP_NumEvalPrimTypes; ++i)
     {
@@ -24,8 +24,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
         const EXP_EvalAfunInfo* info = EXP_EvalPrimFunInfoTable() + i;
         vec_push(afunTable, *info);
         EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
-        assert(node.id != EXP_NodeId_Invalid);
-        u32 t = EXP_evalTypeDecl(space, atypeTable, typeContext, typeDeclStack, node, NULL, NULL);
+        assert(node.id != EXP_Node_Invalid.id);
+        u32 t = EXP_evalTypeDecl(typeDeclContext, node, NULL, NULL);
         assert(t != -1);
         vec_push(afunTypeTable, t);
     }
@@ -40,8 +40,8 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
             const EXP_EvalAfunInfo* info = addAtomTable->funs + i;
             vec_push(afunTable, *info);
             EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
-            assert(node.id != EXP_NodeId_Invalid);
-            u32 t = EXP_evalTypeDecl(space, atypeTable, typeContext, typeDeclStack, node, NULL, NULL);
+            assert(node.id != EXP_Node_Invalid.id);
+            u32 t = EXP_evalTypeDecl(typeDeclContext, node, NULL, NULL);
             assert(t != -1);
             vec_push(afunTypeTable, t);
         }
@@ -59,7 +59,7 @@ void EXP_evalContextFree(EXP_EvalContext* ctx)
     vec_free(&ctx->fileInfoTable);
 
     vec_free(&ctx->aryStack);
-    EXP_evalTypeDeclStackFree(&ctx->typeDeclStack);
+    EXP_evalTypeDeclContextFree(ctx->typeDeclContext);
 
     vec_free(&ctx->dataStack);
     vec_free(&ctx->varStack);
@@ -907,7 +907,7 @@ EXP_EvalError EXP_evalCompile
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext, vec_u32* typeStack
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack
 );
 
 
@@ -927,7 +927,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
     }
     EXP_Space* space = ctx->space;
     EXP_Node root = EXP_loadSrcAsList(space, code, srcInfo);
-    if (EXP_NodeId_Invalid == root.id)
+    if (EXP_Node_Invalid.id == root.id)
     {
         ctx->error.code = EXP_EvalErrCode_ExpSyntax;
         ctx->error.file = 0;
@@ -965,7 +965,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
         space, root, &ctx->srcInfo,
         &ctx->atypeTable, &ctx->afunTable, &ctx->afunTypeTable,
         &ctx->nodeTable,
-        ctx->typeContext, &ctx->typeStack
+        ctx->typeContext, ctx->typeDeclContext, &ctx->typeStack
     );
     if (error.code)
     {

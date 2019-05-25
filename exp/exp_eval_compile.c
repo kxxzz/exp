@@ -145,6 +145,7 @@ typedef struct EXP_EvalCompileContext
     vec_u32* afunTypeTable;
     EXP_EvalNodeTable* nodeTable;
     EXP_EvalTypeContext* typeContext;
+    EXP_EvalTypeDeclContext* typeDeclContext;
 
     u32 blockTableBase;
     EXP_EvalCompileBlockTable blockTable;
@@ -164,7 +165,6 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalCompileVarFetchBuf varFetchBuf;
     vec_u32 typeBuf;
     EXP_EvalTypeVarSpace varRenMap;
-    EXP_EvalTypeDeclStack typeDeclStack;
 } EXP_EvalCompileContext;
 
 
@@ -176,7 +176,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext
 )
 {
     EXP_EvalCompileContext _ctx = { 0 };
@@ -188,6 +188,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
     ctx->afunTypeTable = afunTypeTable;
     ctx->nodeTable = nodeTable;
     ctx->typeContext = typeContext;
+    ctx->typeDeclContext = typeDeclContext;
 
     u32 n = EXP_spaceNodesTotal(space);
     u32 nodeTableLength0 = nodeTable->length;
@@ -204,7 +205,6 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
 
 static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
 {
-    EXP_evalTypeDeclStackFree(&ctx->typeDeclStack);
     EXP_evalTypeVarSpaceFree(&ctx->varRenMap);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varFetchBuf);
@@ -349,7 +349,7 @@ static EXP_EvalCompileBlock* EXP_evalCompileGetBlock(EXP_EvalCompileContext* ctx
 static EXP_EvalCompileNamed* EXP_evalCompileGetMatched(EXP_EvalCompileContext* ctx, EXP_Node name, EXP_Node blkNode)
 {
     EXP_Space* space = ctx->space;
-    while (blkNode.id != EXP_NodeId_Invalid)
+    while (blkNode.id != EXP_Node_Invalid.id)
     {
         EXP_EvalCompileBlock* blk = EXP_evalCompileGetBlock(ctx, blkNode);
         for (u32 i = 0; i < blk->dict.length; ++i)
@@ -1036,16 +1036,7 @@ static bool EXP_evalCompileVarDefTok
 
 static void EXP_evalCompileVarDefTypeSignature(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
-    u32 t = EXP_evalTypeDecl
-    (
-        ctx->space,
-        ctx->atypeTable,
-        ctx->typeContext,
-        &ctx->typeDeclStack,
-        node,
-        ctx->srcInfo,
-        &ctx->error
-    );
+    u32 t = EXP_evalTypeDecl(ctx->typeDeclContext, node, ctx->srcInfo, &ctx->error);
     if (-1 == t)
     {
         return;
@@ -1748,7 +1739,7 @@ EXP_EvalError EXP_evalCompile
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext, vec_u32* typeStack
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack
 )
 {
     EXP_EvalError error = { 0 };
@@ -1758,7 +1749,7 @@ EXP_EvalError EXP_evalCompile
     }
     EXP_EvalCompileContext _ctx = EXP_newEvalCompileContext
     (
-        space, srcInfo, atypeTable, afunTable, afunTypeTable, nodeTable, typeContext
+        space, srcInfo, atypeTable, afunTable, afunTypeTable, nodeTable, typeContext, typeDeclContext
     );
     EXP_EvalCompileContext* ctx = &_ctx;
 

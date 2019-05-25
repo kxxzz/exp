@@ -269,7 +269,7 @@ typedef struct EXP_EvalContext
     EXP_EvalError error;
     EXP_EvalValue ncallOutBuf[EXP_EvalAfunOuts_MAX];
     bool gcFlag;
-    EXP_EvalTypeDeclStack typeDeclStack;
+    EXP_EvalTypeDeclContext* typeDeclContext;
     EXP_EvalArrayPtrVec aryStack;
 
     EXP_EvalFileInfoTable fileInfoTable;
