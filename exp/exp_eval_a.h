@@ -133,9 +133,9 @@ static void EXP_evalErrorFound
     EXP_EvalError* err, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalErrCode errCode, EXP_Node node
 )
 {
-    err->code = errCode;
-    if (srcInfo)
+    if (err && srcInfo)
     {
+        err->code = errCode;
         const EXP_NodeSrcInfo* nodeSrcInfo = EXP_nodeSrcInfo(srcInfo, node);
         err->file = nodeSrcInfo->file;
         err->line = nodeSrcInfo->line;
