@@ -124,8 +124,7 @@ next:
                 for (u32 i = 0; i < fun->varSpace.length; ++i)
                 {
                     EXP_EvalCompileTypeDeclVar* var = fun->varSpace.data + i;
-                    EXP_Node varName = var->name;
-                    if (EXP_nodeDataEq(space, node, varName))
+                    if (EXP_nodeDataEq(space, node, var->name))
                     {
                         r = var->type;
                         EXP_evalCompileTypeDeclStackPop(typeDeclStack);
