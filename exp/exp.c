@@ -7,7 +7,7 @@ typedef struct EXP_NodeInfo
     EXP_NodeType type;
     u32 offset;
     u32 length;
-    bool quoted;
+    u32 quoted;
 } EXP_NodeInfo;
 
 typedef vec_t(EXP_NodeInfo) EXP_NodeInfoVec;
