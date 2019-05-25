@@ -8,8 +8,6 @@
 
 typedef struct EXP_EvalCompileTypeDeclLevelFun
 {
-    bool insIsListVar;
-    bool outsIsListVar;
     u32 numIns;
     u32 numOuts;
 } EXP_EvalCompileTypeDeclLevelFun;
@@ -218,23 +216,6 @@ next:
                         }
                         arrowPos = i;
                         continue;
-                    }
-                    if ('*' == cstr[cstrLen - 1])
-                    {
-                        if (-1 == arrowPos)
-                        {
-                            if (!top->fun.insIsListVar)
-                            {
-                                top->fun.insIsListVar = true;
-                            }
-                        }
-                        else
-                        {
-                            if (!top->fun.outsIsListVar)
-                            {
-                                top->fun.outsIsListVar = true;
-                            }
-                        }
                     }
                 }
                 if (-1 == arrowPos)
