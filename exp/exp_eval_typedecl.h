@@ -8,20 +8,20 @@
 
 
 
-typedef struct EXP_EvalCompileTypeDeclContext EXP_EvalCompileTypeDeclContext;
+typedef struct EXP_EvalTypeDeclContext EXP_EvalTypeDeclContext;
 
-EXP_EvalCompileTypeDeclContext* EXP_evalCompileTypeDeclNewContext
+EXP_EvalTypeDeclContext* EXP_evalTypeDeclNewContext
 (
     EXP_Space* space, EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalTypeContext* typeContext
 );
-void EXP_evalCompileTypeDeclContextFree(EXP_EvalCompileTypeDeclContext* ctx);
+void EXP_evalTypeDeclContextFree(EXP_EvalTypeDeclContext* ctx);
 
 
 
 
-u32 EXP_evalCompileTypeDecl
+u32 EXP_evalTypeDecl
 (
-    EXP_EvalCompileTypeDeclContext* ctx, EXP_Node node, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalError* outError
+    EXP_EvalTypeDeclContext* ctx, EXP_Node node, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalError* outError
 );
 
 

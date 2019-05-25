@@ -164,7 +164,7 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalCompileVarFetchBuf varFetchBuf;
     vec_u32 typeBuf;
     EXP_EvalTypeVarSpace varRenMap;
-    EXP_EvalCompileTypeDeclStack typeDeclStack;
+    EXP_EvalTypeDeclStack typeDeclStack;
 } EXP_EvalCompileContext;
 
 
@@ -204,7 +204,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
 
 static void EXP_evalCompileContextFree(EXP_EvalCompileContext* ctx)
 {
-    EXP_evalCompileTypeDeclStackFree(&ctx->typeDeclStack);
+    EXP_evalTypeDeclStackFree(&ctx->typeDeclStack);
     EXP_evalTypeVarSpaceFree(&ctx->varRenMap);
     vec_free(&ctx->typeBuf);
     vec_free(&ctx->varFetchBuf);
@@ -1036,7 +1036,7 @@ static bool EXP_evalCompileVarDefTok
 
 static void EXP_evalCompileVarDefTypeSignature(EXP_EvalCompileContext* ctx, EXP_Node node)
 {
-    u32 t = EXP_evalCompileTypeDecl
+    u32 t = EXP_evalTypeDecl
     (
         ctx->space,
         ctx->atypeTable,

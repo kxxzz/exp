@@ -7,56 +7,56 @@
 
 
 
-typedef struct EXP_EvalCompileTypeDeclReduce
+typedef struct EXP_EvalTypeDeclReduce
 {
     EXP_EvalTypeType typeType;
     u32 retBase;
-} EXP_EvalCompileTypeDeclReduce;
+} EXP_EvalTypeDeclReduce;
 
-typedef vec_t(EXP_EvalCompileTypeDeclReduce) EXP_EvalCompileTypeDeclReduceStack;
-
-
+typedef vec_t(EXP_EvalTypeDeclReduce) EXP_EvalTypeDeclReduceStack;
 
 
-typedef struct EXP_EvalCompileTypeDeclVar
+
+
+typedef struct EXP_EvalTypeDeclVar
 {
     EXP_Node name;
     u32 type;
-} EXP_EvalCompileTypeDeclVar;
+} EXP_EvalTypeDeclVar;
 
-typedef vec_t(EXP_EvalCompileTypeDeclVar) EXP_EvalCompileTypeDeclVarStack;
-
-
+typedef vec_t(EXP_EvalTypeDeclVar) EXP_EvalTypeDeclVarStack;
 
 
-typedef struct EXP_EvalCompileTypeDeclContext
+
+
+typedef struct EXP_EvalTypeDeclContext
 {
     EXP_Space* space;
     EXP_EvalAtypeInfoVec* atypeTable;
     EXP_EvalTypeContext* typeContext;
 
-    vec_u32 inStack;
-    EXP_EvalCompileTypeDeclReduceStack reduceStack;
-    EXP_EvalCompileTypeDeclVarStack varStack;
+    EXP_NodeVec inStack;
+    EXP_EvalTypeDeclReduceStack reduceStack;
+    EXP_EvalTypeDeclVarStack varStack;
     vec_u32 retBuf;
-} EXP_EvalCompileTypeDeclContext;
+} EXP_EvalTypeDeclContext;
 
 
 
 
-EXP_EvalCompileTypeDeclContext* EXP_evalCompileTypeDeclNewContext
+EXP_EvalTypeDeclContext* EXP_evalTypeDeclNewContext
 (
     EXP_Space* space, EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalTypeContext* typeContext
 )
 {
-    EXP_EvalCompileTypeDeclContext* a = zalloc(sizeof(EXP_EvalCompileTypeDeclContext));
+    EXP_EvalTypeDeclContext* a = zalloc(sizeof(EXP_EvalTypeDeclContext));
     a->space = space;
     a->atypeTable = atypeTable;
     a->typeContext = typeContext;
     return a;
 }
 
-void EXP_evalCompileTypeDeclContextFree(EXP_EvalCompileTypeDeclContext* ctx)
+void EXP_evalTypeDeclContextFree(EXP_EvalTypeDeclContext* ctx)
 {
     vec_free(&ctx->retBuf);
     vec_free(&ctx->varStack);
@@ -75,9 +75,9 @@ void EXP_evalCompileTypeDeclContextFree(EXP_EvalCompileTypeDeclContext* ctx)
 
 
 
-static u32 EXP_evalCompileTypeDeclLoop
+static u32 EXP_evalTypeDeclLoop
 (
-    EXP_EvalCompileTypeDeclContext* ctx,
+    EXP_EvalTypeDeclContext* ctx,
     const EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalError* outError
 )
@@ -85,35 +85,35 @@ static u32 EXP_evalCompileTypeDeclLoop
     EXP_Space* space = ctx->space;
     EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    vec_u32* inStack = &ctx->inStack;
-    EXP_EvalCompileTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
-    EXP_EvalCompileTypeDeclVarStack* varStack = &ctx->varStack;
+    EXP_NodeVec* inStack = &ctx->inStack;
+    EXP_EvalTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
+    EXP_EvalTypeDeclVarStack* varStack = &ctx->varStack;
     vec_u32* retBuf = &ctx->retBuf;
 
 next:
-    if (!typeDeclStack->length)
+    if (!inStack->length)
     {
         assert(r != -1);
         return r;
     }
-    EXP_EvalCompileTypeDeclLevel* top = &vec_last(typeDeclStack);
+    EXP_EvalTypeDeclLevel* top = &vec_last(inStack);
     EXP_Node node = top->src;
 
     if (EXP_isTok(space, node))
     {
         const char* cstr = EXP_tokCstr(space, node);
-        for (u32 i = 0; i + 1 < typeDeclStack->length; ++i)
+        for (u32 i = 0; i + 1 < inStack->length; ++i)
         {
-            EXP_EvalCompileTypeDeclLevel* fun = typeDeclStack->data + typeDeclStack->length - 2 - i;
+            EXP_EvalTypeDeclLevel* fun = inStack->data + inStack->length - 2 - i;
             if (EXP_isSeqRound(space, fun->src) || EXP_isSeqNaked(space, fun->src))
             {
                 for (u32 i = 0; i < fun->varSpace.length; ++i)
                 {
-                    EXP_EvalCompileTypeDeclVar* var = fun->varSpace.data + i;
+                    EXP_EvalTypeDeclVar* var = fun->varSpace.data + i;
                     if (EXP_nodeDataEq(space, node, var->name))
                     {
                         r = var->type;
-                        EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+                        EXP_evalTypeDeclStackPop(inStack);
                         goto next;
                     }
                 }
@@ -124,7 +124,7 @@ next:
             if (0 == strcmp(cstr, atypeTable->data[i].name))
             {
                 r = EXP_evalTypeAtom(typeContext, i);
-                EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+                EXP_evalTypeDeclStackPop(inStack);
                 goto next;
             }
         }
@@ -183,7 +183,7 @@ next:
                     {
                         t = EXP_evalTypeVar(typeContext, i);
                     }
-                    EXP_EvalCompileTypeDeclVar v = { name, t };
+                    EXP_EvalTypeDeclVar v = { name, t };
                     vec_push(&top->varSpace, v);
                 }
             }
@@ -233,15 +233,15 @@ next:
         }
         if (p < elmsOffset + 1 + numAll)
         {
-            EXP_EvalCompileTypeDeclLevel l = { elms[p] };
-            vec_push(typeDeclStack, l);
+            EXP_EvalTypeDeclLevel l = { elms[p] };
+            vec_push(inStack, l);
         }
         else
         {
             u32 ins = EXP_evalTypeList(typeContext, top->elms.data, numIns);
             u32 outs = EXP_evalTypeList(typeContext, top->elms.data + numIns, numOuts);
             r = EXP_evalTypeFun(typeContext, ins, outs);
-            EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+            EXP_evalTypeDeclStackPop(inStack);
         }
         goto next;
     }
@@ -266,14 +266,14 @@ next:
         u32 p = top->elms.length;
         if (p < len)
         {
-            EXP_EvalCompileTypeDeclLevel l = { elms[p] };
-            vec_push(typeDeclStack, l);
+            EXP_EvalTypeDeclLevel l = { elms[p] };
+            vec_push(inStack, l);
         }
         else
         {
             u32 elm = EXP_evalTypeList(typeContext, top->elms.data, len);
             r = EXP_evalTypeArray(typeContext, elm);
-            EXP_evalCompileTypeDeclStackPop(typeDeclStack);
+            EXP_evalTypeDeclStackPop(inStack);
         }
         goto next;
     }
@@ -291,17 +291,17 @@ next:
 
 
 
-u32 EXP_evalCompileTypeDecl
+u32 EXP_evalTypeDecl
 (
-    EXP_EvalCompileTypeDeclContext* ctx, EXP_Node node, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalError* outError
+    EXP_EvalTypeDeclContext* ctx, EXP_Node node, const EXP_SpaceSrcInfo* srcInfo, EXP_EvalError* outError
 )
 {
     EXP_Space* space = ctx->space;
     EXP_EvalAtypeInfoVec* atypeTable = ctx->atypeTable;
     EXP_EvalTypeContext* typeContext = ctx->typeContext;
-    vec_u32* inStack = &ctx->inStack;
-    EXP_EvalCompileTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
-    EXP_EvalCompileTypeDeclVarStack* varStack = &ctx->varStack;
+    EXP_NodeVec* inStack = &ctx->inStack;
+    EXP_EvalTypeDeclReduceStack* reduceStack = &ctx->reduceStack;
+    EXP_EvalTypeDeclVarStack* varStack = &ctx->varStack;
     vec_u32* retBuf = &ctx->retBuf;
 
     if (!EXP_isSeqRound(space, node) && !EXP_isSeqNaked(space, node))
@@ -312,18 +312,18 @@ u32 EXP_evalCompileTypeDecl
     const EXP_Node* elms = EXP_seqElm(space, node);
     u32 len = EXP_seqLen(space, node);
 
-    assert(0 == typeDeclStack->length);
-    EXP_EvalCompileTypeDeclLevel l = { 0 };
+    assert(0 == inStack->length);
+    EXP_Node root;
     if (1 == len)
     {
-        l.src = elms[0];
+        root = elms[0];
     }
     else
     {
-        l.src = node;
+        root = node;
     }
-    vec_push(typeDeclStack, l);
-    u32 t = EXP_evalCompileTypeDeclLoop(ctx, srcInfo, outError);
+    vec_push(inStack, root);
+    u32 t = EXP_evalTypeDeclLoop(ctx, srcInfo, outError);
     return t;
 }
 
