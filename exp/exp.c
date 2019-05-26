@@ -277,61 +277,9 @@ typedef vec_t(EXP_SaveSlSeqLevel) EXP_SaveSlSeqStack;
 
 
 
-
-
-
-
-
-
-
-
-static u32 EXP_saveSeqSL
-(
-    const EXP_Space* space, const EXP_NodeInfo* seqInfo, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
-)
-{
-    u32 n = 0;
-    u32 bufRemain = bufSize;
-    char* bufPtr = buf;
-
-    for (u32 i = 0; i < seqInfo->length; ++i)
-    {
-        EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[i];
-        u32 en = EXP_saveSL(space, e, bufPtr, bufRemain, srcInfo);
-        if (en < bufRemain)
-        {
-            bufRemain -= en;
-            bufPtr += en;
-        }
-        else
-        {
-            bufRemain = 0;
-            bufPtr = NULL;
-        }
-        n += en;
-
-        if (i < seqInfo->length - 1)
-        {
-            if (1 < bufRemain)
-            {
-                *bufPtr = ' ';
-                bufRemain -= 1;
-                bufPtr += 1;
-            }
-            else
-            {
-                bufRemain = 0;
-                bufPtr = NULL;
-            }
-            n += 1;
-        }
-    }
-    return n;
-}
-
-
 u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo)
 {
+    EXP_SaveSlSeqStack seqStack = { 0 };
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)
     {
@@ -426,18 +374,38 @@ u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
             n += 1;
         }
 
-        u32 n1 = EXP_saveSeqSL(space, info, bufPtr, bufRemain, srcInfo);
-        if (n1 < bufRemain)
+        for (u32 i = 0; i < info->length; ++i)
         {
-            bufRemain -= n1;
-            bufPtr += n1;
+            EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, info->offset))[i];
+            u32 en = EXP_saveSL(space, e, bufPtr, bufRemain, srcInfo);
+            if (en < bufRemain)
+            {
+                bufRemain -= en;
+                bufPtr += en;
+            }
+            else
+            {
+                bufRemain = 0;
+                bufPtr = NULL;
+            }
+            n += en;
+
+            if (i < info->length - 1)
+            {
+                if (1 < bufRemain)
+                {
+                    *bufPtr = ' ';
+                    bufRemain -= 1;
+                    bufPtr += 1;
+                }
+                else
+                {
+                    bufRemain = 0;
+                    bufPtr = NULL;
+                }
+                n += 1;
+            }
         }
-        else
-        {
-            bufRemain = 0;
-            bufPtr = NULL;
-        }
-        n += n1;
 
         if (ch[0])
         {
