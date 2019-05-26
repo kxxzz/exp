@@ -567,91 +567,11 @@ static void EXP_saveMlAddIdent(EXP_SaveMLctx* ctx)
 
 
 
-static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node);
-
-
-
-static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
-{
-    const EXP_Space* space = ctx->space;
-    EXP_NodeInfo* info = space->nodes.data + node.id;
-    switch (info->type)
-    {
-    case EXP_NodeType_Tok:
-    {
-        u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
-        char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfo);
-        EXP_saveMlForward(ctx, a);
-        return;
-    }
-    default:
-    {
-        EXP_saveMlAddNodeSeq(ctx, node);
-        return;
-    }
-    }
-}
 
 
 
 
-static void EXP_saveMlAddSeq(EXP_SaveMLctx* ctx, const EXP_NodeInfo* seqInfo)
-{
-    assert(seqInfo->type > EXP_NodeType_Tok);
-    const EXP_Space* space = ctx->space;
-    char ch[2] = { 0 };
-    EXP_seqBracketChs(seqInfo->type, ch);
-    if (seqInfo->type != EXP_NodeType_SeqNaked)
-    {
-        assert(ch[0]);
-        assert(ch[1]);
-        EXP_saveMlAddCh(ctx, ch[0]);
-        if (seqInfo->type != EXP_NodeType_SeqRound)
-        {
-            EXP_saveMlAddCh(ctx, '\n');
-        }
-        ++ctx->depth;
-    }
-    for (u32 i = 0; i < seqInfo->length; ++i)
-    {
-        if ((i > 0) || (seqInfo->type != EXP_NodeType_SeqRound))
-        {
-            EXP_saveMlAddIdent(ctx);
-        }
-        EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[i];
-        EXP_saveMlAddNode(ctx, e);
-        if (i < seqInfo->length - 1)
-        {
-            EXP_saveMlAddCh(ctx, '\n');
-        }
-        else
-        {
-            if (EXP_NodeType_SeqRound == seqInfo->type)
-            {
-                EXP_saveMlAddCh(ctx, ch[1]);
-            }
-            else
-            {
-                EXP_saveMlAddCh(ctx, '\n');
-            }
-        }
-    }
-    if (seqInfo->type != EXP_NodeType_SeqNaked)
-    {
-        --ctx->depth;
-        if (seqInfo->type != EXP_NodeType_SeqRound)
-        {
-            EXP_saveMlAddIdent(ctx);
-            EXP_saveMlAddCh(ctx, ch[1]);
-        }
-    }
-}
-
-
-
-
-static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
+static void EXP_saveMlLoop(EXP_SaveMLctx* ctx, EXP_Node node)
 {
     const EXP_Space* space = ctx->space;
 
@@ -663,24 +583,73 @@ static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
     if (!ok)
     {
         EXP_saveMlBack(ctx, a);
-        EXP_NodeInfo* info = space->nodes.data + node.id;
-        EXP_saveMlAddSeq(ctx, info);
+        EXP_NodeInfo* seqInfo = space->nodes.data + node.id;
+        assert(seqInfo->type > EXP_NodeType_Tok);
+        char ch[2] = { 0 };
+        EXP_seqBracketChs(seqInfo->type, ch);
+        if (seqInfo->type != EXP_NodeType_SeqNaked)
+        {
+            assert(ch[0]);
+            assert(ch[1]);
+            EXP_saveMlAddCh(ctx, ch[0]);
+            if (seqInfo->type != EXP_NodeType_SeqRound)
+            {
+                EXP_saveMlAddCh(ctx, '\n');
+            }
+            ++ctx->depth;
+        }
+        for (u32 i = 0; i < seqInfo->length; ++i)
+        {
+            if ((i > 0) || (seqInfo->type != EXP_NodeType_SeqRound))
+            {
+                EXP_saveMlAddIdent(ctx);
+            }
+            EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[i];
+            EXP_NodeInfo* eInfo = space->nodes.data + e.id;
+            switch (eInfo->type)
+            {
+            case EXP_NodeType_Tok:
+            {
+                u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
+                char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
+                u32 a = EXP_saveSL(space, e, bufPtr, bufRemain, ctx->opt->srcInfo);
+                EXP_saveMlForward(ctx, a);
+                return;
+            }
+            default:
+            {
+                EXP_saveMlLoop(ctx, e);
+                return;
+            }
+            }
+
+            if (i < seqInfo->length - 1)
+            {
+                EXP_saveMlAddCh(ctx, '\n');
+            }
+            else
+            {
+                if (EXP_NodeType_SeqRound == seqInfo->type)
+                {
+                    EXP_saveMlAddCh(ctx, ch[1]);
+                }
+                else
+                {
+                    EXP_saveMlAddCh(ctx, '\n');
+                }
+            }
+        }
+        if (seqInfo->type != EXP_NodeType_SeqNaked)
+        {
+            --ctx->depth;
+            if (seqInfo->type != EXP_NodeType_SeqRound)
+            {
+                EXP_saveMlAddIdent(ctx);
+                EXP_saveMlAddCh(ctx, ch[1]);
+            }
+        }
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -701,7 +670,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
         {
             space, opt, bufSize, buf,
         };
-        EXP_saveMlAddNodeSeq(&ctx, node);
+        EXP_saveMlLoop(&ctx, node);
         return ctx.n;
     }
     }
