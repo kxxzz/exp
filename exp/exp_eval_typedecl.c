@@ -99,6 +99,10 @@ static u32 EXP_evalTypeDeclLoop
     EXP_EvalTypeDeclVarStack* varStack = &ctx->varStack;
     vec_u32* retBuf = &ctx->retBuf;
 
+    assert(0 == reduceStack->length);
+    assert(0 == varStack->length);
+    assert(0 == retBuf->length);
+
     EXP_Node cur;
     const EXP_EvalTypeDeclReduce* topReduce = NULL;
 next:
