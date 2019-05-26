@@ -10,7 +10,16 @@
 typedef struct EXP_EvalTypeDeclReduce
 {
     EXP_EvalTypeType typeType;
+    u32 varBase;
     u32 retBase;
+    union
+    {
+        struct 
+        {
+            u32 numIns;
+            u32 numOuts;
+        };
+    };
 } EXP_EvalTypeDeclReduce;
 
 typedef vec_t(EXP_EvalTypeDeclReduce) EXP_EvalTypeDeclReduceStack;
@@ -90,7 +99,8 @@ static u32 EXP_evalTypeDeclLoop
     EXP_EvalTypeDeclVarStack* varStack = &ctx->varStack;
     vec_u32* retBuf = &ctx->retBuf;
 
-    EXP_Node node;
+    EXP_Node cur;
+    const EXP_EvalTypeDeclReduce* topReduce = NULL;
 next:
     if (!inStack->length)
     {
@@ -100,20 +110,50 @@ next:
         vec_pop(retBuf);
         return t;
     }
-    node = vec_last(inStack);
+    cur = vec_last(inStack);
     vec_pop(inStack);
 
-    if (EXP_isTok(space, node))
+    if (EXP_Node_Invalid.id == cur.id)
     {
-        const char* cstr = EXP_tokCstr(space, node);
+        assert(reduceStack->length > 0);
+        topReduce = &vec_last(reduceStack);
+
+        switch (topReduce->typeType)
+        {
+        case EXP_EvalTypeType_Fun:
+        {
+            assert(retBuf->length == topReduce->retBase + topReduce->numIns + topReduce->numOuts);
+            u32 funIns = EXP_evalTypeListOrListVar(typeContext, retBuf->data + topReduce->retBase, topReduce->numIns);
+            u32 funOuts = EXP_evalTypeListOrListVar(typeContext, retBuf->data + topReduce->retBase + topReduce->numIns, topReduce->numOuts);
+            u32 fun = EXP_evalTypeFun(typeContext, funIns, funOuts);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, fun);
+            break;
+        }
+        case EXP_EvalTypeType_Array:
+        {
+            assert(retBuf->length >= topReduce->retBase);
+            u32 elmLen = retBuf->length - topReduce->retBase;
+            u32 elm = EXP_evalTypeListOrListVar(typeContext, retBuf->data + topReduce->retBase, elmLen);
+            u32 ary = EXP_evalTypeArray(typeContext, elm);
+            vec_resize(retBuf, topReduce->retBase);
+            vec_push(retBuf, ary);
+            break;
+        }
+        default:
+            assert(false);
+            break;
+        }
+        vec_resize(varStack, topReduce->varBase);
+        vec_pop(reduceStack);
+    }
+    else if (EXP_isTok(space, cur))
+    {
+        const char* cstr = EXP_tokCstr(space, cur);
         for (u32 i = 0; i < varStack->length; ++i)
         {
             EXP_EvalTypeDeclVar* var = varStack->data + i;
-            if (EXP_Node_Invalid.id == var->name.id)
-            {
-                break;
-            }
-            if (EXP_nodeDataEq(space, node, var->name))
+            if (EXP_nodeDataEq(space, cur, var->name))
             {
                 vec_push(retBuf, var->type);
                 goto next;
@@ -128,25 +168,25 @@ next:
                 goto next;
             }
         }
-        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
         return -1;
     }
-    else if (EXP_isSeqRound(space, node) || EXP_isSeqNaked(space, node))
+    else if (EXP_isSeqRound(space, cur) || EXP_isSeqNaked(space, cur))
     {
-        const EXP_Node* elms = EXP_seqElm(space, node);
-        u32 len = EXP_seqLen(space, node);
+        vec_push(inStack, EXP_Node_Invalid);
+        EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_Fun, varStack->length, retBuf->length };
+
+        const EXP_Node* elms = EXP_seqElm(space, cur);
+        u32 len = EXP_seqLen(space, cur);
         if (0 == len)
         {
-            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
             return -1;
         }
         u32 elmsOffset = EXP_isSeqCurly(space, elms[0]) ? 1 : 0;
 
         if (EXP_isSeqCurly(space, elms[0]))
         {
-            EXP_EvalTypeDeclVar v = { EXP_Node_Invalid, -1 };
-            vec_push(varStack, v);
-
             const EXP_Node* names = EXP_seqElm(space, elms[0]);
             u32 len = EXP_seqLen(space, elms[0]);
             for (u32 i = 0; i < len; ++i)
@@ -154,7 +194,7 @@ next:
                 EXP_Node name = names[i];
                 if (!EXP_isTok(space, name))
                 {
-                    EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+                    EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
                     return -1;
                 }
                 for (u32 i = 0; i < varStack->length; ++i)
@@ -166,7 +206,7 @@ next:
                     }
                     if (EXP_nodeDataEq(space, name0, name))
                     {
-                        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+                        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
                         return -1;
                     }
                 }
@@ -187,21 +227,10 @@ next:
             }
         }
 
-        {
-            EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_Fun, retBuf->length };
-            vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_Node_Invalid);
-        }
-        {
-            EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
-            vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_Node_Invalid);
-        }
-
         u32 arrowPos = -1;
         for (u32 i = elmsOffset; i < len; ++i)
         {
-            EXP_Node e = elms[len - 1 - i];
+            EXP_Node e = elms[i];
             if (EXP_isTok(space, e))
             {
                 const char* cstr = EXP_tokCstr(space, e);
@@ -210,43 +239,50 @@ next:
                 {
                     if (arrowPos != -1)
                     {
-                        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+                        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
                         return -1;
                     }
-                    EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
-                    vec_push(reduceStack, newReduce);
-                    vec_push(inStack, EXP_Node_Invalid);
+                    arrowPos = i;
                     continue;
                 }
             }
-            vec_push(inStack, e);
+            if (-1 == arrowPos)
+            {
+                ++newReduce.numIns;
+            }
+            else
+            {
+                ++newReduce.numOuts;
+            }
         }
         if (-1 == arrowPos)
         {
-            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
             return -1;
         }
-        goto next;
+        assert(elmsOffset + newReduce.numIns == arrowPos);
+
+        vec_push(reduceStack, newReduce);
+        for (u32 i = 0; i < len - elmsOffset; ++i)
+        {
+            const u32 p = len - 1 - i;
+            if (p == arrowPos) continue;
+            EXP_Node e = elms[p];
+            vec_push(inStack, e);
+        }
     }
-    else if (EXP_isSeqSquare(space, node))
+    else if (EXP_isSeqSquare(space, cur))
     {
-        const EXP_Node* elms = EXP_seqElm(space, node);
-        u32 len = EXP_seqLen(space, node);
+        vec_push(inStack, EXP_Node_Invalid);
+        EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_Array, varStack->length, retBuf->length };
+        vec_push(reduceStack, newReduce);
+
+        const EXP_Node* elms = EXP_seqElm(space, cur);
+        u32 len = EXP_seqLen(space, cur);
         if (0 == len)
         {
-            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+            EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
             return -1;
-        }
-
-        {
-            EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_Array, retBuf->length };
-            vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_Node_Invalid);
-        }
-        {
-            EXP_EvalTypeDeclReduce newReduce = { EXP_EvalTypeType_List, retBuf->length };
-            vec_push(reduceStack, newReduce);
-            vec_push(inStack, EXP_Node_Invalid);
         }
 
         for (u32 i = 0; i < len; ++i)
@@ -254,13 +290,13 @@ next:
             EXP_Node e = elms[len - 1 - i];
             vec_push(inStack, e);
         }
-        goto next;
     }
     else
     {
-        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, node);
+        EXP_evalErrorFound(outError, srcInfo, EXP_EvalErrCode_EvalSyntax, cur);
         return -1;
     }
+    goto next;
 }
 
 

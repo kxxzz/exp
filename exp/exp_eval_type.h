@@ -84,6 +84,9 @@ u32 EXP_evalTypeArray(EXP_EvalTypeContext* ctx, u32 elm);
 
 
 
+u32 EXP_evalTypeListOrListVar(EXP_EvalTypeContext* ctx, const u32* elms, u32 count);
+
+
 
 const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId);
 

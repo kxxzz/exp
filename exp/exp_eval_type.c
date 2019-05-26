@@ -265,7 +265,7 @@ void EXP_evalTypeVarBind(EXP_EvalTypeVarSpace* varSpace, u32 varId, u32 value)
 
 
 
-static u32 EXP_evalTypeListOrListVar(EXP_EvalTypeContext* ctx, const u32* elms, u32 count)
+u32 EXP_evalTypeListOrListVar(EXP_EvalTypeContext* ctx, const u32* elms, u32 count)
 {
     const EXP_EvalTypeDesc* elm0desc = NULL;
     if (1 == count)
