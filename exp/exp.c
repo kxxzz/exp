@@ -626,6 +626,37 @@ next:
             ++ctx->depth;
         }
     }
+    else
+    {
+        if (p < seqInfo->length)
+        {
+            EXP_saveMlAddCh(ctx, '\n');
+        }
+        else
+        {
+            assert(p == seqInfo->length);
+            if (EXP_NodeType_SeqRound == seqInfo->type)
+            {
+                EXP_saveMlAddCh(ctx, top->ch[1]);
+            }
+            else
+            {
+                EXP_saveMlAddCh(ctx, '\n');
+            }
+
+            if (seqInfo->type != EXP_NodeType_SeqNaked)
+            {
+                --ctx->depth;
+                if (seqInfo->type != EXP_NodeType_SeqRound)
+                {
+                    EXP_saveMlAddIdent(ctx);
+                    EXP_saveMlAddCh(ctx, top->ch[1]);
+                }
+            }
+            vec_pop(seqStack);
+            goto next;
+        }
+    }
 
     if ((p > 0) || (seqInfo->type != EXP_NodeType_SeqRound))
     {
@@ -644,37 +675,9 @@ next:
     }
     default:
     {
-        EXP_SaveMLseqLevel seqL = { e };
-        vec_push(seqStack, seqL);
-        goto next;
+        EXP_SaveMLseqLevel l = { e };
+        vec_push(seqStack, l);
     }
-    }
-
-    if (p < seqInfo->length - 1)
-    {
-        EXP_saveMlAddCh(ctx, '\n');
-    }
-    else
-    {
-        if (EXP_NodeType_SeqRound == seqInfo->type)
-        {
-            EXP_saveMlAddCh(ctx, top->ch[1]);
-        }
-        else
-        {
-            EXP_saveMlAddCh(ctx, '\n');
-        }
-
-        if (seqInfo->type != EXP_NodeType_SeqNaked)
-        {
-            --ctx->depth;
-            if (seqInfo->type != EXP_NodeType_SeqRound)
-            {
-                EXP_saveMlAddIdent(ctx);
-                EXP_saveMlAddCh(ctx, top->ch[1]);
-            }
-        }
-        vec_pop(seqStack);
     }
     goto next;
 }
