@@ -561,7 +561,39 @@ static void EXP_saveMlAddIdent(EXP_SaveMLctx* ctx)
 
 
 
-static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node);
+
+
+
+
+
+
+static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node);
+
+
+
+static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
+{
+    const EXP_Space* space = ctx->space;
+    EXP_NodeInfo* info = space->nodes.data + node.id;
+    switch (info->type)
+    {
+    case EXP_NodeType_Tok:
+    {
+        u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
+        char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
+        u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfo);
+        EXP_saveMlForward(ctx, a);
+        return;
+    }
+    default:
+    {
+        EXP_saveMlAddNodeSeq(ctx, node);
+        return;
+    }
+    }
+}
+
+
 
 
 static void EXP_saveMlAddSeq(EXP_SaveMLctx* ctx, const EXP_NodeInfo* seqInfo)
@@ -633,30 +665,6 @@ static void EXP_saveMlAddNodeSeq(EXP_SaveMLctx* ctx, EXP_Node node)
         EXP_saveMlBack(ctx, a);
         EXP_NodeInfo* info = space->nodes.data + node.id;
         EXP_saveMlAddSeq(ctx, info);
-    }
-}
-
-
-
-static void EXP_saveMlAddNode(EXP_SaveMLctx* ctx, EXP_Node node)
-{
-    const EXP_Space* space = ctx->space;
-    EXP_NodeInfo* info = space->nodes.data + node.id;
-    switch (info->type)
-    {
-    case EXP_NodeType_Tok:
-    {
-        u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
-        char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
-        u32 a = EXP_saveSL(space, node, bufPtr, bufRemain, ctx->opt->srcInfo);
-        EXP_saveMlForward(ctx, a);
-        return;
-    }
-    default:
-    {
-        EXP_saveMlAddNodeSeq(ctx, node);
-        return;
-    }
     }
 }
 
