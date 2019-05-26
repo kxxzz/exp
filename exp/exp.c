@@ -265,6 +265,26 @@ static void EXP_seqBracketChs(EXP_NodeType type, char ch[2])
 
 
 
+
+typedef struct EXP_SaveSlSeqLevel
+{
+    EXP_Node src;
+    u32 p;
+} EXP_SaveSlSeqLevel;
+
+typedef vec_t(EXP_SaveSlSeqLevel) EXP_SaveSlSeqStack;
+
+
+
+
+
+
+
+
+
+
+
+
 static u32 EXP_saveSeqSL
 (
     const EXP_Space* space, const EXP_NodeInfo* seqInfo, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo
@@ -453,22 +473,22 @@ u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
 
 
 
-typedef struct EXP_SaveMLseqLevel
+typedef struct EXP_SaveMlSeqLevel
 {
     EXP_Node src;
     u32 p;
     char ch[2];
-} EXP_SaveMLseqLevel;
+} EXP_SaveMlSeqLevel;
 
-typedef vec_t(EXP_SaveMLseqLevel) EXP_SaveMLseqStack;
-
-
+typedef vec_t(EXP_SaveMlSeqLevel) EXP_SaveMlSeqStack;
 
 
-typedef struct EXP_SaveMLctx
+
+
+typedef struct EXP_SaveMlContext
 {
     const EXP_Space* space;
-    const EXP_SaveMLopt* opt;
+    const EXP_SaveMlOpt* opt;
     const u32 bufSize;
     char* const buf;
 
@@ -476,24 +496,27 @@ typedef struct EXP_SaveMLctx
     u32 column;
     u32 depth;
 
-    EXP_SaveMLseqStack seqStack;
-} EXP_SaveMLctx;
+    EXP_SaveMlSeqStack seqStack;
+} EXP_SaveMlContext;
 
 
-static void EXP_saveMLctxFree(EXP_SaveMLctx* ctx)
+static void EXP_saveMlContextFree(EXP_SaveMlContext* ctx)
 {
     vec_free(&ctx->seqStack);
 }
 
 
-static bool EXP_saveMlForward(EXP_SaveMLctx* ctx, u32 a)
+
+
+
+static bool EXP_saveMlForward(EXP_SaveMlContext* ctx, u32 a)
 {
     ctx->n += a;
     ctx->column += a;
     return ctx->column <= ctx->opt->width;
 }
 
-static void EXP_saveMlBack(EXP_SaveMLctx* ctx, u32 a)
+static void EXP_saveMlBack(EXP_SaveMlContext* ctx, u32 a)
 {
     assert(ctx->n >= a);
     assert(ctx->column >= a);
@@ -502,7 +525,7 @@ static void EXP_saveMlBack(EXP_SaveMLctx* ctx, u32 a)
 }
 
 
-static void EXP_saveMlAddCh(EXP_SaveMLctx* ctx, char c)
+static void EXP_saveMlAddCh(EXP_SaveMlContext* ctx, char c)
 {
     assert(c);
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
@@ -529,7 +552,7 @@ static void EXP_saveMlAddCh(EXP_SaveMLctx* ctx, char c)
 }
 
 
-static void EXP_saveMlAdd(EXP_SaveMLctx* ctx, const char* s)
+static void EXP_saveMlAdd(EXP_SaveMlContext* ctx, const char* s)
 {
     u32 a = (u32)strlen(s);
     u32 bufRemain = (ctx->bufSize > ctx->n) ? (ctx->bufSize - ctx->n) : 0;
@@ -563,7 +586,7 @@ static void EXP_saveMlAdd(EXP_SaveMLctx* ctx, const char* s)
 
 
 
-static void EXP_saveMlAddIdent(EXP_SaveMLctx* ctx)
+static void EXP_saveMlAddIdent(EXP_SaveMlContext* ctx)
 {
     u32 n = ctx->opt->indent * ctx->depth;
     for (u32 i = 0; i < n; ++i)
@@ -581,12 +604,12 @@ static void EXP_saveMlAddIdent(EXP_SaveMLctx* ctx)
 
 
 
-static void EXP_saveMlLoop(EXP_SaveMLctx* ctx)
+static void EXP_saveMlLoop(EXP_SaveMlContext* ctx)
 {
     const EXP_Space* space = ctx->space;
-    EXP_SaveMLseqStack* seqStack = &ctx->seqStack;
+    EXP_SaveMlSeqStack* seqStack = &ctx->seqStack;
 
-    EXP_SaveMLseqLevel* top;
+    EXP_SaveMlSeqLevel* top;
     EXP_NodeInfo* seqInfo;
     u32 p;
 next:
@@ -675,7 +698,7 @@ next:
     }
     default:
     {
-        EXP_SaveMLseqLevel l = { e };
+        EXP_SaveMlSeqLevel l = { e };
         vec_push(seqStack, l);
     }
     }
@@ -686,7 +709,7 @@ next:
 
 
 
-u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMLopt* opt)
+u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMlOpt* opt)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     switch (info->type)
@@ -697,14 +720,14 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
     }
     default:
     {
-        EXP_SaveMLctx ctx =
+        EXP_SaveMlContext ctx =
         {
             space, opt, bufSize, buf,
         };
-        EXP_SaveMLseqLevel root = { node };
+        EXP_SaveMlSeqLevel root = { node };
         vec_push(&ctx.seqStack, root);
         EXP_saveMlLoop(&ctx);
-        EXP_saveMLctxFree(&ctx);
+        EXP_saveMlContextFree(&ctx);
         return ctx.n;
     }
     }

@@ -148,14 +148,14 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* 
 
 u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo);
 
-typedef struct EXP_SaveMLopt
+typedef struct EXP_SaveMlOpt
 {
     u32 indent;
     u32 width;
     EXP_SpaceSrcInfo* srcInfo;
-} EXP_SaveMLopt;
+} EXP_SaveMlOpt;
 
-u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMLopt* opt);
+u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMlOpt* opt);
 
 
 
