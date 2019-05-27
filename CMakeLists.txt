@@ -76,6 +76,18 @@ add_library (exp ${SRC_FILES})
 
 
 
+file (GLOB PP_TEST_SRC_FILES pp_test/*.h pp_test/*.c)
+source_group (src FILES ${PP_TEST_SRC_FILES})
+
+add_executable (pp_test ${PP_TEST_SRC_FILES})
+
+target_link_libraries (pp_test imp exp)
+
+if (WIN32)
+else ()
+    target_link_libraries (pp_test m)
+endif ()
+
 
 
 file (GLOB EXPE_SRC_FILES expe/*.h expe/*.c)

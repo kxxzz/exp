@@ -80,7 +80,34 @@ static u32 align(u32 x, u32 a)
 
 
 
+typedef struct EXP_NodeInfo
+{
+    EXP_NodeType type;
+    u32 offset;
+    u32 length;
+    u32 quoted;
+} EXP_NodeInfo;
 
+typedef vec_t(EXP_NodeInfo) EXP_NodeInfoVec;
+
+
+typedef struct EXP_SeqDefFrame
+{
+    EXP_NodeType seqType;
+    u32 p;
+} EXP_SeqDefFrame;
+
+typedef vec_t(EXP_SeqDefFrame) EXP_SeqDefFrameVec;
+
+
+typedef struct EXP_Space
+{
+    EXP_NodeInfoVec nodes;
+    Upool* dataPool;
+    EXP_NodeVec seqDefStack;
+    EXP_SeqDefFrameVec seqDefFrameStack;
+    vec_char cstrBuf;
+} EXP_Space;
 
 
 
