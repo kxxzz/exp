@@ -494,9 +494,9 @@ static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
 
 
 
-EXP_Node EXP_parseAsCell(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_parseAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(str), str, srcInfo);
+    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(src), src, srcInfo);
     EXP_Node node = EXP_parseNode(&ctx);
     if ((EXP_Node_Invalid.id == node.id) || (!EXP_parseEnd(&ctx)))
     {
@@ -508,9 +508,9 @@ EXP_Node EXP_parseAsCell(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* sr
     return node;
 }
 
-EXP_Node EXP_parseAsList(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_parseAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(str), str, srcInfo);
+    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(src), src, srcInfo);
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     bool errorHappen = false;
     while (EXP_skipSapce(&ctx))

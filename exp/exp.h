@@ -141,8 +141,8 @@ const EXP_NodeSrcInfo* EXP_nodeSrcInfo(const EXP_SpaceSrcInfo* srcInfo, EXP_Node
 
 
 
-EXP_Node EXP_parseAsCell(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo);
-EXP_Node EXP_parseAsList(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_parseAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_parseAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
 
 
 
