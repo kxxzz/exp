@@ -359,6 +359,8 @@ static u32 EXP_saveSlSeq(const EXP_Space* space, char* buf, u32 bufSize, const E
 {
     EXP_SaveSlSeqStack _seqStack = { 0 };
     EXP_SaveSlSeqStack* seqStack = &_seqStack;
+
+    assert(EXP_isSeq(space, src));
     EXP_SaveSlSeqLevel root = { src };
     vec_push(seqStack, root);
 
@@ -616,10 +618,14 @@ static void EXP_saveMlAddIdent(EXP_SaveMlContext* ctx)
 
 
 
-static void EXP_saveMlLoop(EXP_SaveMlContext* ctx)
+static void EXP_saveMlSeq(EXP_SaveMlContext* ctx, EXP_Node src)
 {
     const EXP_Space* space = ctx->space;
     EXP_SaveMlSeqStack* seqStack = &ctx->seqStack;
+
+    assert(EXP_isSeq(space, src));
+    EXP_SaveMlSeqLevel root = { src };
+    vec_push(seqStack, root);
 
     EXP_SaveMlSeqLevel* top;
     EXP_NodeInfo* seqInfo;
@@ -631,6 +637,7 @@ next:
     }
     top = &vec_last(seqStack);
     seqInfo = space->nodes.data + top->src.id;
+    assert(seqInfo->type > EXP_NodeType_Tok);
     p = top->p++;
 
     if (0 == p)
@@ -646,8 +653,7 @@ next:
         }
 
         EXP_saveMlBack(ctx, a);
-        
-        assert(seqInfo->type > EXP_NodeType_Tok);
+
         EXP_seqBracketChs(seqInfo->type, top->ch);
         if (seqInfo->type != EXP_NodeType_SeqNaked)
         {
@@ -736,9 +742,7 @@ u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
         {
             space, opt, bufSize, buf,
         };
-        EXP_SaveMlSeqLevel root = { node };
-        vec_push(&ctx.seqStack, root);
-        EXP_saveMlLoop(&ctx);
+        EXP_saveMlSeq(&ctx, node);
         EXP_saveMlContextFree(&ctx);
         return ctx.n;
     }
