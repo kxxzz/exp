@@ -74,7 +74,7 @@ const EXP_NodeSrcInfo* EXP_nodeSrcInfo(const EXP_SpaceSrcInfo* srcInfo, EXP_Node
 
 
 
-u32 EXP_spaceNodesTotal(EXP_Space* space)
+u32 EXP_spaceNodesTotal(const EXP_Space* space)
 {
     return space->nodes.length;
 }
@@ -86,7 +86,7 @@ u32 EXP_spaceNodesTotal(EXP_Space* space)
 
 
 
-EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node)
+EXP_NodeType EXP_nodeType(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     return info->type;
@@ -169,21 +169,21 @@ EXP_Node EXP_addSeqDone(EXP_Space* space)
 
 
 
-u32 EXP_tokSize(EXP_Space* space, EXP_Node node)
+u32 EXP_tokSize(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
     return info->length;
 }
 
-const char* EXP_tokCstr(EXP_Space* space, EXP_Node node)
+const char* EXP_tokCstr(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
     return upoolElmData(space->dataPool, info->offset);
 }
 
-bool EXP_tokQuoted(EXP_Space* space, EXP_Node node)
+bool EXP_tokQuoted(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
@@ -193,14 +193,14 @@ bool EXP_tokQuoted(EXP_Space* space, EXP_Node node)
 
 
 
-u32 EXP_seqLen(EXP_Space* space, EXP_Node node)
+u32 EXP_seqLen(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok < info->type);
     return info->length;
 }
 
-const EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node)
+const EXP_Node* EXP_seqElm(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok < info->type);
@@ -212,7 +212,7 @@ const EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node)
 
 
 
-bool EXP_nodeDataEq(EXP_Space* space, EXP_Node a, EXP_Node b)
+bool EXP_nodeDataEq(const EXP_Space* space, EXP_Node a, EXP_Node b)
 {
     EXP_NodeInfo* aInfo = space->nodes.data + a.id;
     EXP_NodeInfo* bInfo = space->nodes.data + b.id;
@@ -266,103 +266,130 @@ static void EXP_seqBracketChs(EXP_NodeType type, char ch[2])
 
 
 
+
+
+static u32 EXP_saveSlTok(const EXP_Space* space, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo, EXP_Node src)
+{
+    assert(EXP_isTok(space, src));
+
+    EXP_NodeInfo* info = space->nodes.data + src.id;
+    const char* str = upoolElmData(space->dataPool, info->offset);
+    u32 sreLen = info->length;
+    u32 n;
+    bool isQuotStr = false;
+    if (srcInfo && (src.id < srcInfo->nodes.length))
+    {
+        isQuotStr = srcInfo->nodes.data[src.id].isQuotStr;
+    }
+    else
+    {
+        for (u32 i = 0; i < sreLen; ++i)
+        {
+            if (strchr("()[]{}\"' \t\n\r\b\f", str[i]))
+            {
+                isQuotStr = true;
+                break;
+            }
+        }
+    }
+    if (isQuotStr)
+    {
+        u32 l = 2;
+        for (u32 i = 0; i < sreLen; ++i)
+        {
+            if (' ' >= str[i])
+            {
+                ++l;
+            }
+            else if (strchr("()[]{}\"'", str[i]))
+            {
+                ++l;
+            }
+            ++l;
+        }
+        if (buf && (l < bufSize))
+        {
+            n = 0;
+            buf[n++] = '"';
+            for (u32 i = 0; i < sreLen; ++i)
+            {
+                if (' ' >= str[i])
+                {
+                    buf[n++] = '\\';
+                }
+                else if (strchr("()[]{}\"'", str[i]))
+                {
+                    buf[n++] = '\\';
+                }
+                buf[n++] = str[i];
+            }
+            buf[n++] = '"';
+            assert(n == l);
+        }
+        else
+        {
+            n = l;
+        }
+    }
+    else
+    {
+        n = snprintf(buf, bufSize, "%s", str);
+    }
+    return n;
+}
+
+
+
+
+
+
+
 typedef struct EXP_SaveSlSeqLevel
 {
     EXP_Node src;
     u32 p;
+    char ch[2];
 } EXP_SaveSlSeqLevel;
 
 typedef vec_t(EXP_SaveSlSeqLevel) EXP_SaveSlSeqStack;
 
 
 
-
-u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo)
+static u32 EXP_saveSlSeq(const EXP_Space* space, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo, EXP_Node src)
 {
-    EXP_SaveSlSeqStack seqStack = { 0 };
-    EXP_NodeInfo* info = space->nodes.data + node.id;
-    switch (info->type)
+    EXP_SaveSlSeqStack _seqStack = { 0 };
+    EXP_SaveSlSeqStack* seqStack = &_seqStack;
+    EXP_SaveSlSeqLevel root = { src };
+    vec_push(seqStack, root);
+
+    u32 bufRemain = bufSize;
+    char* bufPtr = buf;
+    u32 n = 0;
+
+    EXP_SaveSlSeqLevel* top = NULL;
+    EXP_Node node;
+    EXP_NodeInfo* seqInfo = NULL;
+    u32 p;
+next:
+    if (!seqStack->length)
     {
-    case EXP_NodeType_Tok:
-    {
-        const char* str = upoolElmData(space->dataPool, info->offset);
-        u32 sreLen = info->length;
-        u32 n;
-        bool isQuotStr = false;
-        if (srcInfo && (node.id < srcInfo->nodes.length))
-        {
-            isQuotStr = srcInfo->nodes.data[node.id].isQuotStr;
-        }
-        else
-        {
-            for (u32 i = 0; i < sreLen; ++i)
-            {
-                if (strchr("()[]{}\"' \t\n\r\b\f", str[i]))
-                {
-                    isQuotStr = true;
-                    break;
-                }
-            }
-        }
-        if (isQuotStr)
-        {
-            u32 l = 2;
-            for (u32 i = 0; i < sreLen; ++i)
-            {
-                if (' ' >= str[i])
-                {
-                    ++l;
-                }
-                else if (strchr("()[]{}\"'", str[i]))
-                {
-                    ++l;
-                }
-                ++l;
-            }
-            if (buf && (l < bufSize))
-            {
-                n = 0;
-                buf[n++] = '"';
-                for (u32 i = 0; i < sreLen; ++i)
-                {
-                    if (' ' >= str[i])
-                    {
-                        buf[n++] = '\\';
-                    }
-                    else if (strchr("()[]{}\"'", str[i]))
-                    {
-                        buf[n++] = '\\';
-                    }
-                    buf[n++] = str[i];
-                }
-                buf[n++] = '"';
-                assert(n == l);
-            }
-            else
-            {
-                n = l;
-            }
-        }
-        else
-        {
-            n = snprintf(buf, bufSize, "%s", str);
-        }
+        vec_free(seqStack);
         return n;
     }
-    default:
+    top = &vec_last(seqStack);
+    node = top->src;
+    seqInfo = space->nodes.data + node.id;
+    assert(seqInfo->type > EXP_NodeType_Tok);
+    p = top->p++;
+
+    if (0 == p)
     {
-        char ch[2] = { 0 };
-        EXP_seqBracketChs(info->type, ch);
-        u32 n = 0;
-
-        u32 bufRemain = bufSize;
-        char* bufPtr = buf;
-
-        if (ch[0])
+        EXP_seqBracketChs(seqInfo->type, top->ch);
+        if (top->ch[0])
         {
             if (1 < bufRemain)
             {
-                *bufPtr = ch[0];
+                *bufPtr = top->ch[0];
                 bufRemain -= 1;
                 bufPtr += 1;
             }
@@ -373,28 +400,33 @@ u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
             }
             n += 1;
         }
-
-        for (u32 i = 0; i < info->length; ++i)
+    }
+    else
+    {
+        if (p < seqInfo->length - 1)
         {
-            EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, info->offset))[i];
-            u32 en = EXP_saveSL(space, e, bufPtr, bufRemain, srcInfo);
-            if (en < bufRemain)
+            if (1 < bufRemain)
             {
-                bufRemain -= en;
-                bufPtr += en;
+                *bufPtr = ' ';
+                bufRemain -= 1;
+                bufPtr += 1;
             }
             else
             {
                 bufRemain = 0;
                 bufPtr = NULL;
             }
-            n += en;
-
-            if (i < info->length - 1)
+            n += 1;
+        }
+        if (p == seqInfo->length)
+        {
+            if (top->ch[0])
             {
+                assert(top->ch[1]);
                 if (1 < bufRemain)
                 {
-                    *bufPtr = ' ';
+                    *bufPtr = top->ch[1];
+                    *(bufPtr + 1) = 0;
                     bufRemain -= 1;
                     bufPtr += 1;
                 }
@@ -405,27 +437,39 @@ u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, co
                 }
                 n += 1;
             }
+            vec_pop(seqStack);
+            goto next;
         }
-
-        if (ch[0])
-        {
-            assert(ch[1]);
-            if (1 < bufRemain)
-            {
-                *bufPtr = ch[1];
-                *(bufPtr + 1) = 0;
-                bufRemain -= 1;
-                bufPtr += 1;
-            }
-            else
-            {
-                bufRemain = 0;
-                bufPtr = NULL;
-            }
-            n += 1;
-        }
-        return n;
     }
+    EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[p];
+    if (EXP_isTok(space, e))
+    {
+        n += EXP_saveSlTok(space, bufPtr, bufRemain, srcInfo, e);
+    }
+    else
+    {
+        EXP_SaveSlSeqLevel l = { e };
+        vec_push(seqStack, l);
+    }
+    goto next;
+}
+
+
+
+
+
+
+
+
+u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo)
+{
+    if (EXP_isTok(space, node))
+    {
+        return EXP_saveSlTok(space, buf, bufSize, srcInfo, node);
+    }
+    else
+    {
+        return EXP_saveSlSeq(space, buf, bufSize, srcInfo, node);
     }
 }
 

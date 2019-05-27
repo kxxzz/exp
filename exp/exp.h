@@ -55,7 +55,7 @@ EXP_Space* EXP_newSpace(void);
 void EXP_spaceFree(EXP_Space* space);
 
 
-u32 EXP_spaceNodesTotal(EXP_Space* space);
+u32 EXP_spaceNodesTotal(const EXP_Space* space);
 
 
 typedef struct EXP_Node { u32 id; } EXP_Node;
@@ -64,29 +64,29 @@ typedef vec_t(EXP_Node) EXP_NodeVec;
 static EXP_Node EXP_Node_Invalid = { (u32)-1 };
 
 
-EXP_NodeType EXP_nodeType(EXP_Space* space, EXP_Node node);
+EXP_NodeType EXP_nodeType(const EXP_Space* space, EXP_Node node);
 
-static bool EXP_isTok(EXP_Space* space, EXP_Node node)
+static bool EXP_isTok(const EXP_Space* space, EXP_Node node)
 {
     return EXP_NodeType_Tok == EXP_nodeType(space, node);
 }
-static bool EXP_isSeq(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeq(const EXP_Space* space, EXP_Node node)
 {
     return EXP_nodeType(space, node) > EXP_NodeType_Tok;
 }
-static bool EXP_isSeqNaked(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeqNaked(const EXP_Space* space, EXP_Node node)
 {
     return EXP_NodeType_SeqNaked == EXP_nodeType(space, node);
 }
-static bool EXP_isSeqRound(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeqRound(const EXP_Space* space, EXP_Node node)
 {
     return EXP_NodeType_SeqRound == EXP_nodeType(space, node);
 }
-static bool EXP_isSeqSquare(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeqSquare(const EXP_Space* space, EXP_Node node)
 {
     return EXP_NodeType_SeqSquare == EXP_nodeType(space, node);
 }
-static bool EXP_isSeqCurly(EXP_Space* space, EXP_Node node)
+static bool EXP_isSeqCurly(const EXP_Space* space, EXP_Node node)
 {
     return EXP_NodeType_SeqCurly == EXP_nodeType(space, node);
 }
@@ -102,15 +102,15 @@ void EXP_addSeqCancel(EXP_Space* space);
 EXP_Node EXP_addSeqDone(EXP_Space* space);
 
 
-u32 EXP_tokSize(EXP_Space* space, EXP_Node node);
-const char* EXP_tokCstr(EXP_Space* space, EXP_Node node);
-bool EXP_tokQuoted(EXP_Space* space, EXP_Node node);
+u32 EXP_tokSize(const EXP_Space* space, EXP_Node node);
+const char* EXP_tokCstr(const EXP_Space* space, EXP_Node node);
+bool EXP_tokQuoted(const EXP_Space* space, EXP_Node node);
 
-u32 EXP_seqLen(EXP_Space* space, EXP_Node node);
-const EXP_Node* EXP_seqElm(EXP_Space* space, EXP_Node node);
+u32 EXP_seqLen(const EXP_Space* space, EXP_Node node);
+const EXP_Node* EXP_seqElm(const EXP_Space* space, EXP_Node node);
 
 
-bool EXP_nodeDataEq(EXP_Space* space, EXP_Node a, EXP_Node b);
+bool EXP_nodeDataEq(const EXP_Space* space, EXP_Node a, EXP_Node b);
 
 
 
