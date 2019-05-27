@@ -622,6 +622,7 @@ static void EXP_saveMlSeq(EXP_SaveMlContext* ctx, EXP_Node src)
 {
     const EXP_Space* space = ctx->space;
     EXP_SaveMlSeqStack* seqStack = &ctx->seqStack;
+    assert(!seqStack->length);
 
     assert(EXP_isSeq(space, src));
     EXP_SaveMlSeqLevel root = { src };
