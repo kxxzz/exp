@@ -139,23 +139,25 @@ void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo);
 
 const EXP_NodeSrcInfo* EXP_nodeSrcInfo(const EXP_SpaceSrcInfo* srcInfo, EXP_Node node);
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo);
+
+
+EXP_Node EXP_parseAsCell(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo);
+EXP_Node EXP_parseAsList(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo);
 
 
 
 
 
-u32 EXP_saveSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo);
+u32 EXP_printSL(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo);
 
-typedef struct EXP_SaveMlOpt
+typedef struct EXP_PrintMlOpt
 {
     u32 indent;
     u32 width;
     EXP_SpaceSrcInfo* srcInfo;
-} EXP_SaveMlOpt;
+} EXP_PrintMlOpt;
 
-u32 EXP_saveML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_SaveMlOpt* opt);
+u32 EXP_printML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_PrintMlOpt* opt);
 
 
 

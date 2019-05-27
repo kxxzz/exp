@@ -29,7 +29,7 @@ typedef struct EXP_Token
 
 
 
-typedef struct EXP_LoadContext
+typedef struct EXP_ParseContext
 {
     EXP_Space* space;
     u32 srcLen;
@@ -38,11 +38,11 @@ typedef struct EXP_LoadContext
     u32 curLine;
     EXP_SpaceSrcInfo* srcInfo;
     vec_char tmpStrBuf;
-} EXP_LoadContext;
+} EXP_ParseContext;
 
 
 
-static EXP_LoadContext EXP_newLoadContext
+static EXP_ParseContext EXP_newParseContext
 (
     EXP_Space* space, u32 strSize, const char* srcStr, EXP_SpaceSrcInfo* srcInfo
 )
@@ -53,11 +53,11 @@ static EXP_LoadContext EXP_newLoadContext
         srcInfo->baseNodeId = EXP_spaceNodesTotal(space);
         ++srcInfo->fileCount;
     }
-    EXP_LoadContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
+    EXP_ParseContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
 }
 
-static void EXP_loadContextFree(EXP_LoadContext* ctx)
+static void EXP_parseContextFree(EXP_ParseContext* ctx)
 {
     vec_free(&ctx->tmpStrBuf);
 }
@@ -66,7 +66,7 @@ static void EXP_loadContextFree(EXP_LoadContext* ctx)
 
 
 
-static bool EXP_skipSapce(EXP_LoadContext* ctx)
+static bool EXP_skipSapce(EXP_ParseContext* ctx)
 {
     const char* src = ctx->src;
     for (;;)
@@ -160,7 +160,7 @@ static bool EXP_skipSapce(EXP_LoadContext* ctx)
 
 
 
-static bool EXP_readToken_String(EXP_LoadContext* ctx, EXP_Token* out)
+static bool EXP_readToken_String(EXP_ParseContext* ctx, EXP_Token* out)
 {
     const char* src = ctx->src;
     char endCh = src[ctx->cur];
@@ -199,7 +199,7 @@ static bool EXP_readToken_String(EXP_LoadContext* ctx, EXP_Token* out)
 
 
 
-static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
+static bool EXP_readToken_Text(EXP_ParseContext* ctx, EXP_Token* out)
 {
     EXP_Token tok = { EXP_TokenType_Text, ctx->cur, 0 };
     const char* src = ctx->src;
@@ -239,7 +239,7 @@ static bool EXP_readToken_Text(EXP_LoadContext* ctx, EXP_Token* out)
 
 
 
-static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
+static bool EXP_readToken(EXP_ParseContext* ctx, EXP_Token* out)
 {
     const char* src = ctx->src;
     if (ctx->cur >= ctx->srcLen)
@@ -312,9 +312,9 @@ static bool EXP_readToken(EXP_LoadContext* ctx, EXP_Token* out)
 
 
 
-static EXP_Node EXP_loadNode(EXP_LoadContext* ctx);
+static EXP_Node EXP_parseNode(EXP_ParseContext* ctx);
 
-static bool EXP_loadEnd(EXP_LoadContext* ctx)
+static bool EXP_parseEnd(EXP_ParseContext* ctx)
 {
     assert(ctx->srcLen >= ctx->cur);
     if (ctx->srcLen == ctx->cur)
@@ -324,7 +324,7 @@ static bool EXP_loadEnd(EXP_LoadContext* ctx)
     return false;
 }
 
-static bool EXP_loadSeqEnd(EXP_LoadContext* ctx, EXP_TokenType endTokType)
+static bool EXP_parseSeqEnd(EXP_ParseContext* ctx, EXP_TokenType endTokType)
 {
     u32 cur0 = ctx->cur;
     u32 curLine0 = ctx->curLine;
@@ -342,7 +342,7 @@ static bool EXP_loadSeqEnd(EXP_LoadContext* ctx, EXP_TokenType endTokType)
     return false;
 }
 
-static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
+static EXP_Node EXP_parseSeq(EXP_ParseContext* ctx, EXP_TokenType beginTokType)
 {
     EXP_NodeType type;
     EXP_TokenType endTokType;
@@ -366,9 +366,9 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
     }
     EXP_Space* space = ctx->space;
     EXP_addSeqEnter(space, type);
-    while (!EXP_loadSeqEnd(ctx, endTokType))
+    while (!EXP_parseSeqEnd(ctx, endTokType))
     {
-        EXP_Node e = EXP_loadNode(ctx);
+        EXP_Node e = EXP_parseNode(ctx);
         if (EXP_Node_Invalid.id == e.id)
         {
             EXP_addSeqCancel(space);
@@ -383,7 +383,7 @@ static EXP_Node EXP_loadSeq(EXP_LoadContext* ctx, EXP_TokenType beginTokType)
 
 
 
-static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
+static void EXP_parseNodeSrcInfo(EXP_ParseContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
 {
     if (!ctx->srcInfo)
     {
@@ -408,7 +408,7 @@ static void EXP_loadNodeSrcInfo(EXP_LoadContext* ctx, const EXP_Token* tok, EXP_
 
 
 
-static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
+static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
@@ -420,7 +420,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     }
     bool isQuotStr = EXP_TokenType_String == tok.type;
     EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-    EXP_loadNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
+    EXP_parseNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
     switch (tok.type)
     {
     case EXP_TokenType_Text:
@@ -464,7 +464,7 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
     case EXP_TokenType_SeqSquareBegin:
     case EXP_TokenType_SeqBraceBegin:
     {
-        node = EXP_loadSeq(ctx, tok.type);
+        node = EXP_parseSeq(ctx, tok.type);
         if (EXP_Node_Invalid.id == node.id)
         {
             return node;
@@ -494,28 +494,28 @@ static EXP_Node EXP_loadNode(EXP_LoadContext* ctx)
 
 
 
-EXP_Node EXP_loadSrcAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_parseAsCell(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfo);
-    EXP_Node node = EXP_loadNode(&ctx);
-    if ((EXP_Node_Invalid.id == node.id) || (!EXP_loadEnd(&ctx)))
+    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(str), str, srcInfo);
+    EXP_Node node = EXP_parseNode(&ctx);
+    if ((EXP_Node_Invalid.id == node.id) || (!EXP_parseEnd(&ctx)))
     {
-        EXP_loadContextFree(&ctx);
+        EXP_parseContextFree(&ctx);
         EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
-    EXP_loadContextFree(&ctx);
+    EXP_parseContextFree(&ctx);
     return node;
 }
 
-EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
+EXP_Node EXP_parseAsList(EXP_Space* space, const char* str, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_LoadContext ctx = EXP_newLoadContext(space, (u32)strlen(src), src, srcInfo);
+    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(str), str, srcInfo);
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     bool errorHappen = false;
     while (EXP_skipSapce(&ctx))
     {
-        EXP_Node e = EXP_loadNode(&ctx);
+        EXP_Node e = EXP_parseNode(&ctx);
         if (EXP_Node_Invalid.id == e.id)
         {
             errorHappen = true;
@@ -523,14 +523,14 @@ EXP_Node EXP_loadSrcAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* 
         }
         EXP_addSeqPush(ctx.space, e);
     }
-    if (!EXP_loadEnd(&ctx) || errorHappen)
+    if (!EXP_parseEnd(&ctx) || errorHappen)
     {
-        EXP_loadContextFree(&ctx);
+        EXP_parseContextFree(&ctx);
         EXP_addSeqCancel(space);
         EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
-    EXP_loadContextFree(&ctx);
+    EXP_parseContextFree(&ctx);
     EXP_Node node = EXP_addSeqDone(space);
     if (srcInfo)
     {

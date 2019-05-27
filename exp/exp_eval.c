@@ -23,7 +23,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
     {
         const EXP_EvalAfunInfo* info = EXP_EvalPrimFunInfoTable() + i;
         vec_push(afunTable, *info);
-        EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
+        EXP_Node node = EXP_parseAsList(space, info->typeDecl, NULL);
         assert(node.id != EXP_Node_Invalid.id);
         u32 t = EXP_evalTypeDecl(typeDeclContext, node, NULL, NULL);
         assert(t != -1);
@@ -39,7 +39,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
         {
             const EXP_EvalAfunInfo* info = addAtomTable->funs + i;
             vec_push(afunTable, *info);
-            EXP_Node node = EXP_loadSrcAsList(space, info->typeDecl, NULL);
+            EXP_Node node = EXP_parseAsList(space, info->typeDecl, NULL);
             assert(node.id != EXP_Node_Invalid.id);
             u32 t = EXP_evalTypeDecl(typeDeclContext, node, NULL, NULL);
             assert(t != -1);
@@ -926,7 +926,7 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
         srcInfo = &ctx->srcInfo;
     }
     EXP_Space* space = ctx->space;
-    EXP_Node root = EXP_loadSrcAsList(space, code, srcInfo);
+    EXP_Node root = EXP_parseAsList(space, code, srcInfo);
     if (EXP_Node_Invalid.id == root.id)
     {
         ctx->error.code = EXP_EvalErrCode_ExpSyntax;
