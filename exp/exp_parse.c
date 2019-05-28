@@ -491,19 +491,20 @@ next:
     }
     else
     {
-        assert(r.id != EXP_Node_Invalid.id);
-        EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-        EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
-        if (srcInfo)
-        {
-            vec_push(&srcInfo->nodes, nodeSrcInfo);
-        }
         EXP_addSeqPush(ctx->space, r);
     }
     if (EXP_parseSeqEnd(ctx, cur->endTokType))
     {
         vec_pop(seqStack);
         r = EXP_addSeqDone(space);
+
+        assert(r.id != EXP_Node_Invalid.id);
+        if (srcInfo)
+        {
+            EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+            EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
+            vec_push(&srcInfo->nodes, nodeSrcInfo);
+        }
         goto next;
     }
     else
@@ -516,6 +517,13 @@ next:
         {
             EXP_ParseSeqLevel l = { tok.type, -1 };
             vec_push(seqStack, l);
+        }
+        assert(r.id != EXP_Node_Invalid.id);
+        if (srcInfo)
+        {
+            EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+            EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
+            vec_push(&srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
     }
@@ -546,10 +554,10 @@ static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
         node = EXP_parseSeq(ctx, tok.type);
         return node;
     }
-    EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-    EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
     if (srcInfo)
     {
+        EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+        EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
         vec_push(&srcInfo->nodes, nodeSrcInfo);
     }
     return node;
