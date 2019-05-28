@@ -24,6 +24,23 @@
 
 
 
+
+static int mainReturn(int r)
+{
+#if !defined(NDEBUG) && defined(_WIN32)
+    system("pause");
+#endif
+    return r;
+}
+
+
+
+
+
+
+
+
+
 static void execCode(const char* filename, const char* code)
 {
     char timeBuf[EXP_EvalTimeStrBuf_MAX];
@@ -70,13 +87,7 @@ void intHandler(int dummy)
 
 
 
-static int mainReturn(int r)
-{
-#if !defined(NDEBUG) && defined(_WIN32)
-    system("pause");
-#endif
-    return r;
-}
+
 
 
 int main(int argc, char* argv[])
