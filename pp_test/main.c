@@ -45,6 +45,15 @@ static void pp_test(void)
     free(text);
 
     {
+        u32 text1BufSize = EXP_printSL(space, root, NULL, 0, &srcInfo) + 1;
+        char* text1 = malloc(text1BufSize);
+        u32 writen = EXP_printSL(space, root, text1, text1BufSize, &srcInfo) + 1;
+        assert(text1BufSize == writen);
+        printf("\"\n%s\"\n", text1);
+        free(text1);
+    }
+
+    {
         EXP_PrintMlOpt opt = { 4, 50 };
         u32 text1BufSize = EXP_printML(space, root, NULL, 0, &opt) + 1;
         char* text1 = malloc(text1BufSize);

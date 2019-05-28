@@ -173,7 +173,7 @@ next:
     }
     else
     {
-        if (p < seqInfo->length - 1)
+        if (p < seqInfo->length)
         {
             if (1 < bufRemain)
             {
@@ -188,8 +188,9 @@ next:
             }
             n += 1;
         }
-        if (p == seqInfo->length)
+        else
         {
+            assert(p == seqInfo->length);
             if (top->ch[0])
             {
                 assert(top->ch[1]);
@@ -214,7 +215,18 @@ next:
     EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[p];
     if (EXP_isTok(space, e))
     {
-        n += EXP_printSlTok(space, bufPtr, bufRemain, srcInfo, e);
+        u32 a = EXP_printSlTok(space, bufPtr, bufRemain, srcInfo, e);
+        if (a < bufRemain)
+        {
+            bufRemain -= a;
+            bufPtr += a;
+        }
+        else
+        {
+            bufRemain = 0;
+            bufPtr = NULL;
+        }
+        n += a;
     }
     else
     {
@@ -482,11 +494,13 @@ next:
         char* bufPtr = ctx->buf ? (ctx->buf + ctx->n) : NULL;
         u32 a = EXP_printSL(space, e, bufPtr, bufRemain, ctx->opt->srcInfo);
         EXP_printMlForward(ctx, a);
+        break;
     }
     default:
     {
         EXP_PrintMlSeqLevel l = { e };
         vec_push(seqStack, l);
+        break;
     }
     }
     goto next;
