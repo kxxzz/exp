@@ -29,6 +29,17 @@ typedef struct EXP_Token
 
 
 
+typedef struct EXP_ParseSeqLevel
+{
+    EXP_TokenType beginTokType;
+    EXP_TokenType endTokType;
+} EXP_ParseSeqLevel;
+
+typedef vec_t(EXP_ParseSeqLevel) EXP_ParseSeqStack;
+
+
+
+
 typedef struct EXP_ParseContext
 {
     EXP_Space* space;
@@ -38,6 +49,7 @@ typedef struct EXP_ParseContext
     u32 curLine;
     EXP_SpaceSrcInfo* srcInfo;
     vec_char tmpStrBuf;
+    EXP_ParseSeqStack seqStack;
 } EXP_ParseContext;
 
 
@@ -59,6 +71,7 @@ static EXP_ParseContext EXP_newParseContext
 
 static void EXP_parseContextFree(EXP_ParseContext* ctx)
 {
+    vec_free(&ctx->seqStack);
     vec_free(&ctx->tmpStrBuf);
 }
 
@@ -312,7 +325,96 @@ static bool EXP_readToken(EXP_ParseContext* ctx, EXP_Token* out)
 
 
 
-static EXP_Node EXP_parseNode(EXP_ParseContext* ctx);
+
+
+static void EXP_tokenToNodeSrcInfo(EXP_ParseContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
+{
+    if (!ctx->srcInfo)
+    {
+        return;
+    }
+    assert(ctx->srcInfo->fileCount > 0);
+    info->file = ctx->srcInfo->fileCount - 1;
+    info->offset = ctx->cur - tok->len;
+    info->line = ctx->curLine;
+    info->column = 1;
+    for (u32 i = 0; i < info->offset; ++i)
+    {
+        char c = ctx->src[info->offset - i];
+        if (strchr("\n\r", c))
+        {
+            info->column = i;
+            break;
+        }
+    }
+    info->isQuotStr = EXP_TokenType_String == tok->type;
+}
+
+
+
+
+
+
+static bool EXP_tokenToNode(EXP_ParseContext* ctx, const EXP_Token* tok, EXP_Node* pNode)
+{
+    EXP_Space* space = ctx->space;
+    bool isQuotStr = EXP_TokenType_String == tok->type;
+    switch (tok->type)
+    {
+    case EXP_TokenType_Text:
+    {
+        const char* str = ctx->src + tok->begin;
+        *pNode = EXP_addTokL(space, str, tok->len, isQuotStr);
+        break;
+    }
+    case EXP_TokenType_String:
+    {
+        char endCh = ctx->src[tok->begin - 1];
+        const char* src = ctx->src + tok->begin;
+        u32 n = 0;
+        for (u32 i = 0; i < tok->len; ++i)
+        {
+            if ('\\' == src[i])
+            {
+                ++n;
+                ++i;
+            }
+        }
+        u32 len = tok->len - n;
+        vec_resize(&ctx->tmpStrBuf, len + 1);
+        u32 si = 0;
+        for (u32 i = 0; i < tok->len; ++i)
+        {
+            if ('\\' == src[i])
+            {
+                ++i;
+                ctx->tmpStrBuf.data[si++] = src[i];
+                continue;
+            }
+            ctx->tmpStrBuf.data[si++] = src[i];
+        }
+        ctx->tmpStrBuf.data[len] = 0;
+        assert(si == len);
+        *pNode = EXP_addTokL(space, ctx->tmpStrBuf.data, len, isQuotStr);
+        break;
+    }
+    case EXP_TokenType_SeqParenBegin:
+    case EXP_TokenType_SeqSquareBegin:
+    case EXP_TokenType_SeqBraceBegin:
+    {
+        return false;
+    }
+    default:
+        assert(false);
+        break;
+    }
+    return true;
+}
+
+
+
+
+
 
 static bool EXP_parseEnd(EXP_ParseContext* ctx)
 {
@@ -342,69 +444,90 @@ static bool EXP_parseSeqEnd(EXP_ParseContext* ctx, EXP_TokenType endTokType)
     return false;
 }
 
+
+
+
+
 static EXP_Node EXP_parseSeq(EXP_ParseContext* ctx, EXP_TokenType beginTokType)
 {
-    EXP_NodeType type;
-    EXP_TokenType endTokType;
-    switch (beginTokType)
-    {
-    case EXP_TokenType_SeqParenBegin:
-        type = EXP_NodeType_SeqRound;
-        endTokType = EXP_TokenType_SeqParenEnd;
-        break;
-    case EXP_TokenType_SeqSquareBegin:
-        type = EXP_NodeType_SeqSquare;
-        endTokType = EXP_TokenType_SeqSquareEnd;
-        break;
-    case EXP_TokenType_SeqBraceBegin:
-        type = EXP_NodeType_SeqCurly;
-        endTokType = EXP_TokenType_SeqBraceEnd;
-        break;
-    default:
-        assert(false);
-        break;
-    }
     EXP_Space* space = ctx->space;
-    EXP_addSeqEnter(space, type);
-    while (!EXP_parseSeqEnd(ctx, endTokType))
+    EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
+    EXP_ParseSeqStack* seqStack = &ctx->seqStack;
+    assert(!seqStack->length);
+
+    EXP_ParseSeqLevel root = { beginTokType, -1 };
+    vec_push(seqStack, root);
+    EXP_ParseSeqLevel* cur = NULL;
+    EXP_Node r;
+    EXP_Token tok;
+next:
+    if (!seqStack->length)
     {
-        EXP_Node e = EXP_parseNode(ctx);
-        if (EXP_Node_Invalid.id == e.id)
-        {
-            EXP_addSeqCancel(space);
-            EXP_Node node = { EXP_Node_Invalid.id };
-            return node;
-        }
-        EXP_addSeqPush(ctx->space, e);
+        return r;
     }
-    EXP_Node node = EXP_addSeqDone(space);
-    return node;
-}
-
-
-
-static void EXP_parseNodeSrcInfo(EXP_ParseContext* ctx, const EXP_Token* tok, EXP_NodeSrcInfo* info)
-{
-    if (!ctx->srcInfo)
+    cur = &vec_last(seqStack);
+    if (-1 == cur->endTokType)
     {
-        return;
-    }
-    assert(ctx->srcInfo->fileCount > 0);
-    info->file = ctx->srcInfo->fileCount - 1;
-    info->offset = ctx->cur - tok->len;
-    info->line = ctx->curLine;
-    info->column = 1;
-    for (u32 i = 0; i < info->offset; ++i)
-    {
-        char c = ctx->src[info->offset - i];
-        if (strchr("\n\r", c))
+        EXP_NodeType seqType;
+        switch (cur->beginTokType)
         {
-            info->column = i;
+        case EXP_TokenType_SeqParenBegin:
+            seqType = EXP_NodeType_SeqRound;
+            cur->endTokType = EXP_TokenType_SeqParenEnd;
+            break;
+        case EXP_TokenType_SeqSquareBegin:
+            seqType = EXP_NodeType_SeqSquare;
+            cur->endTokType = EXP_TokenType_SeqSquareEnd;
+            break;
+        case EXP_TokenType_SeqBraceBegin:
+            seqType = EXP_NodeType_SeqCurly;
+            cur->endTokType = EXP_TokenType_SeqBraceEnd;
+            break;
+        default:
+            assert(false);
             break;
         }
+        EXP_addSeqEnter(space, seqType);
     }
-    info->isQuotStr = EXP_TokenType_String == tok->type;
+    else
+    {
+        assert(r.id != EXP_Node_Invalid.id);
+        EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+        EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
+        if (srcInfo)
+        {
+            vec_push(&srcInfo->nodes, nodeSrcInfo);
+        }
+        EXP_addSeqPush(ctx->space, r);
+    }
+    if (EXP_parseSeqEnd(ctx, cur->endTokType))
+    {
+        vec_pop(seqStack);
+        r = EXP_addSeqDone(space);
+        goto next;
+    }
+    else
+    {
+        if (!EXP_readToken(ctx, &tok))
+        {
+            goto failed;
+        }
+        if (!EXP_tokenToNode(ctx, &tok, &r))
+        {
+            EXP_ParseSeqLevel l = { tok.type, -1 };
+            vec_push(seqStack, l);
+        }
+        goto next;
+    }
+failed:
+    vec_resize(seqStack, 0);
+    EXP_addSeqCancel(space);
+    return EXP_Node_Invalid;
 }
+
+
+
+
 
 
 
@@ -412,69 +535,19 @@ static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
 {
     EXP_Space* space = ctx->space;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
-    EXP_Node node = { EXP_Node_Invalid.id };
+    EXP_Node node = EXP_Node_Invalid;
     EXP_Token tok;
     if (!EXP_readToken(ctx, &tok))
     {
         return node;
     }
-    bool isQuotStr = EXP_TokenType_String == tok.type;
-    EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-    EXP_parseNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
-    switch (tok.type)
-    {
-    case EXP_TokenType_Text:
-    {
-        const char* str = ctx->src + tok.begin;
-        node = EXP_addTokL(space, str, tok.len, isQuotStr);
-        break;
-    }
-    case EXP_TokenType_String:
-    {
-        char endCh = ctx->src[tok.begin - 1];
-        const char* src = ctx->src + tok.begin;
-        u32 n = 0;
-        for (u32 i = 0; i < tok.len; ++i)
-        {
-            if ('\\' == src[i])
-            {
-                ++n;
-                ++i;
-            }
-        }
-        u32 len = tok.len - n;
-        vec_resize(&ctx->tmpStrBuf, len + 1);
-        u32 si = 0;
-        for (u32 i = 0; i < tok.len; ++i)
-        {
-            if ('\\' == src[i])
-            {
-                ++i;
-                ctx->tmpStrBuf.data[si++] = src[i];
-                continue;
-            }
-            ctx->tmpStrBuf.data[si++] = src[i];
-        }
-        ctx->tmpStrBuf.data[len] = 0;
-        assert(si == len);
-        node = EXP_addTokL(space, ctx->tmpStrBuf.data, len, isQuotStr);
-        break;
-    }
-    case EXP_TokenType_SeqParenBegin:
-    case EXP_TokenType_SeqSquareBegin:
-    case EXP_TokenType_SeqBraceBegin:
+    if (!EXP_tokenToNode(ctx, &tok, &node))
     {
         node = EXP_parseSeq(ctx, tok.type);
-        if (EXP_Node_Invalid.id == node.id)
-        {
-            return node;
-        }
-        break;
-    }
-    default:
-        assert(false);
         return node;
     }
+    EXP_NodeSrcInfo nodeSrcInfo = { 0 };
+    EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
     if (srcInfo)
     {
         vec_push(&srcInfo->nodes, nodeSrcInfo);
