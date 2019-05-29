@@ -9,7 +9,7 @@
 
 
 
-typedef struct EXP_EvalValueFprintFrame
+typedef struct EXP_EvalValueFprintArrayLevel
 {
     EXP_EvalValue v;
     u32 arySize;
@@ -22,9 +22,9 @@ typedef struct EXP_EvalValueFprintFrame
 
     u32 aryIdx;
     u32 elmIdx;
-} EXP_EvalValueFprintFrame;
+} EXP_EvalValueFprintArrayLevel;
 
-typedef vec_t(EXP_EvalValueFprintFrame) EXP_EvalValueFprintStack;
+typedef vec_t(EXP_EvalValueFprintArrayLevel) EXP_EvalValueFprintStack;
 
 
 
@@ -105,7 +105,7 @@ static bool EXP_evalValueFprintNonArray(EXP_EvalValueFprintContext* ctx, EXP_Eva
 
 
 
-static void EXP_evalValueFprintPushFrame
+static void EXP_evalValueFprintPushArrayLevel
 (
     EXP_EvalValueFprintContext* ctx,
     EXP_EvalValue v, u32 arySize, u32 elmSize, const u32* elmTypes,
@@ -130,18 +130,18 @@ static void EXP_evalValueFprintPushFrame
     {
         fprintf(f, "[ ");
     }
-    EXP_EvalValueFprintFrame newFrame =
+    EXP_EvalValueFprintArrayLevel newLevel =
     {
         v, arySize, elmSize, elmTypes, hasAryMemb, multiLine, indent, elmBufBase
     };
-    vec_push(stack, newFrame);
+    vec_push(stack, newLevel);
 }
 
 
 
 
 
-static void EXP_evalValueFprintPushFrameByVT(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v, u32 t, u32 indent)
+static void EXP_evalValueFprintPushArrayLevelByVT(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v, u32 t, u32 indent)
 {
     EXP_EvalContext* evalContext = ctx->evalContext;
     EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(evalContext);
@@ -170,7 +170,7 @@ static void EXP_evalValueFprintPushFrameByVT(EXP_EvalValueFprintContext* ctx, EX
     assert(elmDesc->list.count == elmSize);
     const u32* elmTypes = elmDesc->list.elms;
 
-    EXP_evalValueFprintPushFrame(ctx, v, arySize, elmSize, elmTypes, hasAryMemb, indent);
+    EXP_evalValueFprintPushArrayLevel(ctx, v, arySize, elmSize, elmTypes, hasAryMemb, indent);
 }
 
 
@@ -191,10 +191,10 @@ static void EXP_evalValueFprint(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v
     }
     if (!EXP_evalValueFprintNonArray(ctx, v, t))
     {
-        EXP_evalValueFprintPushFrameByVT(ctx, v, t, indent);
+        EXP_evalValueFprintPushArrayLevelByVT(ctx, v, t, indent);
     }
 
-    EXP_EvalValueFprintFrame* top = NULL;
+    EXP_EvalValueFprintArrayLevel* top = NULL;
     u32 aryIdx = 0;
     u32 elmIdx = 0;
 
@@ -250,7 +250,7 @@ next:
     }
     if (!EXP_evalValueFprintNonArray(ctx, v, t))
     {
-        EXP_evalValueFprintPushFrameByVT(ctx, v, t, indent);
+        EXP_evalValueFprintPushArrayLevelByVT(ctx, v, t, indent);
     }
     goto next;
 }
