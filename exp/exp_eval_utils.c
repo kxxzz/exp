@@ -9,14 +9,55 @@
 
 
 
-void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, u32 indent, EXP_EvalValueVec* elmBuf)
+typedef struct EXP_EvalValueFprintFrame
 {
-    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(ctx);
+    EXP_EvalValue v;
+    u32 arySize;
+    u32 elmSize;
+    const u32* elmTypes;
+    bool hasAryMemb;
+    bool multiLine;
+    u32 indent;
+    u32 elmBufBase;
+
+    u32 aryIdx;
+    u32 elmIdx;
+} EXP_EvalValueFprintFrame;
+
+typedef vec_t(EXP_EvalValueFprintFrame) EXP_EvalValueFprintStack;
+
+
+
+
+typedef struct EXP_EvalValueFprintContext
+{
+    FILE* f;
+    EXP_EvalContext* evalContext;
+    EXP_EvalValueVec elmBuf;
+    EXP_EvalValueFprintStack stack;
+} EXP_EvalValueFprintContext;
+
+static EXP_EvalValueFprintContext EXP_newEvalValueFprintContext(FILE* f, EXP_EvalContext* evalContext)
+{
+    EXP_EvalValueFprintContext a = { f, evalContext };
+    return a;
+}
+static void EXP_evalValueFprintContextFree(EXP_EvalValueFprintContext* ctx)
+{
+    vec_free(&ctx->stack);
+    vec_free(&ctx->elmBuf);
+}
+
+
+
+
+
+static bool EXP_evalValueFprintNonArray(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v, u32 t)
+{
+    FILE* f = ctx->f;
+    EXP_EvalContext* evalContext = ctx->evalContext;
+    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(evalContext);
     const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
-    for (u32 i = 0; i < indent; ++i)
-    {
-        fprintf(f, "  ");
-    }
     switch (desc->type)
     {
     case EXP_EvalTypeType_Atom:
@@ -50,85 +91,189 @@ void EXP_evalValueFprint(FILE* f, EXP_EvalContext* ctx, EXP_EvalValue v, u32 t, 
     }
     case EXP_EvalTypeType_Array:
     {
-        assert(EXP_EvalValueType_Object == v.type);
-        const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(typeContext, desc->ary.elm);
-        assert(EXP_EvalTypeType_List == elmDesc->type);
-        bool hasAryMemb = false;
-        for (u32 i = 0; i < elmDesc->list.count; ++i)
-        {
-            u32 t = elmDesc->list.elms[i];
-            const EXP_EvalTypeDesc* membDesc = EXP_evalTypeDescById(typeContext, t);
-            if (EXP_EvalTypeType_Array == membDesc->type)
-            {
-                hasAryMemb = true;
-            }
-        }
-        bool multiLine = hasAryMemb || (elmDesc->list.count > 1);
-        if (multiLine)
-        {
-            fprintf(f, "[\n");
-        }
-        else
-        {
-            fprintf(f, "[ ");
-        }
-        EXP_EvalArray* ary = v.ary;
-        u32 size = EXP_evalArraySize(ary);
-        u32 elmSize = EXP_evalArrayElmSize(ary);
-        assert(elmDesc->list.count == elmSize);
-        u32 elmBufOff = elmBuf->length;
-        vec_resize(elmBuf, elmBufOff + elmSize);
-        for (u32 i = 0; i < size; ++i)
-        {
-            bool r = EXP_evalArrayGetElm(ary, i, elmBuf->data + elmBufOff);
-            assert(r);
-            for (u32 i = 0; i < elmSize; ++i)
-            {
-                EXP_EvalValue v = elmBuf->data[elmBufOff + i];
-                u32 t = elmDesc->list.elms[i];
-                u32 indent1 = (multiLine && ((0 == i) || hasAryMemb)) ? indent + 1 : 0;
-                EXP_evalValueFprint(f, ctx, v, t, indent1, elmBuf);
-                if (multiLine && ((i == elmSize - 1) || hasAryMemb))
-                {
-                    fprintf(f, "\n");
-                }
-                else
-                {
-                    fprintf(f, " ");
-                }
-            }
-            if (hasAryMemb)
-            {
-                fprintf(f, "\n");
-            }
-        }
-        vec_resize(elmBuf, elmBufOff);
-        fprintf(f, "]");
-        break;
+        return false;
     }
     default:
         assert(false);
         break;
     }
+    return true;
 }
 
 
 
 
 
-void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* ctx)
+
+static void EXP_evalValueFprintPushFrame
+(
+    EXP_EvalValueFprintContext* ctx,
+    EXP_EvalValue v, u32 arySize, u32 elmSize, const u32* elmTypes,
+    bool hasAryMemb, u32 indent
+)
 {
-    vec_u32* typeStack = EXP_evalDataTypeStack(ctx);
-    EXP_EvalValueVec* dataStack = EXP_evalDataStack(ctx);
-    EXP_EvalValueVec elmBuf = { 0 };
+    FILE* f = ctx->f;
+    EXP_EvalContext* evalContext = ctx->evalContext;
+    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(evalContext);
+    EXP_EvalValueVec* elmBuf = &ctx->elmBuf;
+    EXP_EvalValueFprintStack* stack = &ctx->stack;
+
+    u32 elmBufBase = elmBuf->length;
+    vec_resize(elmBuf, elmBufBase + elmSize);
+
+    bool multiLine = hasAryMemb || (elmSize > 1);
+    if (multiLine)
+    {
+        fprintf(f, "[\n");
+    }
+    else
+    {
+        fprintf(f, "[ ");
+    }
+    EXP_EvalValueFprintFrame newFrame =
+    {
+        v, arySize, elmSize, elmTypes, hasAryMemb, multiLine, indent, elmBufBase
+    };
+    vec_push(stack, newFrame);
+}
+
+
+
+
+
+static void EXP_evalValueFprintPushFrameByVT(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v, u32 t, u32 indent)
+{
+    EXP_EvalContext* evalContext = ctx->evalContext;
+    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(evalContext);
+
+    const EXP_EvalTypeDesc* desc = EXP_evalTypeDescById(typeContext, t);
+    assert(EXP_EvalTypeType_Array == desc->type);
+
+    assert(EXP_EvalValueType_Object == v.type);
+    const EXP_EvalTypeDesc* elmDesc = EXP_evalTypeDescById(typeContext, desc->ary.elm);
+    assert(EXP_EvalTypeType_List == elmDesc->type);
+
+    bool hasAryMemb = false;
+    for (u32 i = 0; i < elmDesc->list.count; ++i)
+    {
+        u32 t = elmDesc->list.elms[i];
+        const EXP_EvalTypeDesc* membDesc = EXP_evalTypeDescById(typeContext, t);
+        if (EXP_EvalTypeType_Array == membDesc->type)
+        {
+            hasAryMemb = true;
+        }
+    }
+
+    EXP_EvalArray* ary = v.ary;
+    u32 arySize = EXP_evalArraySize(ary);
+    u32 elmSize = EXP_evalArrayElmSize(ary);
+    assert(elmDesc->list.count == elmSize);
+    const u32* elmTypes = elmDesc->list.elms;
+
+    EXP_evalValueFprintPushFrame(ctx, v, arySize, elmSize, elmTypes, hasAryMemb, indent);
+}
+
+
+
+
+
+static void EXP_evalValueFprint(EXP_EvalValueFprintContext* ctx, EXP_EvalValue v, u32 t, u32 indent)
+{
+    FILE* f = ctx->f;
+    EXP_EvalContext* evalContext = ctx->evalContext;
+    EXP_EvalTypeContext* typeContext = EXP_evalDataTypeContext(evalContext);
+    EXP_EvalValueVec* elmBuf = &ctx->elmBuf;
+    EXP_EvalValueFprintStack* stack = &ctx->stack;
+
+    for (u32 i = 0; i < indent; ++i)
+    {
+        fprintf(f, "  ");
+    }
+    if (!EXP_evalValueFprintNonArray(ctx, v, t))
+    {
+        EXP_evalValueFprintPushFrameByVT(ctx, v, t, indent);
+    }
+
+    EXP_EvalValueFprintFrame* top = NULL;
+    u32 aryIdx = 0;
+    u32 elmIdx = 0;
+
+next:
+    if (!stack->length)
+    {
+        return;
+    }
+    top = &vec_last(stack);
+    aryIdx = top->aryIdx;
+    elmIdx = top->elmIdx++;
+
+    if (aryIdx == top->arySize)
+    {
+        vec_resize(elmBuf, top->elmBufBase);
+        fprintf(f, "]");
+        vec_pop(stack);
+        goto next;
+    }
+    if (0 == elmIdx)
+    {
+        bool r = EXP_evalArrayGetElm(top->v.ary, aryIdx, elmBuf->data + top->elmBufBase);
+        assert(r);
+    }
+    else
+    {
+        if (top->multiLine && ((elmIdx == top->elmSize) || top->hasAryMemb))
+        {
+            fprintf(f, "\n");
+        }
+        else
+        {
+            fprintf(f, " ");
+        }
+        if (elmIdx == top->elmSize)
+        {
+            if (top->hasAryMemb)
+            {
+                fprintf(f, "\n");
+            }
+
+            ++top->aryIdx;
+            top->elmIdx = 0;
+            goto next;
+        }
+    }
+    v = elmBuf->data[top->elmBufBase + elmIdx];
+    t = top->elmTypes[elmIdx];
+    indent = (top->multiLine && ((0 == elmIdx) || top->hasAryMemb)) ? top->indent + 1 : 0;
+    for (u32 i = 0; i < indent; ++i)
+    {
+        fprintf(f, "  ");
+    }
+    if (!EXP_evalValueFprintNonArray(ctx, v, t))
+    {
+        EXP_evalValueFprintPushFrameByVT(ctx, v, t, indent);
+    }
+    goto next;
+}
+
+
+
+
+
+
+
+void EXP_evalDataStackFprint(FILE* f, EXP_EvalContext* evalContext)
+{
+    vec_u32* typeStack = EXP_evalDataTypeStack(evalContext);
+    EXP_EvalValueVec* dataStack = EXP_evalDataStack(evalContext);
+    EXP_EvalValueFprintContext ctx = EXP_newEvalValueFprintContext(f, evalContext);
     for (u32 i = 0; i < dataStack->length; ++i)
     {
         EXP_EvalValue v = dataStack->data[i];
         u32 t = typeStack->data[i];
-        EXP_evalValueFprint(f, ctx, v, t, 0, &elmBuf);
+        EXP_evalValueFprint(&ctx, v, t, 0);
         fprintf(f, "\n");
     }
-    vec_free(&elmBuf);
+    EXP_evalValueFprintContextFree(&ctx);
 }
 
 
