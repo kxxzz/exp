@@ -4,9 +4,6 @@
 [submodule "imp/fileu"]
 	path = imp/fileu
 	url = git@github.com:kxxzz/fileu.git
-[submodule "imp/nstr"]
-	path = imp/nstr
-	url = git@github.com:kxxzz/nstr.git
 [submodule "imp/upool"]
 	path = imp/upool
 	url = git@github.com:kxxzz/upool.git

@@ -42,7 +42,6 @@ set (CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -DDEBUG")
 include_directories (imp/argparse)
 include_directories (imp/vec)
 include_directories (imp/fileu)
-include_directories (imp/nstr)
 include_directories (imp/upool)
 include_directories (imp/upool/imp)
 include_directories (imp/apnum)
@@ -54,8 +53,6 @@ file (GLOB IMP_SRC_FILES
     imp/vec/vec.c
     imp/fileu/fileu.h
     imp/fileu/fileu.c
-    imp/nstr/nstr.h
-    imp/nstr/nstr.c
     imp/upool/upool.h
     imp/upool/upool.c
     imp/upool/imp/xxhash.h

@@ -4,8 +4,6 @@
 #include "exp_eval.h"
 #include "exp_a.h"
 
-#include <nstr.h>
-
 
 
 

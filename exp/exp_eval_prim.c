@@ -39,15 +39,9 @@ static bool EXP_evalBoolByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 
 static bool EXP_evalNumByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 {
-    f64 f;
-    u32 r = NSTR_str2num(&f, str, len, NULL);
-    if (f < 0)
-    {
-        return false;
-    }
+    u32 r = false;
     if (len == r)
     {
-        if (pVal) pVal->f = f;
     }
     return len == r;
 }
