@@ -41,7 +41,7 @@ static u32 EXP_printSlTok(const EXP_Space* space, char* buf, u32 bufSize, const 
     assert(EXP_isTok(space, src));
 
     EXP_NodeInfo* info = space->nodes.data + src.id;
-    const char* str = upoolElmData(space->dataPool, info->offset);
+    const char* str = upool_elmData(space->dataPool, info->offset);
     u32 sreLen = info->length;
     u32 n;
     bool isQuotStr = false;
@@ -212,7 +212,7 @@ next:
             goto next;
         }
     }
-    EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[p];
+    EXP_Node e = ((EXP_Node*)upool_elmData(space->dataPool, seqInfo->offset))[p];
     if (EXP_isTok(space, e))
     {
         u32 a = EXP_printSlTok(space, bufPtr, bufRemain, srcInfo, e);
@@ -484,7 +484,7 @@ next:
     {
         EXP_printMlAddIdent(ctx);
     }
-    EXP_Node e = ((EXP_Node*)upoolElmData(space->dataPool, seqInfo->offset))[p];
+    EXP_Node e = ((EXP_Node*)upool_elmData(space->dataPool, seqInfo->offset))[p];
     EXP_NodeInfo* eInfo = space->nodes.data + e.id;
     switch (eInfo->type)
     {

@@ -32,7 +32,7 @@ typedef struct EXP_EvalTypeContext
 EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 {
     EXP_EvalTypeContext* ctx = zalloc(sizeof(EXP_EvalTypeContext));
-    ctx->dataPool = upoolNew(256);
+    ctx->dataPool = upool_new(256);
     return ctx;
 }
 
@@ -43,7 +43,7 @@ void EXP_evalTypeContextFree(EXP_EvalTypeContext* ctx)
     vec_free(&ctx->inStack[1]);
     vec_free(&ctx->inStack[0]);
     vec_free(&ctx->descBuffer);
-    upoolFree(ctx->dataPool);
+    upool_free(ctx->dataPool);
     free(ctx);
 }
 
@@ -62,7 +62,7 @@ static EXP_EvalTypeDesc* EXP_evalTypeDescBufferReset(EXP_EvalTypeContext* ctx, u
 
 static u32 EXP_evalTypeId(EXP_EvalTypeContext* ctx)
 {
-    u32 id = upoolElm(ctx->dataPool, ctx->descBuffer.data, ctx->descBuffer.length, NULL);
+    u32 id = upool_elm(ctx->dataPool, ctx->descBuffer.data, ctx->descBuffer.length, NULL);
     return id;
 }
 
@@ -72,7 +72,7 @@ static u32 EXP_evalTypeId(EXP_EvalTypeContext* ctx)
 
 const EXP_EvalTypeDesc* EXP_evalTypeDescById(EXP_EvalTypeContext* ctx, u32 typeId)
 {
-    return upoolElmData(ctx->dataPool, typeId);
+    return upool_elmData(ctx->dataPool, typeId);
 }
 
 

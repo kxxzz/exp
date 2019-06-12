@@ -8,7 +8,7 @@
 EXP_Space* EXP_newSpace(void)
 {
     EXP_Space* space = zalloc(sizeof(*space));
-    space->dataPool = upoolNew(256);
+    space->dataPool = upool_new(256);
     return space;
 }
 
@@ -17,7 +17,7 @@ void EXP_spaceFree(EXP_Space* space)
     vec_free(&space->cstrBuf);
     vec_free(&space->seqDefFrameStack);
     vec_free(&space->seqDefStack);
-    upoolFree(space->dataPool);
+    upool_free(space->dataPool);
     vec_free(&space->nodes);
     free(space);
 }
@@ -72,7 +72,7 @@ EXP_NodeType EXP_nodeType(const EXP_Space* space, EXP_Node node)
 EXP_Node EXP_addTok(EXP_Space* space, const char* str, bool quoted)
 {
     u32 len = (u32)strlen(str);
-    u32 offset = upoolElm(space->dataPool, str, len + 1, NULL);
+    u32 offset = upool_elm(space->dataPool, str, len + 1, NULL);
     EXP_NodeInfo info = { EXP_NodeType_Tok, offset, len, quoted };
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
@@ -84,7 +84,7 @@ EXP_Node EXP_addTokL(EXP_Space* space, const char* str, u32 len, bool quoted)
     vec_resize(&space->cstrBuf, len + 1);
     memcpy(space->cstrBuf.data, str, len);
     space->cstrBuf.data[len] = 0;
-    u32 offset = upoolElm(space->dataPool, space->cstrBuf.data, len + 1, NULL);
+    u32 offset = upool_elm(space->dataPool, space->cstrBuf.data, len + 1, NULL);
     EXP_NodeInfo info = { EXP_NodeType_Tok, offset, len, quoted };
     EXP_Node node = { space->nodes.length };
     vec_push(&space->nodes, info);
@@ -122,7 +122,7 @@ EXP_Node EXP_addSeqDone(EXP_Space* space)
     vec_pop(&space->seqDefFrameStack);
     u32 lenSeq = space->seqDefStack.length - f.p;
     EXP_Node* seq = space->seqDefStack.data + f.p;
-    u32 offset = upoolElm(space->dataPool, seq, sizeof(EXP_Node)*lenSeq, NULL);
+    u32 offset = upool_elm(space->dataPool, seq, sizeof(EXP_Node)*lenSeq, NULL);
     EXP_NodeInfo nodeInfo = { f.seqType, offset, lenSeq };
     vec_resize(&space->seqDefStack, f.p);
     EXP_Node node = { space->nodes.length };
@@ -149,7 +149,7 @@ const char* EXP_tokCstr(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok == info->type);
-    return upoolElmData(space->dataPool, info->offset);
+    return upool_elmData(space->dataPool, info->offset);
 }
 
 bool EXP_tokQuoted(const EXP_Space* space, EXP_Node node)
@@ -173,7 +173,7 @@ const EXP_Node* EXP_seqElm(const EXP_Space* space, EXP_Node node)
 {
     EXP_NodeInfo* info = space->nodes.data + node.id;
     assert(EXP_NodeType_Tok < info->type);
-    return upoolElmData(space->dataPool, info->offset);
+    return upool_elmData(space->dataPool, info->offset);
 }
 
 
