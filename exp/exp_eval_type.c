@@ -21,7 +21,7 @@ typedef vec_t(EXP_EvalTypeReduce) EXP_EvalTypeReduceStack;
 
 typedef struct EXP_EvalTypeContext
 {
-    Upool* dataPool;
+    upool_t dataPool;
     vec_char descBuffer;
     vec_u32 inStack[2];
     EXP_EvalTypeReduceStack reduceStack;
@@ -32,7 +32,7 @@ typedef struct EXP_EvalTypeContext
 EXP_EvalTypeContext* EXP_newEvalTypeContext(void)
 {
     EXP_EvalTypeContext* ctx = zalloc(sizeof(EXP_EvalTypeContext));
-    ctx->dataPool = newUpool(256);
+    ctx->dataPool = upoolNew(256);
     return ctx;
 }
 

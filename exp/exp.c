@@ -8,7 +8,7 @@
 EXP_Space* EXP_newSpace(void)
 {
     EXP_Space* space = zalloc(sizeof(*space));
-    space->dataPool = newUpool(256);
+    space->dataPool = upoolNew(256);
     return space;
 }
 
