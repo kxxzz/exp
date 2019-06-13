@@ -58,7 +58,11 @@ file (GLOB IMP_SRC_FILES
     imp/upool/imp/xxhash.h
     imp/upool/imp/xxhash.c
     imp/apnum/apnum.h
-    imp/apnum/apnum.c
+    imp/apnum/apnum_a.h
+    imp/apnum/apnum_pool.c
+    imp/apnum/apnum_int.c
+    imp/apnum/apnum_rat.c
+    imp/apnum/apnum_algo.c
     )
 
 source_group (imp FILES ${IMP_SRC_FILES})

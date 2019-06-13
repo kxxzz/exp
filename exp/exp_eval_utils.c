@@ -71,7 +71,11 @@ static bool EXP_evalValueFprintNonArray(EXP_EvalValueFprintContext* ctx, EXP_Eva
         }
         case EXP_EvalPrimType_NUM:
         {
-            fprintf(f, "%f", v.f);
+            APNUM_rat* a = v.a;
+            char buf[1024];
+            u32 n = APNUM_ratToStrWithBaseFmt(evalContext->numPool, a, APNUM_int_StrBaseFmtType_DEC, buf, sizeof(buf));
+            buf[n] = 0;
+            fprintf(f, "%s", buf);
             break;
         }
         case EXP_EvalPrimType_STRING:

@@ -717,7 +717,9 @@ next:
 
 void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    u32 size = (u32)ins[0].f;
+    u32 size;
+    bool r = APNUM_ratToU32(ctx->numPool, ins[0].a, &size);
+    if (!r) size = 0;
     outs[0] = EXP_evalNewArray(ctx, size);
 }
 
@@ -725,9 +727,14 @@ void EXP_evalAfunCall_Array(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue*
 
 void EXP_evalAfunCall_AtLoad(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
+    bool r;
     EXP_EvalArray* ary = ins[0].ary;
-    u32 pos = (u32)ins[1].f;
-    bool r = EXP_evalArrayGetElm(ary, pos, outs);
+    u32 pos;
+    r = APNUM_ratToU32(ctx->numPool, ins[1].a, &pos);
+    if (r)
+    {
+        r = EXP_evalArrayGetElm(ary, pos, outs);
+    }
     if (!r)
     {
         u32 elmSize = EXP_evalArrayElmSize(ary);
@@ -739,9 +746,14 @@ void EXP_evalAfunCall_AtLoad(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue
 
 void EXP_evalAfunCall_AtSave(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
+    bool r;
     EXP_EvalArray* ary = ins[0].ary;
-    u32 pos = (u32)ins[1].f;
-    EXP_evalArraySetElm(ary, pos, ins + 2);
+    u32 pos;
+    r = APNUM_ratToU32(ctx->numPool, ins[1].a, &pos);
+    if (r)
+    {
+        EXP_evalArraySetElm(ary, pos, ins + 2);
+    }
 }
 
 
@@ -750,7 +762,11 @@ void EXP_evalAfunCall_Size(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* 
 {
     EXP_EvalArray* ary = ins[0].ary;
     u32 size = EXP_evalArraySize(ary);
-    outs[0].f = size;
+    APNUM_rat* n = APNUM_ratNew(ctx->numPool);
+    APNUM_ratFromU32(ctx->numPool, n, size, 1, false);
+    outs[0].a = n;
+    // todo memory management
+    // assert(false);
 }
 
 

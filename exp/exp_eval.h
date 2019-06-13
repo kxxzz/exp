@@ -37,7 +37,6 @@ typedef struct EXP_EvalValue
     union
     {
         bool b;
-        f64 f;
         void* a;
         EXP_Node src;
         struct EXP_EvalArray* ary;

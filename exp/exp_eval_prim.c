@@ -40,8 +40,12 @@ static bool EXP_evalBoolByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 static bool EXP_evalNumByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 {
     u32 r = false;
+    APNUM_pool_t pool = NULL;
+    APNUM_rat* n = APNUM_ratNew(pool);
+    r = APNUM_ratFromStrWithBaseFmt(pool, n, str);
     if (len == r)
     {
+        pVal->a = n;
     }
     return len == r;
 }
@@ -129,38 +133,49 @@ static void EXP_evalAfunCall_Not(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalV
 
 static void EXP_evalAfunCall_NumAdd(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].f = a + b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    APNUM_rat* c = APNUM_ratNew(ctx->numPool);
+    APNUM_ratAdd(ctx->numPool, c, a, b);
+    outs[0].a = c;
 }
 
 static void EXP_evalAfunCall_NumSub(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].f = a - b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    APNUM_rat* c = APNUM_ratNew(ctx->numPool);
+    APNUM_ratSub(ctx->numPool, c, a, b);
+    outs[0].a = c;
 }
 
 static void EXP_evalAfunCall_NumMul(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].f = a * b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    APNUM_rat* c = APNUM_ratNew(ctx->numPool);
+    APNUM_ratMul(ctx->numPool, c, a, b);
+    outs[0].a = c;
 }
 
 static void EXP_evalAfunCall_NumDiv(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].f = a / b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    APNUM_rat* c = APNUM_ratNew(ctx->numPool);
+    APNUM_ratDiv(ctx->numPool, c, a, b);
+    outs[0].a = c;
 }
 
 
 
 static void EXP_evalAfunCall_NumNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    outs[0].f = -a;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = APNUM_ratNew(ctx->numPool);
+    APNUM_ratDup(b, a);
+    APNUM_ratNeg(b);
+    outs[0].a = b;
 }
 
 
@@ -168,44 +183,44 @@ static void EXP_evalAfunCall_NumNeg(EXP_Space* space, EXP_EvalValue* ins, EXP_Ev
 
 static void EXP_evalAfunCall_NumEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a == b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = APNUM_ratEq(a, b);
 }
 
 static void EXP_evalAfunCall_NumINEQ(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a != b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = !APNUM_ratEq(a, b);
 }
 
 static void EXP_evalAfunCall_NumGT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a > b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = APNUM_ratCmp(ctx->numPool, a, b) > 0;
 }
 
 static void EXP_evalAfunCall_NumLT(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a < b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = APNUM_ratCmp(ctx->numPool, a, b) < 0;
 }
 
 static void EXP_evalAfunCall_NumGE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a >= b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = APNUM_ratCmp(ctx->numPool, a, b) >= 0;
 }
 
 static void EXP_evalAfunCall_NumLE(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx)
 {
-    f64 a = ins[0].f;
-    f64 b = ins[1].f;
-    outs[0].b = a <= b;
+    APNUM_rat* a = ins[0].a;
+    APNUM_rat* b = ins[1].a;
+    outs[0].b = APNUM_ratCmp(ctx->numPool, a, b) <= 0;
 }
 
 

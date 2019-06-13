@@ -12,14 +12,7 @@ u32 EXP_evalArraySize(EXP_EvalArray* a)
 
 u32 EXP_evalArrayElmSize(EXP_EvalArray* a)
 {
-    if (a->data.length > 0)
-    {
-        assert(a->data.length / a->size == a->elmSize);
-    }
-    else
-    {
-        assert(1 == a->elmSize);
-    }
+    assert(a->data.length / a->size == a->elmSize);
     return a->elmSize;
 }
 
@@ -30,21 +23,15 @@ u32 EXP_evalArrayElmSize(EXP_EvalArray* a)
 void EXP_evalArraySetElmSize(EXP_EvalArray* a, u32 elmSize)
 {
     a->elmSize = elmSize;
-    if (a->data.length > 0)
-    {
-        u32 dataLen = a->elmSize * a->size;
-        vec_resize(&a->data, dataLen);
-    }
+    u32 dataLen = a->elmSize * a->size;
+    vec_resize(&a->data, dataLen);
 }
 
 void EXP_evalArrayResize(EXP_EvalArray* a, u32 size)
 {
     a->size = size;
-    if (a->data.length > 0)
-    {
-        u32 dataLen = a->elmSize * a->size;
-        vec_resize(&a->data, dataLen);
-    }
+    u32 dataLen = a->elmSize * a->size;
+    vec_resize(&a->data, dataLen);
 }
 
 
@@ -54,11 +41,6 @@ void EXP_evalArrayResize(EXP_EvalArray* a, u32 size)
 
 bool EXP_evalArraySetElm(EXP_EvalArray* a, u32 p, const EXP_EvalValue* inBuf)
 {
-    if (!a->data.length)
-    {
-        u32 dataLen = a->elmSize * a->size;
-        vec_resize(&a->data, dataLen);
-    }
     if (p < a->size)
     {
         u32 elmSize = a->elmSize;
@@ -76,24 +58,15 @@ bool EXP_evalArraySetElm(EXP_EvalArray* a, u32 p, const EXP_EvalValue* inBuf)
 
 bool EXP_evalArrayGetElm(EXP_EvalArray* a, u32 p, EXP_EvalValue* outBuf)
 {
-    if (a->data.length)
+    if (p < a->size)
     {
-        if (p < a->size)
-        {
-            u32 elmSize = a->elmSize;
-            memcpy(outBuf, a->data.data + elmSize * p, sizeof(EXP_EvalValue)*elmSize);
-            return true;
-        }
-        else
-        {
-            return false;
-        }
+        u32 elmSize = a->elmSize;
+        memcpy(outBuf, a->data.data + elmSize * p, sizeof(EXP_EvalValue)*elmSize);
+        return true;
     }
     else
     {
-        EXP_EvalValue v = { .f = p, EXP_EvalValueType_Inline };
-        memcpy(outBuf, &v, sizeof(EXP_EvalValue));
-        return true;
+        return false;
     }
 }
 

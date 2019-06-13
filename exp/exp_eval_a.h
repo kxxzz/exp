@@ -258,6 +258,7 @@ typedef struct EXP_EvalContext
     vec_u32 afunTypeTable;
     EXP_EvalNodeTable nodeTable;
     EXP_EvalObjectTable objectTable;
+    APNUM_pool_t numPool;
 
     vec_u32 typeStack;
     EXP_EvalCallStack callStack;
