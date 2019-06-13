@@ -47,23 +47,20 @@ include_directories (imp/upool/imp)
 include_directories (imp/apnum)
 
 file (GLOB IMP_SRC_FILES
-    imp/argparse/argparse.h
-    imp/argparse/argparse.c
-    imp/vec/vec.h
-    imp/vec/vec.c
-    imp/fileu/fileu.h
-    imp/fileu/fileu.c
-    imp/upool/upool.h
-    imp/upool/upool.c
-    imp/upool/imp/xxhash.h
-    imp/upool/imp/xxhash.c
-    imp/apnum/apnum.h
-    imp/apnum/apnum_a.h
-    imp/apnum/apnum_pool.c
-    imp/apnum/apnum_int.c
-    imp/apnum/apnum_rat.c
-    imp/apnum/apnum_algo.c
+    imp/argparse/*.h
+    imp/argparse/*.c
+    imp/vec/*.h
+    imp/vec/*.c
+    imp/fileu/*.h
+    imp/fileu/*.c
+    imp/upool/*.h
+    imp/upool/*.c
+    imp/upool/imp/*.h
+    imp/upool/imp/*.c
+    imp/apnum/*.h
+    imp/apnum/*.c
     )
+list(FILTER IMP_SRC_FILES EXCLUDE REGEX "main.c$")
 
 source_group (imp FILES ${IMP_SRC_FILES})
 add_library (imp STATIC ${IMP_SRC_FILES})
