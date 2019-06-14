@@ -536,7 +536,6 @@ next:
     case EXP_EvalNodeType_VarDefBegin:
     {
         assert(EXP_isTok(space, node));
-        assert(EXP_EvalBlockCallbackType_NONE == curCall->cb.type);
         const EXP_Node* begin = curCall->p;
         for (u32 n = 0;;)
         {
