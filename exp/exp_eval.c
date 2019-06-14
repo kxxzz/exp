@@ -48,6 +48,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
     }
 
     ctx->objectTable = EXP_newEvalObjectTable(atypeTable);
+    ctx->numPool = APNUM_poolNew();
     return ctx;
 }
 
@@ -56,6 +57,7 @@ EXP_EvalContext* EXP_newEvalContext(const EXP_EvalAtomTable* addAtomTable)
 
 void EXP_evalContextFree(EXP_EvalContext* ctx)
 {
+    APNUM_poolFree(ctx->numPool);
     vec_free(&ctx->fileInfoTable);
 
     vec_free(&ctx->aryStack);
