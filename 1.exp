@@ -71,23 +71,23 @@ gc
 // drop4
 
 
-// (& 50) [5 +] map => ary :
+(& 50) [5 +] map => ary :
 
-// gc
-
-
-// (&< ary 45 33)
-// (&> ary 45)
+gc
 
 
-// ary [20 gt] filter => ary1 :
+(&< ary 45 33)
+(&> ary 45)
 
-// ary size
-// ary1 size
 
-// ary1 [+] reduce
+ary [20 gt] filter => ary1 :
 
-// ary
+ary size
+ary1 size
+
+ary1 [+] reduce
+
+ary1
 
 // (# _100doors
 //     (# loop => i :

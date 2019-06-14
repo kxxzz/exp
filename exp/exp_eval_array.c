@@ -12,7 +12,10 @@ u32 EXP_evalArraySize(EXP_EvalArray* a)
 
 u32 EXP_evalArrayElmSize(EXP_EvalArray* a)
 {
-    assert(a->data.length / a->size == a->elmSize);
+    if (a->data.length)
+    {
+        assert(a->data.length / a->size == a->elmSize);
+    }
     return a->elmSize;
 }
 

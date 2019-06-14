@@ -212,16 +212,7 @@ typedef struct EXP_EvalArray
 
 
 
-static void EXP_evalArrayInit(EXP_EvalArray* a, u32 size)
-{
-    a->elmSize = 1;
-    a->size = size;
-}
 
-static void EXP_evalArrayFree(EXP_EvalArray* a)
-{
-    vec_free(&a->data);
-}
 
 
 

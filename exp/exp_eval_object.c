@@ -5,6 +5,31 @@
 
 
 
+static void EXP_evalArrayInit(EXP_EvalArray* a, u32 size, EXP_EvalContext* ctx)
+{
+    a->elmSize = 1;
+    EXP_evalArrayResize(a, size);
+    APNUM_pool_t pool = ctx->numPool;
+    for (u32 i = 0; i < a->size; ++i)
+    {
+        APNUM_rat* n = APNUM_ratNew(pool);
+        APNUM_ratFromU32(pool, n, i, 1, false);
+        EXP_EvalValue v[1] = { {.a = n } };
+        EXP_evalArraySetElm(a, i, v);
+    }
+}
+
+static void EXP_evalArrayFree(EXP_EvalArray* a)
+{
+    vec_free(&a->data);
+}
+
+
+
+
+
+
+
 EXP_EvalObjectTable EXP_newEvalObjectTable(EXP_EvalAtypeInfoVec* atypeTable)
 {
     EXP_EvalObjectTable _objectTable = { 0 };
@@ -203,6 +228,12 @@ EXP_EvalValue EXP_evalNewAtom(EXP_EvalContext* ctx, const char* str, u32 len, u3
 
 
 
+
+
+
+
+
+
 EXP_EvalValue EXP_evalNewArray(EXP_EvalContext* ctx, u32 size)
 {
     EXP_EvalAtypeInfoVec* atypeTable = &ctx->atypeTable;
@@ -215,7 +246,7 @@ EXP_EvalValue EXP_evalNewArray(EXP_EvalContext* ctx, u32 size)
     vec_push(mpVec, m);
     v.type = EXP_EvalValueType_Object;
     m->gcFlag = ctx->gcFlag;
-    EXP_evalArrayInit((EXP_EvalArray*)(v.a), size);
+    EXP_evalArrayInit((EXP_EvalArray*)(v.a), size, ctx);
     return v;
 }
 
