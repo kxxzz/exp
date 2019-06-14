@@ -146,6 +146,7 @@ typedef struct EXP_EvalCompileContext
     EXP_EvalNodeTable* nodeTable;
     EXP_EvalTypeContext* typeContext;
     EXP_EvalTypeDeclContext* typeDeclContext;
+    EXP_EvalContext* evalContext;
 
     u32 blockTableBase;
     EXP_EvalCompileBlockTable blockTable;
@@ -176,7 +177,8 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
     EXP_Space* space, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext,
+    EXP_EvalContext* evalContext
 )
 {
     EXP_EvalCompileContext _ctx = { 0 };
@@ -189,6 +191,7 @@ static EXP_EvalCompileContext EXP_newEvalCompileContext
     ctx->nodeTable = nodeTable;
     ctx->typeContext = typeContext;
     ctx->typeDeclContext = typeDeclContext;
+    ctx->evalContext = evalContext;
 
     u32 n = EXP_spaceNodesTotal(space);
     u32 nodeTableLength0 = nodeTable->length;
@@ -1331,7 +1334,7 @@ static void EXP_evalCompileBlockMarch
                         assert(ctx->atypeTable->data[j].ctorByStr);
                         u32 l = EXP_tokSize(space, node);
                         const char* s = EXP_tokCstr(space, node);
-                        if (ctx->atypeTable->data[j].ctorByStr(s, l, NULL))
+                        if (ctx->atypeTable->data[j].ctorByStr(NULL, s, l, ctx->evalContext))
                         {
                             enode->type = EXP_EvalNodeType_Atom;
                             enode->atype = j;
@@ -1739,7 +1742,8 @@ EXP_EvalError EXP_evalCompile
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack,
+    EXP_EvalContext* evalContext
 )
 {
     EXP_EvalError error = { 0 };
@@ -1749,7 +1753,7 @@ EXP_EvalError EXP_evalCompile
     }
     EXP_EvalCompileContext _ctx = EXP_newEvalCompileContext
     (
-        space, srcInfo, atypeTable, afunTable, afunTypeTable, nodeTable, typeContext, typeDeclContext
+        space, srcInfo, atypeTable, afunTable, afunTypeTable, nodeTable, typeContext, typeDeclContext, evalContext
     );
     EXP_EvalCompileContext* ctx = &_ctx;
 

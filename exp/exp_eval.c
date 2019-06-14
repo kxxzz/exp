@@ -925,7 +925,8 @@ EXP_EvalError EXP_evalCompile
     EXP_Space* space, EXP_Node root, EXP_SpaceSrcInfo* srcInfo,
     EXP_EvalAtypeInfoVec* atypeTable, EXP_EvalAfunInfoVec* afunTable, vec_u32* afunTypeTable,
     EXP_EvalNodeTable* nodeTable,
-    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack
+    EXP_EvalTypeContext* typeContext, EXP_EvalTypeDeclContext* typeDeclContext, vec_u32* typeStack,
+    EXP_EvalContext* evalContext
 );
 
 
@@ -983,7 +984,8 @@ bool EXP_evalCode(EXP_EvalContext* ctx, const char* filename, const char* code, 
         space, root, &ctx->srcInfo,
         &ctx->atypeTable, &ctx->afunTable, &ctx->afunTypeTable,
         &ctx->nodeTable,
-        ctx->typeContext, ctx->typeDeclContext, &ctx->typeStack
+        ctx->typeContext, ctx->typeDeclContext, &ctx->typeStack,
+        ctx
     );
     if (error.code)
     {

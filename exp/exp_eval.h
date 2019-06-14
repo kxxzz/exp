@@ -60,7 +60,10 @@ void EXP_evalArrayPushElm(EXP_EvalArray* a, const EXP_EvalValue* inBuf);
 
 
 
-typedef bool(*EXP_EvalAtomCtorByStr)(const char* str, u32 len, EXP_EvalValue* pVal);
+typedef struct EXP_EvalContext EXP_EvalContext;
+
+
+typedef bool(*EXP_EvalAtomCtorByStr)(EXP_EvalValue* pVal, const char* str, u32 len, EXP_EvalContext* ctx);
 typedef void(*EXP_EvalAtomADtor)(void* ptr);
 
 typedef struct EXP_EvalAtypeInfo
@@ -79,8 +82,6 @@ enum
     EXP_EvalAfunIns_MAX = 16,
     EXP_EvalAfunOuts_MAX = 16,
 };
-
-typedef struct EXP_EvalContext EXP_EvalContext;
 
 typedef void(*EXP_EvalAfunCall)(EXP_Space* space, EXP_EvalValue* ins, EXP_EvalValue* outs, EXP_EvalContext* ctx);
 

@@ -22,7 +22,7 @@ const char** EXP_EvalKeyNameTable(void)
 
 
 
-static bool EXP_evalBoolByStr(const char* str, u32 len, EXP_EvalValue* pVal)
+static bool EXP_evalBoolByStr(EXP_EvalValue* pVal, const char* str, u32 len, EXP_EvalContext* ctx)
 {
     if (0 == strncmp(str, "true", len))
     {
@@ -37,15 +37,22 @@ static bool EXP_evalBoolByStr(const char* str, u32 len, EXP_EvalValue* pVal)
     return false;
 }
 
-static bool EXP_evalNumByStr(const char* str, u32 len, EXP_EvalValue* pVal)
+static bool EXP_evalNumByStr(EXP_EvalValue* pVal, const char* str, u32 len, EXP_EvalContext* ctx)
 {
     u32 r = false;
-    APNUM_pool_t pool = NULL;
+    APNUM_pool_t pool = ctx->numPool;
     APNUM_rat* n = APNUM_ratNew(pool);
     r = APNUM_ratFromStrWithBaseFmt(pool, n, str);
     if (len == r)
     {
-        pVal->a = n;
+        if (pVal)
+        {
+            pVal->a = n;
+        }
+        else
+        {
+            APNUM_ratFree(pool, n);
+        }
     }
     return len == r;
 }
@@ -53,7 +60,7 @@ static bool EXP_evalNumByStr(const char* str, u32 len, EXP_EvalValue* pVal)
 
 
 
-static bool EXP_evalStringByStr(const char* str, u32 len, EXP_EvalValue* pVal)
+static bool EXP_evalStringByStr(EXP_EvalValue* pVal, const char* str, u32 len, EXP_EvalContext* ctx)
 {
     if (pVal)
     {
@@ -307,54 +314,64 @@ const EXP_EvalAfunInfo* EXP_EvalPrimFunInfoTable(void)
             "+",
             "num num -> num",
             EXP_evalAfunCall_NumAdd,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "-",
             "num num -> num",
             EXP_evalAfunCall_NumSub,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "*",
             "num num -> num",
             EXP_evalAfunCall_NumMul,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "/",
             "num num -> num",
             EXP_evalAfunCall_NumDiv,
+            EXP_EvalAfunMode_ContextDepend
         },
 
         {
             "neg",
             "num -> num",
             EXP_evalAfunCall_NumNeg,
+            EXP_EvalAfunMode_ContextDepend
         },
 
         {
             "eq",
             "num num -> bool",
             EXP_evalAfunCall_NumEQ,
+            EXP_EvalAfunMode_ContextDepend
         },
 
         {
             "gt",
             "num num -> bool",
             EXP_evalAfunCall_NumGT,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "lt",
             "num num -> bool",
             EXP_evalAfunCall_NumLT,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "ge",
             "num num -> bool",
             EXP_evalAfunCall_NumGE,
+            EXP_EvalAfunMode_ContextDepend
         },
         {
             "le",
             "num num -> bool",
             EXP_evalAfunCall_NumLE,
+            EXP_EvalAfunMode_ContextDepend
         },
     };
     return a;

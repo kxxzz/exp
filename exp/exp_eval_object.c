@@ -190,7 +190,7 @@ EXP_EvalValue EXP_evalNewAtom(EXP_EvalContext* ctx, const char* str, u32 len, u3
         m->gcFlag = ctx->gcFlag;
     }
     assert(atypeInfo->ctorByStr);
-    if (!atypeInfo->ctorByStr(str, len, &v))
+    if (!atypeInfo->ctorByStr(&v, str, len, ctx))
     {
         assert(false);
     }
