@@ -130,7 +130,7 @@ typedef vec_t(INF_NodeSrcInfo) INF_NodeSrcInfoVec;
 
 typedef struct INF_SpaceSrcInfo
 {
-    vec_u32 baseNodeIds[1];
+    vec_u32 fileBases[1];
     INF_NodeSrcInfoVec nodes[1];
 } INF_SpaceSrcInfo;
 

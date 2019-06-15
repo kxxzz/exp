@@ -62,7 +62,7 @@ static INF_ParseContext INF_newParseContext
     assert(strSize == strlen(srcStr));
     if (srcInfo)
     {
-        vec_push(srcInfo->baseNodeIds, INF_spaceNodesTotal(space));
+        vec_push(srcInfo->fileBases, INF_spaceNodesTotal(space));
     }
     INF_ParseContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
@@ -332,8 +332,8 @@ static void INF_tokenToNodeSrcInfo(INF_ParseContext* ctx, const INF_Token* tok, 
     {
         return;
     }
-    assert(ctx->srcInfo->baseNodeIds->length > 0);
-    info->file = ctx->srcInfo->baseNodeIds->length - 1;
+    assert(ctx->srcInfo->fileBases->length > 0);
+    info->file = ctx->srcInfo->fileBases->length - 1;
     info->offset = tok->begin;
     info->line = ctx->curLine;
     info->column = 1;
@@ -614,7 +614,7 @@ INF_Node INF_parseAsList(INF_Space* space, const char* src, INF_SpaceSrcInfo* sr
     INF_Node node = INF_addSeqDone(space);
     if (srcInfo)
     {
-        INF_NodeSrcInfo nodeSrcInfo = { srcInfo->baseNodeIds->length - 1 };
+        INF_NodeSrcInfo nodeSrcInfo = { srcInfo->fileBases->length - 1 };
         vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;

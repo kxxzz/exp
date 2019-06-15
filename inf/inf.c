@@ -29,7 +29,7 @@ void INF_spaceFree(INF_Space* space)
 void INF_spaceSrcInfoFree(INF_SpaceSrcInfo* srcInfo)
 {
     vec_free(srcInfo->nodes);
-    vec_free(srcInfo->baseNodeIds);
+    vec_free(srcInfo->fileBases);
 }
 
 
