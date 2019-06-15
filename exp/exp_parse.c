@@ -48,8 +48,8 @@ typedef struct EXP_ParseContext
     u32 cur;
     u32 curLine;
     EXP_SpaceSrcInfo* srcInfo;
-    vec_char tmpStrBuf;
-    EXP_ParseSeqStack seqStack;
+    vec_char tmpStrBuf[1];
+    EXP_ParseSeqStack seqStack[1];
 } EXP_ParseContext;
 
 
@@ -71,8 +71,8 @@ static EXP_ParseContext EXP_newParseContext
 
 static void EXP_parseContextFree(EXP_ParseContext* ctx)
 {
-    vec_free(&ctx->seqStack);
-    vec_free(&ctx->tmpStrBuf);
+    vec_free(ctx->seqStack);
+    vec_free(ctx->tmpStrBuf);
 }
 
 
@@ -381,21 +381,21 @@ static bool EXP_tokenToNode(EXP_ParseContext* ctx, const EXP_Token* tok, EXP_Nod
             }
         }
         u32 len = tok->len - n;
-        vec_resize(&ctx->tmpStrBuf, len + 1);
+        vec_resize(ctx->tmpStrBuf, len + 1);
         u32 si = 0;
         for (u32 i = 0; i < tok->len; ++i)
         {
             if ('\\' == src[i])
             {
                 ++i;
-                ctx->tmpStrBuf.data[si++] = src[i];
+                ctx->tmpStrBuf->data[si++] = src[i];
                 continue;
             }
-            ctx->tmpStrBuf.data[si++] = src[i];
+            ctx->tmpStrBuf->data[si++] = src[i];
         }
-        ctx->tmpStrBuf.data[len] = 0;
+        ctx->tmpStrBuf->data[len] = 0;
         assert(si == len);
-        *pNode = EXP_addTokL(space, ctx->tmpStrBuf.data, len, isQuotStr);
+        *pNode = EXP_addTokL(space, ctx->tmpStrBuf->data, len, isQuotStr);
         break;
     }
     case EXP_TokenType_SeqParenBegin:
@@ -430,12 +430,12 @@ static bool EXP_parseSeqEnd(EXP_ParseContext* ctx, EXP_TokenType endTokType)
 {
     u32 cur0 = ctx->cur;
     u32 curLine0 = ctx->curLine;
-    EXP_Token tok;
-    if (!EXP_readToken(ctx, &tok))
+    EXP_Token tok[1];
+    if (!EXP_readToken(ctx, tok))
     {
         return true;
     }
-    if (tok.type == endTokType)
+    if (tok->type == endTokType)
     {
         return true;
     }
@@ -452,14 +452,14 @@ static EXP_Node EXP_parseSeq(EXP_ParseContext* ctx, EXP_TokenType beginTokType)
 {
     EXP_Space* space = ctx->space;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
-    EXP_ParseSeqStack* seqStack = &ctx->seqStack;
+    EXP_ParseSeqStack* seqStack = ctx->seqStack;
     assert(!seqStack->length);
 
     EXP_ParseSeqLevel root = { beginTokType, -1 };
     vec_push(seqStack, root);
     EXP_ParseSeqLevel* cur = NULL;
     EXP_Node r;
-    EXP_Token tok;
+    EXP_Token tok[1];
 next:
     if (!seqStack->length)
     {
@@ -502,28 +502,28 @@ next:
         if (srcInfo)
         {
             EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-            EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
-            vec_push(&srcInfo->nodes, nodeSrcInfo);
+            EXP_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+            vec_push(srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
     }
     else
     {
-        if (!EXP_readToken(ctx, &tok))
+        if (!EXP_readToken(ctx, tok))
         {
             goto failed;
         }
-        if (!EXP_tokenToNode(ctx, &tok, &r))
+        if (!EXP_tokenToNode(ctx, tok, &r))
         {
-            EXP_ParseSeqLevel l = { tok.type, -1 };
+            EXP_ParseSeqLevel l = { tok->type, -1 };
             vec_push(seqStack, l);
         }
         assert(r.id != EXP_Node_Invalid.id);
         if (srcInfo)
         {
             EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-            EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
-            vec_push(&srcInfo->nodes, nodeSrcInfo);
+            EXP_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+            vec_push(srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
     }
@@ -544,21 +544,21 @@ static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
     EXP_Space* space = ctx->space;
     EXP_SpaceSrcInfo* srcInfo = ctx->srcInfo;
     EXP_Node node = EXP_Node_Invalid;
-    EXP_Token tok;
-    if (!EXP_readToken(ctx, &tok))
+    EXP_Token tok[1];
+    if (!EXP_readToken(ctx, tok))
     {
         return node;
     }
-    if (!EXP_tokenToNode(ctx, &tok, &node))
+    if (!EXP_tokenToNode(ctx, tok, &node))
     {
-        node = EXP_parseSeq(ctx, tok.type);
+        node = EXP_parseSeq(ctx, tok->type);
         return node;
     }
     if (srcInfo)
     {
         EXP_NodeSrcInfo nodeSrcInfo = { 0 };
-        EXP_tokenToNodeSrcInfo(ctx, &tok, &nodeSrcInfo);
-        vec_push(&srcInfo->nodes, nodeSrcInfo);
+        EXP_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+        vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;
 }
@@ -577,46 +577,46 @@ static EXP_Node EXP_parseNode(EXP_ParseContext* ctx)
 
 EXP_Node EXP_parseAsCell(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(src), src, srcInfo);
-    EXP_Node node = EXP_parseNode(&ctx);
-    if ((EXP_Node_Invalid.id == node.id) || (!EXP_parseEnd(&ctx)))
+    EXP_ParseContext ctx[1] = { EXP_newParseContext(space, (u32)strlen(src), src, srcInfo) };
+    EXP_Node node = EXP_parseNode(ctx);
+    if ((EXP_Node_Invalid.id == node.id) || (!EXP_parseEnd(ctx)))
     {
-        EXP_parseContextFree(&ctx);
+        EXP_parseContextFree(ctx);
         EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
-    EXP_parseContextFree(&ctx);
+    EXP_parseContextFree(ctx);
     return node;
 }
 
 EXP_Node EXP_parseAsList(EXP_Space* space, const char* src, EXP_SpaceSrcInfo* srcInfo)
 {
-    EXP_ParseContext ctx = EXP_newParseContext(space, (u32)strlen(src), src, srcInfo);
+    EXP_ParseContext ctx[1] = { EXP_newParseContext(space, (u32)strlen(src), src, srcInfo) };
     EXP_addSeqEnter(space, EXP_NodeType_SeqNaked);
     bool errorHappen = false;
-    while (EXP_skipSapce(&ctx))
+    while (EXP_skipSapce(ctx))
     {
-        EXP_Node e = EXP_parseNode(&ctx);
+        EXP_Node e = EXP_parseNode(ctx);
         if (EXP_Node_Invalid.id == e.id)
         {
             errorHappen = true;
             break;
         }
-        EXP_addSeqPush(ctx.space, e);
+        EXP_addSeqPush(ctx->space, e);
     }
-    if (!EXP_parseEnd(&ctx) || errorHappen)
+    if (!EXP_parseEnd(ctx) || errorHappen)
     {
-        EXP_parseContextFree(&ctx);
+        EXP_parseContextFree(ctx);
         EXP_addSeqCancel(space);
         EXP_Node node = { EXP_Node_Invalid.id };
         return node;
     }
-    EXP_parseContextFree(&ctx);
+    EXP_parseContextFree(ctx);
     EXP_Node node = EXP_addSeqDone(space);
     if (srcInfo)
     {
         EXP_NodeSrcInfo nodeSrcInfo = { srcInfo->fileCount - 1 };
-        vec_push(&srcInfo->nodes, nodeSrcInfo);
+        vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;
 }

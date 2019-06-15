@@ -132,7 +132,7 @@ typedef struct EXP_SpaceSrcInfo
 {
     u32 baseNodeId;
     u32 fileCount;
-    EXP_NodeSrcInfoVec nodes;
+    EXP_NodeSrcInfoVec nodes[1];
 } EXP_SpaceSrcInfo;
 
 void EXP_spaceSrcInfoFree(EXP_SpaceSrcInfo* srcInfo);

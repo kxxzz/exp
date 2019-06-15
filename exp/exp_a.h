@@ -102,11 +102,11 @@ typedef vec_t(EXP_SeqDefFrame) EXP_SeqDefFrameVec;
 
 typedef struct EXP_Space
 {
-    EXP_NodeInfoVec nodes;
+    EXP_NodeInfoVec nodes[1];
     upool_t dataPool;
-    EXP_NodeVec seqDefStack;
-    EXP_SeqDefFrameVec seqDefFrameStack;
-    vec_char cstrBuf;
+    EXP_NodeVec seqDefStack[1];
+    EXP_SeqDefFrameVec seqDefFrameStack[1];
+    vec_char cstrBuf[1];
 } EXP_Space;
 
 

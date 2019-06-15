@@ -40,14 +40,14 @@ static u32 EXP_printSlTok(const EXP_Space* space, char* buf, u32 bufSize, const 
 {
     assert(EXP_isTok(space, src));
 
-    EXP_NodeInfo* info = space->nodes.data + src.id;
+    EXP_NodeInfo* info = space->nodes->data + src.id;
     const char* str = upool_elmData(space->dataPool, info->offset);
     u32 sreLen = info->length;
     u32 n;
     bool isQuotStr = false;
-    if (srcInfo && (src.id < srcInfo->nodes.length))
+    if (srcInfo && (src.id < srcInfo->nodes->length))
     {
-        isQuotStr = srcInfo->nodes.data[src.id].isQuotStr;
+        isQuotStr = srcInfo->nodes->data[src.id].isQuotStr;
     }
     else
     {
@@ -125,8 +125,7 @@ typedef vec_t(EXP_PrintSlSeqLevel) EXP_PrintSlSeqStack;
 
 static u32 EXP_printSlSeq(const EXP_Space* space, char* buf, u32 bufSize, const EXP_SpaceSrcInfo* srcInfo, EXP_Node src)
 {
-    EXP_PrintSlSeqStack _seqStack = { 0 };
-    EXP_PrintSlSeqStack* seqStack = &_seqStack;
+    EXP_PrintSlSeqStack seqStack[1] = { 0 };
 
     assert(EXP_isSeq(space, src));
     EXP_PrintSlSeqLevel root = { src };
@@ -148,7 +147,7 @@ next:
     }
     top = &vec_last(seqStack);
     node = top->src;
-    seqInfo = space->nodes.data + node.id;
+    seqInfo = space->nodes->data + node.id;
     assert(seqInfo->type > EXP_NodeType_Tok);
     p = top->p++;
 
@@ -290,13 +289,13 @@ typedef struct EXP_PrintMlContext
     u32 column;
     u32 depth;
 
-    EXP_PrintMlSeqStack seqStack;
+    EXP_PrintMlSeqStack seqStack[1];
 } EXP_PrintMlContext;
 
 
 static void EXP_printMlContextFree(EXP_PrintMlContext* ctx)
 {
-    vec_free(&ctx->seqStack);
+    vec_free(ctx->seqStack);
 }
 
 
@@ -401,7 +400,7 @@ static void EXP_printMlAddIdent(EXP_PrintMlContext* ctx)
 static void EXP_printMlSeq(EXP_PrintMlContext* ctx, EXP_Node src)
 {
     const EXP_Space* space = ctx->space;
-    EXP_PrintMlSeqStack* seqStack = &ctx->seqStack;
+    EXP_PrintMlSeqStack* seqStack = ctx->seqStack;
     assert(!seqStack->length);
 
     assert(EXP_isSeq(space, src));
@@ -417,7 +416,7 @@ next:
         return;
     }
     top = &vec_last(seqStack);
-    seqInfo = space->nodes.data + top->src.id;
+    seqInfo = space->nodes->data + top->src.id;
     assert(seqInfo->type > EXP_NodeType_Tok);
     p = top->p++;
 
@@ -485,7 +484,7 @@ next:
         EXP_printMlAddIdent(ctx);
     }
     EXP_Node e = ((EXP_Node*)upool_elmData(space->dataPool, seqInfo->offset))[p];
-    EXP_NodeInfo* eInfo = space->nodes.data + e.id;
+    EXP_NodeInfo* eInfo = space->nodes->data + e.id;
     switch (eInfo->type)
     {
     case EXP_NodeType_Tok:
@@ -512,7 +511,7 @@ next:
 
 u32 EXP_printML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, const EXP_PrintMlOpt* opt)
 {
-    EXP_NodeInfo* info = space->nodes.data + node.id;
+    EXP_NodeInfo* info = space->nodes->data + node.id;
     switch (info->type)
     {
     case EXP_NodeType_Tok:
@@ -521,13 +520,13 @@ u32 EXP_printML(const EXP_Space* space, EXP_Node node, char* buf, u32 bufSize, c
     }
     default:
     {
-        EXP_PrintMlContext ctx =
+        EXP_PrintMlContext ctx[1] =
         {
-            space, opt, bufSize, buf,
+            { space, opt, bufSize, buf }
         };
-        EXP_printMlSeq(&ctx, node);
-        EXP_printMlContextFree(&ctx);
-        return ctx.n;
+        EXP_printMlSeq(ctx, node);
+        EXP_printMlContextFree(ctx);
+        return ctx->n;
     }
     }
 }
