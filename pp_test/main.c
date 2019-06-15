@@ -33,15 +33,28 @@ static int mainReturn(int r)
 
 static void pp_test(void)
 {
-    char* text = NULL;
+    u32 n;
+    INF_Node root;
+    char* text;
+
     u32 textSize = FILEU_readFile("../1.inf", &text);
     assert(textSize != -1);
 
-
     INF_Space* space = INF_newSpace();
     INF_SpaceSrcInfo srcInfo[1] = { 0 };
-    INF_Node root = INF_parseAsList(space, text, srcInfo);
+
+    root = INF_parseAsList(space, text, srcInfo);
     assert(root.id != INF_Node_Invalid.id);
+    assert(0 == srcInfo->baseNodeId);
+    assert(1 == srcInfo->fileCount);
+    n = srcInfo->nodes->length;
+
+    root = INF_parseAsList(space, text, srcInfo);
+    assert(root.id != INF_Node_Invalid.id);
+    assert(n == srcInfo->baseNodeId);
+    assert(2 == srcInfo->fileCount);
+    assert(n * 2 == srcInfo->nodes->length);
+
     free(text);
 
     {
@@ -54,7 +67,7 @@ static void pp_test(void)
     }
 
     {
-        INF_PrintMlOpt opt[1] = { 4, 50 };
+        INF_PrintMlOpt opt[1] = { 4, 50, srcInfo };
         u32 text1BufSize = INF_printML(space, root, NULL, 0, opt) + 1;
         char* text1 = malloc(text1BufSize);
         u32 writen = INF_printML(space, root, text1, text1BufSize, opt) + 1;
@@ -62,7 +75,6 @@ static void pp_test(void)
         printf("\"\n%s\"\n", text1);
         free(text1);
     }
-
 
     INF_spaceSrcInfoFree(srcInfo);
     INF_spaceFree(space);
