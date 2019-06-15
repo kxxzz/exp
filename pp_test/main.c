@@ -1,6 +1,6 @@
 #pragma warning(disable: 4101)
 
-#include "exp/exp.h"
+#include "inf/inf.h"
 
 
 
@@ -34,38 +34,38 @@ static int mainReturn(int r)
 static void pp_test(void)
 {
     char* text = NULL;
-    u32 textSize = FILEU_readFile("../1.exp", &text);
+    u32 textSize = FILEU_readFile("../1.inf", &text);
     assert(textSize != -1);
 
 
-    EXP_Space* space = EXP_newSpace();
-    EXP_SpaceSrcInfo srcInfo = { 0 };
-    EXP_Node root = EXP_parseAsList(space, text, &srcInfo);
-    assert(root.id != EXP_Node_Invalid.id);
+    INF_Space* space = INF_newSpace();
+    INF_SpaceSrcInfo srcInfo[1] = { 0 };
+    INF_Node root = INF_parseAsList(space, text, srcInfo);
+    assert(root.id != INF_Node_Invalid.id);
     free(text);
 
     {
-        u32 text1BufSize = EXP_printSL(space, root, NULL, 0, &srcInfo) + 1;
+        u32 text1BufSize = INF_printSL(space, root, NULL, 0, srcInfo) + 1;
         char* text1 = malloc(text1BufSize);
-        u32 writen = EXP_printSL(space, root, text1, text1BufSize, &srcInfo) + 1;
+        u32 writen = INF_printSL(space, root, text1, text1BufSize, srcInfo) + 1;
         assert(text1BufSize == writen);
         printf("\"\n%s\"\n", text1);
         free(text1);
     }
 
     {
-        EXP_PrintMlOpt opt = { 4, 50 };
-        u32 text1BufSize = EXP_printML(space, root, NULL, 0, &opt) + 1;
+        INF_PrintMlOpt opt[1] = { 4, 50 };
+        u32 text1BufSize = INF_printML(space, root, NULL, 0, opt) + 1;
         char* text1 = malloc(text1BufSize);
-        u32 writen = EXP_printML(space, root, text1, text1BufSize, &opt) + 1;
+        u32 writen = INF_printML(space, root, text1, text1BufSize, opt) + 1;
         assert(text1BufSize == writen);
         printf("\"\n%s\"\n", text1);
         free(text1);
     }
 
 
-    EXP_spaceSrcInfoFree(&srcInfo);
-    EXP_spaceFree(space);
+    INF_spaceSrcInfoFree(srcInfo);
+    INF_spaceFree(space);
 }
 
 

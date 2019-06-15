@@ -2,7 +2,7 @@
 
 
 
-#include "exp.h"
+#include "inf.h"
 
 
 
@@ -80,34 +80,34 @@ static u32 align(u32 x, u32 a)
 
 
 
-typedef struct EXP_NodeInfo
+typedef struct INF_NodeInfo
 {
-    EXP_NodeType type;
+    INF_NodeType type;
     u32 offset;
     u32 length;
     u32 quoted;
-} EXP_NodeInfo;
+} INF_NodeInfo;
 
-typedef vec_t(EXP_NodeInfo) EXP_NodeInfoVec;
+typedef vec_t(INF_NodeInfo) INF_NodeInfoVec;
 
 
-typedef struct EXP_SeqDefFrame
+typedef struct INF_SeqDefFrame
 {
-    EXP_NodeType seqType;
+    INF_NodeType seqType;
     u32 p;
-} EXP_SeqDefFrame;
+} INF_SeqDefFrame;
 
-typedef vec_t(EXP_SeqDefFrame) EXP_SeqDefFrameVec;
+typedef vec_t(INF_SeqDefFrame) INF_SeqDefFrameVec;
 
 
-typedef struct EXP_Space
+typedef struct INF_Space
 {
-    EXP_NodeInfoVec nodes[1];
+    INF_NodeInfoVec nodes[1];
     upool_t dataPool;
-    EXP_NodeVec seqDefStack[1];
-    EXP_SeqDefFrameVec seqDefFrameStack[1];
+    INF_NodeVec seqDefStack[1];
+    INF_SeqDefFrameVec seqDefFrameStack[1];
     vec_char cstrBuf[1];
-} EXP_Space;
+} INF_Space;
 
 
 

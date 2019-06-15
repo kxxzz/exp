@@ -3,9 +3,9 @@
 
 # https://www.sublimetext.com/docs/3/syntax.html
 
-name: Exp
-file_extensions: [exp]
-scope: source.exp
+name: INF
+file_extensions: [inf]
+scope: source.inf
 
 
 contexts:
@@ -20,78 +20,78 @@ contexts:
 
   rounds:
     - match: '\('
-      scope: punctuation.definition.group.begin.exp
+      scope: punctuation.definition.group.begin.inf
       push:
-        - meta_scope: meta.group.exp
+        - meta_scope: meta.group.inf
         - match: '\)'
-          scope: punctuation.definition.group.end.exp
+          scope: punctuation.definition.group.end.inf
           pop: true
         - include: main
     - match: '\)'
-      scope: invalid.illegal.stray-bracket-end.exp
+      scope: invalid.illegal.stray-bracket-end.inf
 
   squares:
     - match: '\['
-      scope: punctuation.definition.group.begin.exp
+      scope: punctuation.definition.group.begin.inf
       push:
-        - meta_scope: meta.group.exp
+        - meta_scope: meta.group.inf
         - match: '\]'
-          scope: punctuation.definition.group.end.exp
+          scope: punctuation.definition.group.end.inf
           pop: true
         - include: main
     - match: '\]'
-      scope: invalid.illegal.stray-bracket-end.exp
+      scope: invalid.illegal.stray-bracket-end.inf
 
   curlies:
     - match: '\{'
-      scope: punctuation.definition.group.begin.exp
+      scope: punctuation.definition.group.begin.inf
       push:
-        - meta_scope: meta.group.exp
+        - meta_scope: meta.group.inf
         - match: '\}'
-          scope: punctuation.definition.group.end.exp
+          scope: punctuation.definition.group.end.inf
           pop: true
         - include: main
     - match: '\}'
-      scope: invalid.illegal.stray-bracket-end.exp
+      scope: invalid.illegal.stray-bracket-end.inf
 
   numbers:
     - match: '\b((0(x|X)\h*)|(([0-9]+\.?[0-9]*)|(\.[0-9]+))((e|E)(\+|-)?[0-9]+)?)(?i:l|ul|u|f|ll|ull)?\b'
-      scope: constant.numeric.exp
+      scope: constant.numeric.inf
 
   symbols:
     - match: (?<=[\s\(\)\[\]\{\}\"\']|)([^\s\(\)\[\]\{\}\"\']+)(?=[\s\(\)\[\]\{\}\"\'])
-      scope: symbol.other.global.exp
+      scope: symbol.other.global.inf
       captures:
-        1: punctuation.definition.symbol.begin.exp
-        3: punctuation.definition.symbol.end.exp
+        1: punctuation.definition.symbol.begin.inf
+        3: punctuation.definition.symbol.end.inf
 
   strings:
     - match: '"'
-      scope: punctuation.definition.string.begin.exp
+      scope: punctuation.definition.string.begin.inf
       push:
-        - meta_scope: string.quoted.double.exp
+        - meta_scope: string.quoted.double.inf
         - match: '"'
-          scope: punctuation.definition.string.end.exp
+          scope: punctuation.definition.string.end.inf
           pop: true
         - match: \\.
-          scope: constant.character.escape.exp
+          scope: constant.character.escape.inf
 
   block-comment:
     - match: '\/\*'
-      scope: punctuation.definition.comment.exp
+      scope: punctuation.definition.comment.inf
       push:
-        - meta_scope: comment.block.exp
+        - meta_scope: comment.block.inf
         - match: '\*\/'
           pop: true
 
   comments:
     - include: block-comment
     - match: '\*\/'
-      scope: invalid.illegal.stray-comment-end.exp
+      scope: invalid.illegal.stray-comment-end.inf
     - match: '//'
-      scope: punctuation.definition.comment.exp
+      scope: punctuation.definition.comment.inf
       push:
-        - meta_scope: comment.line.double-slash.exp
+        - meta_scope: comment.line.double-slash.inf
         - match: $\n?
           pop: true
 
