@@ -29,13 +29,13 @@ void INF_spaceFree(INF_Space* space)
 void INF_spaceSrcInfoFree(INF_SpaceSrcInfo* srcInfo)
 {
     vec_free(srcInfo->nodes);
+    vec_free(srcInfo->baseNodeIds);
 }
 
 
 const INF_NodeSrcInfo* INF_nodeSrcInfo(const INF_SpaceSrcInfo* srcInfo, INF_Node node)
 {
-    assert(node.id - srcInfo->baseNodeId < srcInfo->nodes->length);
-    return srcInfo->nodes->data + node.id - srcInfo->baseNodeId;
+    return srcInfo->nodes->data + node.id;
 }
 
 

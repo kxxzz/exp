@@ -45,14 +45,14 @@ static void pp_test(void)
 
     root = INF_parseAsList(space, text, srcInfo);
     assert(root.id != INF_Node_Invalid.id);
-    assert(0 == srcInfo->baseNodeId);
-    assert(1 == srcInfo->fileCount);
+    assert(0 == vec_last(srcInfo->baseNodeIds));
+    assert(1 == srcInfo->baseNodeIds->length);
     n = srcInfo->nodes->length;
 
     root = INF_parseAsList(space, text, srcInfo);
     assert(root.id != INF_Node_Invalid.id);
-    assert(n == srcInfo->baseNodeId);
-    assert(2 == srcInfo->fileCount);
+    assert(n == vec_last(srcInfo->baseNodeIds));
+    assert(2 == srcInfo->baseNodeIds->length);
     assert(n * 2 == srcInfo->nodes->length);
 
     free(text);

@@ -62,8 +62,7 @@ static INF_ParseContext INF_newParseContext
     assert(strSize == strlen(srcStr));
     if (srcInfo)
     {
-        srcInfo->baseNodeId = INF_spaceNodesTotal(space);
-        ++srcInfo->fileCount;
+        vec_push(srcInfo->baseNodeIds, INF_spaceNodesTotal(space));
     }
     INF_ParseContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
@@ -333,9 +332,9 @@ static void INF_tokenToNodeSrcInfo(INF_ParseContext* ctx, const INF_Token* tok, 
     {
         return;
     }
-    assert(ctx->srcInfo->fileCount > 0);
-    info->file = ctx->srcInfo->fileCount - 1;
-    info->offset = ctx->cur - tok->len;
+    assert(ctx->srcInfo->baseNodeIds->length > 0);
+    info->file = ctx->srcInfo->baseNodeIds->length - 1;
+    info->offset = tok->begin;
     info->line = ctx->curLine;
     info->column = 1;
     for (u32 i = 0; i < info->offset; ++i)
@@ -448,14 +447,14 @@ static bool INF_parseSeqEnd(INF_ParseContext* ctx, INF_TokenType endTokType)
 
 
 
-static INF_Node INF_parseSeq(INF_ParseContext* ctx, INF_TokenType beginTokType)
+static INF_Node INF_parseSeq(INF_ParseContext* ctx, const INF_Token* beginTok)
 {
     INF_Space* space = ctx->space;
     INF_SpaceSrcInfo* srcInfo = ctx->srcInfo;
     INF_ParseSeqStack* seqStack = ctx->seqStack;
     assert(!seqStack->length);
 
-    INF_ParseSeqLevel root = { beginTokType, -1 };
+    INF_ParseSeqLevel root = { beginTok->type, -1 };
     vec_push(seqStack, root);
     INF_ParseSeqLevel* cur = NULL;
     INF_Node r;
@@ -497,12 +496,11 @@ next:
     {
         vec_pop(seqStack);
         r = INF_addSeqDone(space);
-
         assert(r.id != INF_Node_Invalid.id);
         if (srcInfo)
         {
             INF_NodeSrcInfo nodeSrcInfo = { 0 };
-            INF_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+            INF_tokenToNodeSrcInfo(ctx, beginTok, &nodeSrcInfo);
             vec_push(srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
@@ -517,6 +515,7 @@ next:
         {
             INF_ParseSeqLevel l = { tok->type, -1 };
             vec_push(seqStack, l);
+            goto next;
         }
         assert(r.id != INF_Node_Invalid.id);
         if (srcInfo)
@@ -551,7 +550,7 @@ static INF_Node INF_parseNode(INF_ParseContext* ctx)
     }
     if (!INF_tokenToNode(ctx, tok, &node))
     {
-        node = INF_parseSeq(ctx, tok->type);
+        node = INF_parseSeq(ctx, tok);
         return node;
     }
     if (srcInfo)
@@ -615,7 +614,7 @@ INF_Node INF_parseAsList(INF_Space* space, const char* src, INF_SpaceSrcInfo* sr
     INF_Node node = INF_addSeqDone(space);
     if (srcInfo)
     {
-        INF_NodeSrcInfo nodeSrcInfo = { srcInfo->fileCount - 1 };
+        INF_NodeSrcInfo nodeSrcInfo = { srcInfo->baseNodeIds->length - 1 };
         vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;
