@@ -61,7 +61,7 @@ add_library (imp STATIC ${IMP_SRC_FILES})
 
 
 
-
+include_directories (txn)
 file (GLOB SRC_FILES txn/*.h txn/*.c)
 source_group (src FILES ${SRC_FILES})
 add_library (txn ${SRC_FILES})
