@@ -1,5 +1,5 @@
 cmake_minimum_required (VERSION 3.5)
-project (INF)
+project (TXN)
 
 
 set (CMAKE_C_STANDARD 11)
@@ -62,16 +62,16 @@ add_library (imp STATIC ${IMP_SRC_FILES})
 
 
 
-file (GLOB INF_SRC_FILES inf/*.h inf/*.c)
-source_group (src FILES ${INF_SRC_FILES})
-add_library (inf ${INF_SRC_FILES})
+file (GLOB SRC_FILES txn/*.h txn/*.c)
+source_group (src FILES ${SRC_FILES})
+add_library (txn ${SRC_FILES})
 
 
 
 file (GLOB PP_TEST_SRC_FILES pp_test/*.h pp_test/*.c)
 source_group (src FILES ${PP_TEST_SRC_FILES})
 add_executable (pp_test ${PP_TEST_SRC_FILES})
-target_link_libraries (pp_test imp inf)
+target_link_libraries (pp_test imp txn)
 
 if (WIN32)
 else ()

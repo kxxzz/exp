@@ -1,74 +1,74 @@
-#include "inf_a.h"
+#include "txn_a.h"
 
 
 
-typedef enum INF_TokenType
+typedef enum TXN_TokenType
 {
-    INF_TokenType_Text,
-    INF_TokenType_String,
+    TXN_TokenType_Text,
+    TXN_TokenType_String,
 
-    INF_TokenType_SeqParenBegin,
-    INF_TokenType_SeqSquareBegin,
-    INF_TokenType_SeqBraceBegin,
+    TXN_TokenType_SeqParenBegin,
+    TXN_TokenType_SeqSquareBegin,
+    TXN_TokenType_SeqBraceBegin,
 
-    INF_TokenType_SeqParenEnd,
-    INF_TokenType_SeqSquareEnd,
-    INF_TokenType_SeqBraceEnd,
+    TXN_TokenType_SeqParenEnd,
+    TXN_TokenType_SeqSquareEnd,
+    TXN_TokenType_SeqBraceEnd,
 
-    INF_NumTokenTypes
-} INF_TokenType;
+    TXN_NumTokenTypes
+} TXN_TokenType;
 
 
 
-typedef struct INF_Token
+typedef struct TXN_Token
 {
-    INF_TokenType type;
+    TXN_TokenType type;
     u32 begin;
     u32 len;
-} INF_Token;
+} TXN_Token;
 
 
 
-typedef struct INF_ParseSeqLevel
+typedef struct TXN_ParseSeqLevel
 {
-    INF_TokenType beginTokType;
-    INF_TokenType endTokType;
-} INF_ParseSeqLevel;
+    TXN_TokenType beginTokType;
+    TXN_TokenType endTokType;
+} TXN_ParseSeqLevel;
 
-typedef vec_t(INF_ParseSeqLevel) INF_ParseSeqStack;
-
-
+typedef vec_t(TXN_ParseSeqLevel) TXN_ParseSeqStack;
 
 
-typedef struct INF_ParseContext
+
+
+typedef struct TXN_ParseContext
 {
-    INF_Space* space;
+    TXN_Space* space;
     u32 srcLen;
     const char* src;
     u32 cur;
     u32 curLine;
-    INF_SpaceSrcInfo* srcInfo;
+    TXN_SpaceSrcInfo* srcInfo;
     vec_char tmpStrBuf[1];
-    INF_ParseSeqStack seqStack[1];
-} INF_ParseContext;
+    TXN_ParseSeqStack seqStack[1];
+} TXN_ParseContext;
 
 
 
-static INF_ParseContext INF_newParseContext
+static TXN_ParseContext TXN_parseContextNew
 (
-    INF_Space* space, u32 strSize, const char* srcStr, INF_SpaceSrcInfo* srcInfo
+    TXN_Space* space, u32 strSize, const char* srcStr, TXN_SpaceSrcInfo* srcInfo
 )
 {
     assert(strSize == strlen(srcStr));
     if (srcInfo)
     {
-        vec_push(srcInfo->fileBases, INF_spaceNodesTotal(space));
+        vec_push(srcInfo->fileBases, TXN_spaceNodesTotal(space));
     }
-    INF_ParseContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
+    TXN_ParseContext ctx = { space, strSize, srcStr, 0, 1, srcInfo };
     return ctx;
 }
 
-static void INF_parseContextFree(INF_ParseContext* ctx)
+static void TXN_parseContextFree(TXN_ParseContext* ctx)
 {
     vec_free(ctx->seqStack);
     vec_free(ctx->tmpStrBuf);
@@ -78,7 +78,7 @@ static void INF_parseContextFree(INF_ParseContext* ctx)
 
 
 
-static bool INF_skipSapce(INF_ParseContext* ctx)
+static bool TXN_skipSapce(TXN_ParseContext* ctx)
 {
     const char* src = ctx->src;
     for (;;)
@@ -172,12 +172,12 @@ static bool INF_skipSapce(INF_ParseContext* ctx)
 
 
 
-static bool INF_readToken_String(INF_ParseContext* ctx, INF_Token* out)
+static bool TXN_readToken_String(TXN_ParseContext* ctx, TXN_Token* out)
 {
     const char* src = ctx->src;
     char endCh = src[ctx->cur];
     ++ctx->cur;
-    INF_Token tok = { INF_TokenType_String, ctx->cur, 0 };
+    TXN_Token tok = { TXN_TokenType_String, ctx->cur, 0 };
     for (;;)
     {
         if (ctx->cur >= ctx->srcLen)
@@ -211,9 +211,9 @@ static bool INF_readToken_String(INF_ParseContext* ctx, INF_Token* out)
 
 
 
-static bool INF_readToken_Text(INF_ParseContext* ctx, INF_Token* out)
+static bool TXN_readToken_Text(TXN_ParseContext* ctx, TXN_Token* out)
 {
-    INF_Token tok = { INF_TokenType_Text, ctx->cur, 0 };
+    TXN_Token tok = { TXN_TokenType_Text, ctx->cur, 0 };
     const char* src = ctx->src;
     for (;;)
     {
@@ -251,67 +251,67 @@ static bool INF_readToken_Text(INF_ParseContext* ctx, INF_Token* out)
 
 
 
-static bool INF_readToken(INF_ParseContext* ctx, INF_Token* out)
+static bool TXN_readToken(TXN_ParseContext* ctx, TXN_Token* out)
 {
     const char* src = ctx->src;
     if (ctx->cur >= ctx->srcLen)
     {
         return false;
     }
-    if (!INF_skipSapce(ctx))
+    if (!TXN_skipSapce(ctx))
     {
         return false;
     }
     bool ok = false;
     if ('(' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqParenBegin, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqParenBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (')' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqParenEnd, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqParenEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if ('[' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqSquareBegin, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqSquareBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (']' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqSquareEnd, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqSquareEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if ('{' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqBraceBegin, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqBraceBegin, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if ('}' == src[ctx->cur])
     {
-        INF_Token tok = { INF_TokenType_SeqBraceEnd, ctx->cur, 1 };
+        TXN_Token tok = { TXN_TokenType_SeqBraceEnd, ctx->cur, 1 };
         *out = tok;
         ++ctx->cur;
         ok = true;
     }
     else if (('"' == src[ctx->cur]) || ('\'' == src[ctx->cur]))
     {
-        ok = INF_readToken_String(ctx, out);
+        ok = TXN_readToken_String(ctx, out);
     }
     else
     {
-        ok = INF_readToken_Text(ctx, out);
+        ok = TXN_readToken_Text(ctx, out);
     }
     return ok;
 }
@@ -326,7 +326,7 @@ static bool INF_readToken(INF_ParseContext* ctx, INF_Token* out)
 
 
 
-static void INF_tokenToNodeSrcInfo(INF_ParseContext* ctx, const INF_Token* tok, INF_NodeSrcInfo* info)
+static void TXN_tokenToNodeSrcInfo(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_NodeSrcInfo* info)
 {
     if (!ctx->srcInfo)
     {
@@ -346,7 +346,7 @@ static void INF_tokenToNodeSrcInfo(INF_ParseContext* ctx, const INF_Token* tok, 
             break;
         }
     }
-    info->isQuotStr = INF_TokenType_String == tok->type;
+    info->isQuotStr = TXN_TokenType_String == tok->type;
 }
 
 
@@ -354,19 +354,19 @@ static void INF_tokenToNodeSrcInfo(INF_ParseContext* ctx, const INF_Token* tok, 
 
 
 
-static bool INF_tokenToNode(INF_ParseContext* ctx, const INF_Token* tok, INF_Node* pNode)
+static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Node* pNode)
 {
-    INF_Space* space = ctx->space;
-    bool isQuotStr = INF_TokenType_String == tok->type;
+    TXN_Space* space = ctx->space;
+    bool isQuotStr = TXN_TokenType_String == tok->type;
     switch (tok->type)
     {
-    case INF_TokenType_Text:
+    case TXN_TokenType_Text:
     {
         const char* str = ctx->src + tok->begin;
-        *pNode = INF_addTokL(space, str, tok->len, isQuotStr);
+        *pNode = TXN_addTokL(space, str, tok->len, isQuotStr);
         break;
     }
-    case INF_TokenType_String:
+    case TXN_TokenType_String:
     {
         char endCh = ctx->src[tok->begin - 1];
         const char* src = ctx->src + tok->begin;
@@ -394,12 +394,12 @@ static bool INF_tokenToNode(INF_ParseContext* ctx, const INF_Token* tok, INF_Nod
         }
         ctx->tmpStrBuf->data[len] = 0;
         assert(si == len);
-        *pNode = INF_addTokL(space, ctx->tmpStrBuf->data, len, isQuotStr);
+        *pNode = TXN_addTokL(space, ctx->tmpStrBuf->data, len, isQuotStr);
         break;
     }
-    case INF_TokenType_SeqParenBegin:
-    case INF_TokenType_SeqSquareBegin:
-    case INF_TokenType_SeqBraceBegin:
+    case TXN_TokenType_SeqParenBegin:
+    case TXN_TokenType_SeqSquareBegin:
+    case TXN_TokenType_SeqBraceBegin:
     {
         return false;
     }
@@ -415,7 +415,7 @@ static bool INF_tokenToNode(INF_ParseContext* ctx, const INF_Token* tok, INF_Nod
 
 
 
-static bool INF_parseEnd(INF_ParseContext* ctx)
+static bool TXN_parseEnd(TXN_ParseContext* ctx)
 {
     assert(ctx->srcLen >= ctx->cur);
     if (ctx->srcLen == ctx->cur)
@@ -425,12 +425,12 @@ static bool INF_parseEnd(INF_ParseContext* ctx)
     return false;
 }
 
-static bool INF_parseSeqEnd(INF_ParseContext* ctx, INF_TokenType endTokType)
+static bool TXN_parseSeqEnd(TXN_ParseContext* ctx, TXN_TokenType endTokType)
 {
     u32 cur0 = ctx->cur;
     u32 curLine0 = ctx->curLine;
-    INF_Token tok[1];
-    if (!INF_readToken(ctx, tok))
+    TXN_Token tok[1];
+    if (!TXN_readToken(ctx, tok))
     {
         return true;
     }
@@ -447,18 +447,18 @@ static bool INF_parseSeqEnd(INF_ParseContext* ctx, INF_TokenType endTokType)
 
 
 
-static INF_Node INF_parseSeq(INF_ParseContext* ctx, const INF_Token* beginTok)
+static TXN_Node TXN_parseSeq(TXN_ParseContext* ctx, const TXN_Token* beginTok)
 {
-    INF_Space* space = ctx->space;
-    INF_SpaceSrcInfo* srcInfo = ctx->srcInfo;
-    INF_ParseSeqStack* seqStack = ctx->seqStack;
+    TXN_Space* space = ctx->space;
+    TXN_SpaceSrcInfo* srcInfo = ctx->srcInfo;
+    TXN_ParseSeqStack* seqStack = ctx->seqStack;
     assert(!seqStack->length);
 
-    INF_ParseSeqLevel root = { beginTok->type, -1 };
+    TXN_ParseSeqLevel root = { beginTok->type, -1 };
     vec_push(seqStack, root);
-    INF_ParseSeqLevel* cur = NULL;
-    INF_Node r;
-    INF_Token tok[1];
+    TXN_ParseSeqLevel* cur = NULL;
+    TXN_Node r;
+    TXN_Token tok[1];
 next:
     if (!seqStack->length)
     {
@@ -467,69 +467,69 @@ next:
     cur = &vec_last(seqStack);
     if (-1 == cur->endTokType)
     {
-        INF_NodeType seqType;
+        TXN_NodeType seqType;
         switch (cur->beginTokType)
         {
-        case INF_TokenType_SeqParenBegin:
-            seqType = INF_NodeType_SeqRound;
-            cur->endTokType = INF_TokenType_SeqParenEnd;
+        case TXN_TokenType_SeqParenBegin:
+            seqType = TXN_NodeType_SeqRound;
+            cur->endTokType = TXN_TokenType_SeqParenEnd;
             break;
-        case INF_TokenType_SeqSquareBegin:
-            seqType = INF_NodeType_SeqSquare;
-            cur->endTokType = INF_TokenType_SeqSquareEnd;
+        case TXN_TokenType_SeqSquareBegin:
+            seqType = TXN_NodeType_SeqSquare;
+            cur->endTokType = TXN_TokenType_SeqSquareEnd;
             break;
-        case INF_TokenType_SeqBraceBegin:
-            seqType = INF_NodeType_SeqCurly;
-            cur->endTokType = INF_TokenType_SeqBraceEnd;
+        case TXN_TokenType_SeqBraceBegin:
+            seqType = TXN_NodeType_SeqCurly;
+            cur->endTokType = TXN_TokenType_SeqBraceEnd;
             break;
         default:
             assert(false);
             break;
         }
-        INF_addSeqEnter(space, seqType);
+        TXN_addSeqEnter(space, seqType);
     }
     else
     {
-        INF_addSeqPush(ctx->space, r);
+        TXN_addSeqPush(ctx->space, r);
     }
-    if (INF_parseSeqEnd(ctx, cur->endTokType))
+    if (TXN_parseSeqEnd(ctx, cur->endTokType))
     {
         vec_pop(seqStack);
-        r = INF_addSeqDone(space);
-        assert(r.id != INF_Node_Invalid.id);
+        r = TXN_addSeqDone(space);
+        assert(r.id != TXN_Node_Invalid.id);
         if (srcInfo)
         {
-            INF_NodeSrcInfo nodeSrcInfo = { 0 };
-            INF_tokenToNodeSrcInfo(ctx, beginTok, &nodeSrcInfo);
+            TXN_NodeSrcInfo nodeSrcInfo = { 0 };
+            TXN_tokenToNodeSrcInfo(ctx, beginTok, &nodeSrcInfo);
             vec_push(srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
     }
     else
     {
-        if (!INF_readToken(ctx, tok))
+        if (!TXN_readToken(ctx, tok))
         {
             goto failed;
         }
-        if (!INF_tokenToNode(ctx, tok, &r))
+        if (!TXN_tokenToNode(ctx, tok, &r))
         {
-            INF_ParseSeqLevel l = { tok->type, -1 };
+            TXN_ParseSeqLevel l = { tok->type, -1 };
             vec_push(seqStack, l);
             goto next;
         }
-        assert(r.id != INF_Node_Invalid.id);
+        assert(r.id != TXN_Node_Invalid.id);
         if (srcInfo)
         {
-            INF_NodeSrcInfo nodeSrcInfo = { 0 };
-            INF_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+            TXN_NodeSrcInfo nodeSrcInfo = { 0 };
+            TXN_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
             vec_push(srcInfo->nodes, nodeSrcInfo);
         }
         goto next;
     }
 failed:
     vec_resize(seqStack, 0);
-    INF_addSeqCancel(space);
-    return INF_Node_Invalid;
+    TXN_addSeqCancel(space);
+    return TXN_Node_Invalid;
 }
 
 
@@ -538,25 +538,25 @@ failed:
 
 
 
-static INF_Node INF_parseNode(INF_ParseContext* ctx)
+static TXN_Node TXN_parseNode(TXN_ParseContext* ctx)
 {
-    INF_Space* space = ctx->space;
-    INF_SpaceSrcInfo* srcInfo = ctx->srcInfo;
-    INF_Node node = INF_Node_Invalid;
-    INF_Token tok[1];
-    if (!INF_readToken(ctx, tok))
+    TXN_Space* space = ctx->space;
+    TXN_SpaceSrcInfo* srcInfo = ctx->srcInfo;
+    TXN_Node node = TXN_Node_Invalid;
+    TXN_Token tok[1];
+    if (!TXN_readToken(ctx, tok))
     {
         return node;
     }
-    if (!INF_tokenToNode(ctx, tok, &node))
+    if (!TXN_tokenToNode(ctx, tok, &node))
     {
-        node = INF_parseSeq(ctx, tok);
+        node = TXN_parseSeq(ctx, tok);
         return node;
     }
     if (srcInfo)
     {
-        INF_NodeSrcInfo nodeSrcInfo = { 0 };
-        INF_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
+        TXN_NodeSrcInfo nodeSrcInfo = { 0 };
+        TXN_tokenToNodeSrcInfo(ctx, tok, &nodeSrcInfo);
         vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;
@@ -574,47 +574,47 @@ static INF_Node INF_parseNode(INF_ParseContext* ctx)
 
 
 
-INF_Node INF_parseAsCell(INF_Space* space, const char* src, INF_SpaceSrcInfo* srcInfo)
+TXN_Node TXN_parseAsCell(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* srcInfo)
 {
-    INF_ParseContext ctx[1] = { INF_newParseContext(space, (u32)strlen(src), src, srcInfo) };
-    INF_Node node = INF_parseNode(ctx);
-    if ((INF_Node_Invalid.id == node.id) || (!INF_parseEnd(ctx)))
+    TXN_ParseContext ctx[1] = { TXN_parseContextNew(space, (u32)strlen(src), src, srcInfo) };
+    TXN_Node node = TXN_parseNode(ctx);
+    if ((TXN_Node_Invalid.id == node.id) || (!TXN_parseEnd(ctx)))
     {
-        INF_parseContextFree(ctx);
-        INF_Node node = { INF_Node_Invalid.id };
+        TXN_parseContextFree(ctx);
+        TXN_Node node = { TXN_Node_Invalid.id };
         return node;
     }
-    INF_parseContextFree(ctx);
+    TXN_parseContextFree(ctx);
     return node;
 }
 
-INF_Node INF_parseAsList(INF_Space* space, const char* src, INF_SpaceSrcInfo* srcInfo)
+TXN_Node TXN_parseAsList(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* srcInfo)
 {
-    INF_ParseContext ctx[1] = { INF_newParseContext(space, (u32)strlen(src), src, srcInfo) };
-    INF_addSeqEnter(space, INF_NodeType_SeqNaked);
+    TXN_ParseContext ctx[1] = { TXN_parseContextNew(space, (u32)strlen(src), src, srcInfo) };
+    TXN_addSeqEnter(space, TXN_NodeType_SeqNaked);
     bool errorHappen = false;
-    while (INF_skipSapce(ctx))
+    while (TXN_skipSapce(ctx))
     {
-        INF_Node e = INF_parseNode(ctx);
-        if (INF_Node_Invalid.id == e.id)
+        TXN_Node e = TXN_parseNode(ctx);
+        if (TXN_Node_Invalid.id == e.id)
         {
             errorHappen = true;
             break;
         }
-        INF_addSeqPush(ctx->space, e);
+        TXN_addSeqPush(ctx->space, e);
     }
-    if (!INF_parseEnd(ctx) || errorHappen)
+    if (!TXN_parseEnd(ctx) || errorHappen)
     {
-        INF_parseContextFree(ctx);
-        INF_addSeqCancel(space);
-        INF_Node node = { INF_Node_Invalid.id };
+        TXN_parseContextFree(ctx);
+        TXN_addSeqCancel(space);
+        TXN_Node node = { TXN_Node_Invalid.id };
         return node;
     }
-    INF_parseContextFree(ctx);
-    INF_Node node = INF_addSeqDone(space);
+    TXN_parseContextFree(ctx);
+    TXN_Node node = TXN_addSeqDone(space);
     if (srcInfo)
     {
-        INF_NodeSrcInfo nodeSrcInfo = { srcInfo->fileBases->length - 1 };
+        TXN_NodeSrcInfo nodeSrcInfo = { srcInfo->fileBases->length - 1 };
         vec_push(srcInfo->nodes, nodeSrcInfo);
     }
     return node;

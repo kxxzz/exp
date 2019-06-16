@@ -3,9 +3,9 @@
 
 # https://www.sublimetext.com/docs/3/syntax.html
 
-name: INF
-file_extensions: [inf]
-scope: source.inf
+name: TXN
+file_extensions: [txn]
+scope: source.txn
 
 
 contexts:
@@ -20,78 +20,78 @@ contexts:
 
   rounds:
     - match: '\('
-      scope: punctuation.definition.group.begin.inf
+      scope: punctuation.definition.group.begin.txn
       push:
-        - meta_scope: meta.group.inf
+        - meta_scope: meta.group.txn
         - match: '\)'
-          scope: punctuation.definition.group.end.inf
+          scope: punctuation.definition.group.end.txn
           pop: true
         - include: main
     - match: '\)'
-      scope: invalid.illegal.stray-bracket-end.inf
+      scope: invalid.illegal.stray-bracket-end.txn
 
   squares:
     - match: '\['
-      scope: punctuation.definition.group.begin.inf
+      scope: punctuation.definition.group.begin.txn
       push:
-        - meta_scope: meta.group.inf
+        - meta_scope: meta.group.txn
         - match: '\]'
-          scope: punctuation.definition.group.end.inf
+          scope: punctuation.definition.group.end.txn
           pop: true
         - include: main
     - match: '\]'
-      scope: invalid.illegal.stray-bracket-end.inf
+      scope: invalid.illegal.stray-bracket-end.txn
 
   curlies:
     - match: '\{'
-      scope: punctuation.definition.group.begin.inf
+      scope: punctuation.definition.group.begin.txn
       push:
-        - meta_scope: meta.group.inf
+        - meta_scope: meta.group.txn
         - match: '\}'
-          scope: punctuation.definition.group.end.inf
+          scope: punctuation.definition.group.end.txn
           pop: true
         - include: main
     - match: '\}'
-      scope: invalid.illegal.stray-bracket-end.inf
+      scope: invalid.illegal.stray-bracket-end.txn
 
   numbers:
     - match: '\b((0(x|X)\h*)|(([0-9]+\.?[0-9]*)|(\.[0-9]+))((e|E)(\+|-)?[0-9]+)?)(?i:l|ul|u|f|ll|ull)?\b'
-      scope: constant.numeric.inf
+      scope: constant.numeric.txn
 
   symbols:
     - match: (?<=[\s\(\)\[\]\{\}\"\']|)([^\s\(\)\[\]\{\}\"\']+)(?=[\s\(\)\[\]\{\}\"\'])
-      scope: symbol.other.global.inf
+      scope: symbol.other.global.txn
       captures:
-        1: punctuation.definition.symbol.begin.inf
-        3: punctuation.definition.symbol.end.inf
+        1: punctuation.definition.symbol.begin.txn
+        3: punctuation.definition.symbol.end.txn
 
   strings:
     - match: '"'
-      scope: punctuation.definition.string.begin.inf
+      scope: punctuation.definition.string.begin.txn
       push:
-        - meta_scope: string.quoted.double.inf
+        - meta_scope: string.quoted.double.txn
         - match: '"'
-          scope: punctuation.definition.string.end.inf
+          scope: punctuation.definition.string.end.txn
           pop: true
         - match: \\.
-          scope: constant.character.escape.inf
+          scope: constant.character.escape.txn
 
   block-comment:
     - match: '\/\*'
-      scope: punctuation.definition.comment.inf
+      scope: punctuation.definition.comment.txn
       push:
-        - meta_scope: comment.block.inf
+        - meta_scope: comment.block.txn
         - match: '\*\/'
           pop: true
 
   comments:
     - include: block-comment
     - match: '\*\/'
-      scope: invalid.illegal.stray-comment-end.inf
+      scope: invalid.illegal.stray-comment-end.txn
     - match: '//'
-      scope: punctuation.definition.comment.inf
+      scope: punctuation.definition.comment.txn
       push:
-        - meta_scope: comment.line.double-slash.inf
+        - meta_scope: comment.line.double-slash.txn
         - match: $\n?
           pop: true
 

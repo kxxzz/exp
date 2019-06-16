@@ -1,6 +1,6 @@
 #pragma warning(disable: 4101)
 
-#include "inf/inf.h"
+#include "txn/txn.h"
 
 
 
@@ -34,23 +34,23 @@ static int mainReturn(int r)
 static void pp_test(void)
 {
     u32 n;
-    INF_Node root;
+    TXN_Node root;
     char* text;
 
-    u32 textSize = FILEU_readFile("../1.inf", &text);
+    u32 textSize = FILEU_readFile("../1.txn", &text);
     assert(textSize != -1);
 
-    INF_Space* space = INF_newSpace();
-    INF_SpaceSrcInfo srcInfo[1] = { 0 };
+    TXN_Space* space = TXN_spaceNew();
+    TXN_SpaceSrcInfo srcInfo[1] = { 0 };
 
-    root = INF_parseAsList(space, text, srcInfo);
-    assert(root.id != INF_Node_Invalid.id);
+    root = TXN_parseAsList(space, text, srcInfo);
+    assert(root.id != TXN_Node_Invalid.id);
     assert(0 == vec_last(srcInfo->fileBases));
     assert(1 == srcInfo->fileBases->length);
     n = srcInfo->nodes->length;
 
-    root = INF_parseAsList(space, text, srcInfo);
-    assert(root.id != INF_Node_Invalid.id);
+    root = TXN_parseAsList(space, text, srcInfo);
+    assert(root.id != TXN_Node_Invalid.id);
     assert(n == vec_last(srcInfo->fileBases));
     assert(2 == srcInfo->fileBases->length);
     assert(n * 2 == srcInfo->nodes->length);
@@ -58,26 +58,26 @@ static void pp_test(void)
     free(text);
 
     {
-        u32 text1BufSize = INF_printSL(space, root, NULL, 0, srcInfo) + 1;
+        u32 text1BufSize = TXN_printSL(space, root, NULL, 0, srcInfo) + 1;
         char* text1 = malloc(text1BufSize);
-        u32 writen = INF_printSL(space, root, text1, text1BufSize, srcInfo) + 1;
+        u32 writen = TXN_printSL(space, root, text1, text1BufSize, srcInfo) + 1;
         assert(text1BufSize == writen);
         printf("\"\n%s\"\n", text1);
         free(text1);
     }
 
     {
-        INF_PrintMlOpt opt[1] = { 4, 50, srcInfo };
-        u32 text1BufSize = INF_printML(space, root, NULL, 0, opt) + 1;
+        TXN_PrintMlOpt opt[1] = { 4, 50, srcInfo };
+        u32 text1BufSize = TXN_printML(space, root, NULL, 0, opt) + 1;
         char* text1 = malloc(text1BufSize);
-        u32 writen = INF_printML(space, root, text1, text1BufSize, opt) + 1;
+        u32 writen = TXN_printML(space, root, text1, text1BufSize, opt) + 1;
         assert(text1BufSize == writen);
         printf("\"\n%s\"\n", text1);
         free(text1);
     }
 
-    INF_spaceSrcInfoFree(srcInfo);
-    INF_spaceFree(space);
+    TXN_spaceSrcInfoFree(srcInfo);
+    TXN_spaceFree(space);
 }
 
 

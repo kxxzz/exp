@@ -2,7 +2,7 @@
 
 
 
-#include "inf.h"
+#include "txn.h"
 
 
 
@@ -80,34 +80,34 @@ static u32 align(u32 x, u32 a)
 
 
 
-typedef struct INF_NodeInfo
+typedef struct TXN_NodeInfo
 {
-    INF_NodeType type;
+    TXN_NodeType type;
     u32 offset;
     u32 length;
     u32 quoted;
-} INF_NodeInfo;
+} TXN_NodeInfo;
 
-typedef vec_t(INF_NodeInfo) INF_NodeInfoVec;
+typedef vec_t(TXN_NodeInfo) TXN_NodeInfoVec;
 
 
-typedef struct INF_SeqDefFrame
+typedef struct TXN_SeqDefFrame
 {
-    INF_NodeType seqType;
+    TXN_NodeType seqType;
     u32 p;
-} INF_SeqDefFrame;
+} TXN_SeqDefFrame;
 
-typedef vec_t(INF_SeqDefFrame) INF_SeqDefFrameVec;
+typedef vec_t(TXN_SeqDefFrame) TXN_SeqDefFrameVec;
 
 
-typedef struct INF_Space
+typedef struct TXN_Space
 {
-    INF_NodeInfoVec nodes[1];
+    TXN_NodeInfoVec nodes[1];
     upool_t dataPool;
-    INF_NodeVec seqDefStack[1];
-    INF_SeqDefFrameVec seqDefFrameStack[1];
+    TXN_NodeVec seqDefStack[1];
+    TXN_SeqDefFrameVec seqDefFrameStack[1];
     vec_char cstrBuf[1];
-} INF_Space;
+} TXN_Space;
 
 
 
