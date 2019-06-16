@@ -104,7 +104,7 @@ typedef struct TXN_Space
 {
     TXN_NodeInfoVec nodes[1];
     upool_t dataPool;
-    vec_char cstrBuf[1];
+    vec_char tmpBuf[1];
 } TXN_Space;
 
 

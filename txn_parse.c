@@ -367,7 +367,7 @@ static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Nod
     case TXN_TokenType_Text:
     {
         const char* str = ctx->src + tok->begin;
-        *pNode = TXN_tokFromLenStr(space, str, tok->len, isQuotStr);
+        *pNode = TXN_tokFromBuf(space, str, tok->len, isQuotStr);
         break;
     }
     case TXN_TokenType_String:
@@ -398,7 +398,7 @@ static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Nod
         }
         ctx->tmpStrBuf->data[len] = 0;
         assert(si == len);
-        *pNode = TXN_tokFromLenStr(space, ctx->tmpStrBuf->data, len, isQuotStr);
+        *pNode = TXN_tokFromBuf(space, ctx->tmpStrBuf->data, len, isQuotStr);
         break;
     }
     case TXN_TokenType_SeqParenBegin:

@@ -14,7 +14,7 @@ TXN_Space* TXN_spaceNew(void)
 
 void TXN_spaceFree(TXN_Space* space)
 {
-    vec_free(space->cstrBuf);
+    vec_free(space->tmpBuf);
     upool_free(space->dataPool);
     vec_free(space->nodes);
     free(space);
@@ -77,12 +77,12 @@ TXN_Node TXN_tokFromCstr(TXN_Space* space, const char* str, bool quoted)
     return node;
 }
 
-TXN_Node TXN_tokFromLenStr(TXN_Space* space, const char* str, u32 len, bool quoted)
+TXN_Node TXN_tokFromBuf(TXN_Space* space, const char* ptr, u32 len, bool quoted)
 {
-    vec_resize(space->cstrBuf, len + 1);
-    memcpy(space->cstrBuf->data, str, len);
-    space->cstrBuf->data[len] = 0;
-    u32 offset = upool_elm(space->dataPool, space->cstrBuf->data, len + 1, NULL);
+    vec_resize(space->tmpBuf, len + 1);
+    memcpy(space->tmpBuf->data, ptr, len);
+    space->tmpBuf->data[len] = 0;
+    u32 offset = upool_elm(space->dataPool, space->tmpBuf->data, len + 1, NULL);
     TXN_NodeInfo info = { TXN_NodeType_Tok, offset, len, quoted };
     TXN_Node node = { space->nodes->length };
     vec_push(space->nodes, info);
