@@ -93,13 +93,10 @@ static bool TXN_isSeqCurly(const TXN_Space* space, TXN_Node node)
 
 
 
-TXN_Node TXN_addTok(TXN_Space* space, const char* str, bool quoted);
-TXN_Node TXN_addTokL(TXN_Space* space, const char* str, u32 len, bool quoted);
+TXN_Node TXN_tokNew(TXN_Space* space, const char* str, bool quoted);
+TXN_Node TXN_tokNewL(TXN_Space* space, const char* str, u32 len, bool quoted);
 
-void TXN_addSeqEnter(TXN_Space* space, TXN_NodeType type);
-void TXN_addSeqPush(TXN_Space* space, TXN_Node c);
-void TXN_addSeqCancel(TXN_Space* space);
-TXN_Node TXN_addSeqDone(TXN_Space* space);
+TXN_Node TXN_seqNew(TXN_Space* space, TXN_NodeType type, const TXN_Node* elms, u32 len);
 
 
 u32 TXN_tokSize(const TXN_Space* space, TXN_Node node);

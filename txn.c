@@ -15,8 +15,6 @@ TXN_Space* TXN_spaceNew(void)
 void TXN_spaceFree(TXN_Space* space)
 {
     vec_free(space->cstrBuf);
-    vec_free(space->seqDefFrameStack);
-    vec_free(space->seqDefStack);
     upool_free(space->dataPool);
     vec_free(space->nodes);
     free(space);
@@ -69,7 +67,7 @@ TXN_NodeType TXN_nodeType(const TXN_Space* space, TXN_Node node)
 
 
 
-TXN_Node TXN_addTok(TXN_Space* space, const char* str, bool quoted)
+TXN_Node TXN_tokNew(TXN_Space* space, const char* str, bool quoted)
 {
     u32 len = (u32)strlen(str);
     u32 offset = upool_elm(space->dataPool, str, len + 1, NULL);
@@ -79,7 +77,7 @@ TXN_Node TXN_addTok(TXN_Space* space, const char* str, bool quoted)
     return node;
 }
 
-TXN_Node TXN_addTokL(TXN_Space* space, const char* str, u32 len, bool quoted)
+TXN_Node TXN_tokNewL(TXN_Space* space, const char* str, u32 len, bool quoted)
 {
     vec_resize(space->cstrBuf, len + 1);
     memcpy(space->cstrBuf->data, str, len);
@@ -95,36 +93,12 @@ TXN_Node TXN_addTokL(TXN_Space* space, const char* str, u32 len, bool quoted)
 
 
 
-void TXN_addSeqEnter(TXN_Space* space, TXN_NodeType type)
-{
-    assert(type > TXN_NodeType_Tok);
-    TXN_SeqDefFrame f = { type, space->seqDefStack->length };
-    vec_push(space->seqDefFrameStack, f);
-}
 
-void TXN_addSeqPush(TXN_Space* space, TXN_Node x)
-{
-    vec_push(space->seqDefStack, x);
-}
 
-void TXN_addSeqCancel(TXN_Space* space)
+TXN_Node TXN_seqNew(TXN_Space* space, TXN_NodeType type, const TXN_Node* elms, u32 len)
 {
-    assert(space->seqDefFrameStack->length > 0);
-    TXN_SeqDefFrame f = vec_last(space->seqDefFrameStack);
-    vec_pop(space->seqDefFrameStack);
-    vec_resize(space->seqDefStack, f.p);
-}
-
-TXN_Node TXN_addSeqDone(TXN_Space* space)
-{
-    assert(space->seqDefFrameStack->length > 0);
-    TXN_SeqDefFrame f = vec_last(space->seqDefFrameStack);
-    vec_pop(space->seqDefFrameStack);
-    u32 lenSeq = space->seqDefStack->length - f.p;
-    TXN_Node* seq = space->seqDefStack->data + f.p;
-    u32 offset = upool_elm(space->dataPool, seq, sizeof(TXN_Node)*lenSeq, NULL);
-    TXN_NodeInfo nodeInfo = { f.seqType, offset, lenSeq };
-    vec_resize(space->seqDefStack, f.p);
+    u32 offset = upool_elm(space->dataPool, elms, sizeof(TXN_Node)*len, NULL);
+    TXN_NodeInfo nodeInfo = { type, offset, len };
     TXN_Node node = { space->nodes->length };
     vec_push(space->nodes, nodeInfo);
     return node;

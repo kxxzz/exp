@@ -50,6 +50,8 @@ typedef struct TXN_ParseContext
     TXN_SpaceSrcInfo* srcInfo;
     vec_char tmpStrBuf[1];
     TXN_ParseSeqStack seqStack[1];
+    TXN_NodeVec seqDefStack[1];
+    TXN_SeqDefFrameVec seqDefFrameStack[1];
 } TXN_ParseContext;
 
 
@@ -70,6 +72,8 @@ static TXN_ParseContext TXN_parseContextNew
 
 static void TXN_parseContextFree(TXN_ParseContext* ctx)
 {
+    vec_free(ctx->seqDefFrameStack);
+    vec_free(ctx->seqDefStack);
     vec_free(ctx->seqStack);
     vec_free(ctx->tmpStrBuf);
 }
@@ -363,7 +367,7 @@ static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Nod
     case TXN_TokenType_Text:
     {
         const char* str = ctx->src + tok->begin;
-        *pNode = TXN_addTokL(space, str, tok->len, isQuotStr);
+        *pNode = TXN_tokNewL(space, str, tok->len, isQuotStr);
         break;
     }
     case TXN_TokenType_String:
@@ -394,7 +398,7 @@ static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Nod
         }
         ctx->tmpStrBuf->data[len] = 0;
         assert(si == len);
-        *pNode = TXN_addTokL(space, ctx->tmpStrBuf->data, len, isQuotStr);
+        *pNode = TXN_tokNewL(space, ctx->tmpStrBuf->data, len, isQuotStr);
         break;
     }
     case TXN_TokenType_SeqParenBegin:
@@ -409,6 +413,46 @@ static bool TXN_tokenToNode(TXN_ParseContext* ctx, const TXN_Token* tok, TXN_Nod
     }
     return true;
 }
+
+
+
+
+
+
+
+static void TXN_addSeqEnter(TXN_ParseContext* ctx, TXN_NodeType type)
+{
+    assert(type > TXN_NodeType_Tok);
+    TXN_SeqDefFrame f = { type, ctx->seqDefStack->length };
+    vec_push(ctx->seqDefFrameStack, f);
+}
+
+static void TXN_addSeqPush(TXN_ParseContext* ctx, TXN_Node x)
+{
+    vec_push(ctx->seqDefStack, x);
+}
+
+static void TXN_addSeqCancel(TXN_ParseContext* ctx)
+{
+    assert(ctx->seqDefFrameStack->length > 0);
+    TXN_SeqDefFrame f = vec_last(ctx->seqDefFrameStack);
+    vec_pop(ctx->seqDefFrameStack);
+    vec_resize(ctx->seqDefStack, f.p);
+}
+
+static TXN_Node TXN_addSeqDone(TXN_ParseContext* ctx)
+{
+    TXN_Space* space = ctx->space;
+    assert(ctx->seqDefFrameStack->length > 0);
+    TXN_SeqDefFrame f = vec_last(ctx->seqDefFrameStack);
+    vec_pop(ctx->seqDefFrameStack);
+    u32 len = ctx->seqDefStack->length - f.p;
+    TXN_Node* elms = ctx->seqDefStack->data + f.p;
+    TXN_Node node = TXN_seqNew(space, f.seqType, elms, len);
+    vec_resize(ctx->seqDefStack, f.p);
+    return node;
+}
+
 
 
 
@@ -442,6 +486,7 @@ static bool TXN_parseSeqEnd(TXN_ParseContext* ctx, TXN_TokenType endTokType)
     ctx->curLine = curLine0;
     return false;
 }
+
 
 
 
@@ -486,16 +531,16 @@ next:
             assert(false);
             break;
         }
-        TXN_addSeqEnter(space, seqType);
+        TXN_addSeqEnter(ctx, seqType);
     }
     else
     {
-        TXN_addSeqPush(ctx->space, r);
+        TXN_addSeqPush(ctx, r);
     }
     if (TXN_parseSeqEnd(ctx, cur->endTokType))
     {
         vec_pop(seqStack);
-        r = TXN_addSeqDone(space);
+        r = TXN_addSeqDone(ctx);
         assert(r.id != TXN_Node_Invalid.id);
         if (srcInfo)
         {
@@ -528,7 +573,7 @@ next:
     }
 failed:
     vec_resize(seqStack, 0);
-    TXN_addSeqCancel(space);
+    TXN_addSeqCancel(ctx);
     return TXN_Node_Invalid;
 }
 
@@ -591,7 +636,7 @@ TXN_Node TXN_parseAsCell(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* sr
 TXN_Node TXN_parseAsList(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* srcInfo)
 {
     TXN_ParseContext ctx[1] = { TXN_parseContextNew(space, (u32)strlen(src), src, srcInfo) };
-    TXN_addSeqEnter(space, TXN_NodeType_SeqNaked);
+    TXN_addSeqEnter(ctx, TXN_NodeType_SeqNaked);
     bool errorHappen = false;
     while (TXN_skipSapce(ctx))
     {
@@ -601,22 +646,22 @@ TXN_Node TXN_parseAsList(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* sr
             errorHappen = true;
             break;
         }
-        TXN_addSeqPush(ctx->space, e);
+        TXN_addSeqPush(ctx, e);
     }
     if (!TXN_parseEnd(ctx) || errorHappen)
     {
         TXN_parseContextFree(ctx);
-        TXN_addSeqCancel(space);
+        TXN_addSeqCancel(ctx);
         TXN_Node node = { TXN_Node_Invalid.id };
         return node;
     }
-    TXN_parseContextFree(ctx);
-    TXN_Node node = TXN_addSeqDone(space);
+    TXN_Node node = TXN_addSeqDone(ctx);
     if (srcInfo)
     {
         TXN_NodeSrcInfo nodeSrcInfo = { srcInfo->fileBases->length - 1 };
         vec_push(srcInfo->nodes, nodeSrcInfo);
     }
+    TXN_parseContextFree(ctx);
     return node;
 }
 
