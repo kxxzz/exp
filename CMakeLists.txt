@@ -61,21 +61,15 @@ add_library (imp STATIC ${IMP_SRC_FILES})
 
 
 
-include_directories (txn)
-file (GLOB SRC_FILES txn/*.h txn/*.c)
+file (GLOB SRC_FILES *.h *.c)
 source_group (src FILES ${SRC_FILES})
-add_library (txn ${SRC_FILES})
 
-
-
-file (GLOB PP_TEST_SRC_FILES pp_test/*.h pp_test/*.c)
-source_group (src FILES ${PP_TEST_SRC_FILES})
-add_executable (pp_test ${PP_TEST_SRC_FILES})
-target_link_libraries (pp_test imp txn)
+add_executable (test ${SRC_FILES})
+target_link_libraries (test imp txn)
 
 if (WIN32)
 else ()
-    target_link_libraries (pp_test m)
+    target_link_libraries (test m)
 endif ()
 
 

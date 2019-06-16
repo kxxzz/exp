@@ -1,9 +1,0 @@
-[submodule "imp/vec"]
-	path = imp/vec
-	url = git@github.com:kxxzz/vec.git
-[submodule "imp/fileu"]
-	path = imp/fileu
-	url = git@github.com:kxxzz/fileu.git
-[submodule "imp/upool"]
-	path = imp/upool
-	url = git@github.com:kxxzz/upool.git
