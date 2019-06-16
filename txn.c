@@ -119,7 +119,14 @@ u32 TXN_tokSize(const TXN_Space* space, TXN_Node node)
     return info->length;
 }
 
-const char* TXN_tokCstr(const TXN_Space* space, TXN_Node node)
+u32 TXN_tokDataId(const TXN_Space* space, TXN_Node node)
+{
+    TXN_NodeInfo* info = space->nodes->data + node.id;
+    assert(TXN_NodeType_Tok == info->type);
+    return info->offset;
+}
+
+const char* TXN_tokData(const TXN_Space* space, TXN_Node node)
 {
     TXN_NodeInfo* info = space->nodes->data + node.id;
     assert(TXN_NodeType_Tok == info->type);
@@ -141,6 +148,13 @@ u32 TXN_seqLen(const TXN_Space* space, TXN_Node node)
     TXN_NodeInfo* info = space->nodes->data + node.id;
     assert(TXN_NodeType_Tok < info->type);
     return info->length;
+}
+
+u32 TXN_seqDataId(const TXN_Space* space, TXN_Node node)
+{
+    TXN_NodeInfo* info = space->nodes->data + node.id;
+    assert(TXN_NodeType_Tok < info->type);
+    return info->offset;
 }
 
 const TXN_Node* TXN_seqElm(const TXN_Space* space, TXN_Node node)

@@ -96,14 +96,16 @@ static bool TXN_isSeqCurly(const TXN_Space* space, TXN_Node node)
 TXN_Node TXN_tokFromCstr(TXN_Space* space, const char* str, bool quoted);
 TXN_Node TXN_tokFromBuf(TXN_Space* space, const char* ptr, u32 len, bool quoted);
 
-TXN_Node TXN_seqNew(TXN_Space* space, TXN_NodeType type, const TXN_Node* elms, u32 len);
-
-
 u32 TXN_tokSize(const TXN_Space* space, TXN_Node node);
-const char* TXN_tokCstr(const TXN_Space* space, TXN_Node node);
+u32 TXN_tokDataId(const TXN_Space* space, TXN_Node node);
+const char* TXN_tokData(const TXN_Space* space, TXN_Node node);
 bool TXN_tokQuoted(const TXN_Space* space, TXN_Node node);
 
+
+TXN_Node TXN_seqNew(TXN_Space* space, TXN_NodeType type, const TXN_Node* elms, u32 len);
+
 u32 TXN_seqLen(const TXN_Space* space, TXN_Node node);
+u32 TXN_seqDataId(const TXN_Space* space, TXN_Node node);
 const TXN_Node* TXN_seqElm(const TXN_Space* space, TXN_Node node);
 
 
