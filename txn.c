@@ -173,7 +173,12 @@ bool TXN_nodeDataEq(const TXN_Space* space, TXN_Node a, TXN_Node b)
 {
     TXN_NodeInfo* aInfo = space->nodes->data + a.id;
     TXN_NodeInfo* bInfo = space->nodes->data + b.id;
-    return 0 == memcmp(aInfo, bInfo, sizeof(*aInfo));
+    bool eq = aInfo->offset == bInfo->offset;
+    if (eq)
+    {
+        assert(aInfo->length == bInfo->length);
+    }
+    return eq;
 }
 
 
