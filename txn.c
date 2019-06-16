@@ -67,7 +67,7 @@ TXN_NodeType TXN_nodeType(const TXN_Space* space, TXN_Node node)
 
 
 
-TXN_Node TXN_tokNew(TXN_Space* space, const char* str, bool quoted)
+TXN_Node TXN_tokFromCstr(TXN_Space* space, const char* str, bool quoted)
 {
     u32 len = (u32)strlen(str);
     u32 offset = upool_elm(space->dataPool, str, len + 1, NULL);
@@ -77,7 +77,7 @@ TXN_Node TXN_tokNew(TXN_Space* space, const char* str, bool quoted)
     return node;
 }
 
-TXN_Node TXN_tokNewL(TXN_Space* space, const char* str, u32 len, bool quoted)
+TXN_Node TXN_tokFromLenStr(TXN_Space* space, const char* str, u32 len, bool quoted)
 {
     vec_resize(space->cstrBuf, len + 1);
     memcpy(space->cstrBuf->data, str, len);

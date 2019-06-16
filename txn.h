@@ -93,8 +93,8 @@ static bool TXN_isSeqCurly(const TXN_Space* space, TXN_Node node)
 
 
 
-TXN_Node TXN_tokNew(TXN_Space* space, const char* str, bool quoted);
-TXN_Node TXN_tokNewL(TXN_Space* space, const char* str, u32 len, bool quoted);
+TXN_Node TXN_tokFromCstr(TXN_Space* space, const char* str, bool quoted);
+TXN_Node TXN_tokFromLenStr(TXN_Space* space, const char* str, u32 len, bool quoted);
 
 TXN_Node TXN_seqNew(TXN_Space* space, TXN_NodeType type, const TXN_Node* elms, u32 len);
 
