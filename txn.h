@@ -4,6 +4,8 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <assert.h>
+
 #include <vec.h>
 
 
@@ -35,8 +37,9 @@ typedef enum TXN_NodeType
     TXN_NumNodeTypes
 } TXN_NodeType;
 
-static const char** TXN_NodeTypeNameTable(void)
+static const char* TXN_NodeTypeNameTable(TXN_NodeType t)
 {
+    assert(t < TXN_NumNodeTypes);
     static const char* a[TXN_NumNodeTypes] =
     {
         "Tok",
@@ -45,7 +48,7 @@ static const char** TXN_NodeTypeNameTable(void)
         "SeqSquare",
         "SeqCurly",
     };
-    return a;
+    return a[t];
 }
 
 
