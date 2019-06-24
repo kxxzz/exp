@@ -38,7 +38,7 @@ static void TXN_seqBracketChs(TXN_NodeType type, char ch[2])
 
 static u32 TXN_printSlTok(const TXN_Space* space, char* buf, u32 bufSize, const TXN_SpaceSrcInfo* srcInfo, TXN_Node src)
 {
-    assert(TXN_isTok(space, src));
+    assert(TXN_nodeIsTok(space, src));
 
     TXN_NodeInfo* info = space->nodes->data + src.id;
     const char* str = upool_elmData(space->dataPool, info->offset);
@@ -127,7 +127,7 @@ static u32 TXN_printSlSeq(const TXN_Space* space, char* buf, u32 bufSize, const 
 {
     TXN_PrintSlSeqStack seqStack[1] = { 0 };
 
-    assert(TXN_isSeq(space, src));
+    assert(TXN_nodeIsSeq(space, src));
     TXN_PrintSlSeqLevel root = { src };
     vec_push(seqStack, root);
 
@@ -212,7 +212,7 @@ next:
         }
     }
     TXN_Node e = ((TXN_Node*)upool_elmData(space->dataPool, seqInfo->offset))[p];
-    if (TXN_isTok(space, e))
+    if (TXN_nodeIsTok(space, e))
     {
         u32 a = TXN_printSlTok(space, bufPtr, bufRemain, srcInfo, e);
         if (a < bufRemain)
@@ -244,7 +244,7 @@ next:
 
 u32 TXN_printSL(const TXN_Space* space, TXN_Node node, char* buf, u32 bufSize, const TXN_SpaceSrcInfo* srcInfo)
 {
-    if (TXN_isTok(space, node))
+    if (TXN_nodeIsTok(space, node))
     {
         return TXN_printSlTok(space, buf, bufSize, srcInfo, node);
     }
@@ -403,7 +403,7 @@ static void TXN_printMlSeq(TXN_PrintMlContext* ctx, TXN_Node src)
     TXN_PrintMlSeqStack* seqStack = ctx->seqStack;
     assert(!seqStack->length);
 
-    assert(TXN_isSeq(space, src));
+    assert(TXN_nodeIsSeq(space, src));
     TXN_PrintMlSeqLevel root = { src };
     vec_push(seqStack, root);
 

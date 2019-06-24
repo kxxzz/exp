@@ -69,27 +69,27 @@ static TXN_Node TXN_Node_Invalid = { (u32)-1 };
 
 TXN_NodeType TXN_nodeType(const TXN_Space* space, TXN_Node node);
 
-static bool TXN_isTok(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsTok(const TXN_Space* space, TXN_Node node)
 {
     return TXN_NodeType_Tok == TXN_nodeType(space, node);
 }
-static bool TXN_isSeq(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsSeq(const TXN_Space* space, TXN_Node node)
 {
     return TXN_nodeType(space, node) > TXN_NodeType_Tok;
 }
-static bool TXN_isSeqNaked(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsSeqNaked(const TXN_Space* space, TXN_Node node)
 {
     return TXN_NodeType_SeqNaked == TXN_nodeType(space, node);
 }
-static bool TXN_isSeqRound(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsSeqRound(const TXN_Space* space, TXN_Node node)
 {
     return TXN_NodeType_SeqRound == TXN_nodeType(space, node);
 }
-static bool TXN_isSeqSquare(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsSeqSquare(const TXN_Space* space, TXN_Node node)
 {
     return TXN_NodeType_SeqSquare == TXN_nodeType(space, node);
 }
-static bool TXN_isSeqCurly(const TXN_Space* space, TXN_Node node)
+static bool TXN_nodeIsSeqCurly(const TXN_Space* space, TXN_Node node)
 {
     return TXN_NodeType_SeqCurly == TXN_nodeType(space, node);
 }
