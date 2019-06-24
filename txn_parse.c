@@ -207,7 +207,6 @@ static bool TXN_readToken_String(TXN_ParseContext* ctx, TXN_Token* out)
         }
     }
     tok.len = ctx->cur - tok.begin;
-    assert(tok.len > 0);
     *out = tok;
     ++ctx->cur;
     return true;
