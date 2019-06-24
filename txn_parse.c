@@ -626,8 +626,7 @@ TXN_Node TXN_parseAsCell(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* sr
     if ((TXN_Node_Invalid.id == node.id) || (!TXN_parseEnd(ctx)))
     {
         TXN_parseContextFree(ctx);
-        TXN_Node node = { TXN_Node_Invalid.id };
-        return node;
+        return TXN_Node_Invalid;
     }
     TXN_parseContextFree(ctx);
     return node;
@@ -650,10 +649,9 @@ TXN_Node TXN_parseAsList(TXN_Space* space, const char* src, TXN_SpaceSrcInfo* sr
     }
     if (!TXN_parseEnd(ctx) || errorHappen)
     {
-        TXN_parseContextFree(ctx);
         TXN_addSeqCancel(ctx);
-        TXN_Node node = { TXN_Node_Invalid.id };
-        return node;
+        TXN_parseContextFree(ctx);
+        return TXN_Node_Invalid;
     }
     TXN_Node node = TXN_addSeqDone(ctx);
     if (srcInfo)
