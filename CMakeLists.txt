@@ -64,11 +64,11 @@ add_library (imp STATIC ${IMP_SRC_FILES})
 file (GLOB SRC_FILES *.h *.c)
 source_group (src FILES ${SRC_FILES})
 
-add_executable (test ${SRC_FILES})
-target_link_libraries (test imp)
+add_executable (tests ${SRC_FILES})
+target_link_libraries (tests imp)
 if (WIN32)
 else ()
-    target_link_libraries (test m)
+    target_link_libraries (tests m)
 endif ()
 
 
